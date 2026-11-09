@@ -1,0 +1,47 @@
+---
+import StatCell from './StatCell.astro';
+import type { StatKind } from '../lib/format-stat';
+import type { StatNumber } from '../lib/game-schema';
+
+interface Row {
+  label: string;
+  away: StatNumber;
+  home: StatNumber;
+  kind: StatKind;
+}
+
+interface Props {
+  away: string;
+  home: string;
+  rows: Row[];
+}
+
+const { away, home, rows } = Astro.props;
+---
+
+<div class="table-scroll">
+  <table class="card-stats">
+    <thead>
+      <tr>
+        <th scope="col">Stat</th>
+        <th scope="col">{away}</th>
+        <th scope="col">{home}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {
+        rows.map((row) => (
+          <tr>
+            <th scope="row">{row.label}</th>
+            <td>
+              <StatCell stat={row.away} kind={row.kind} />
+            </td>
+            <td>
+              <StatCell stat={row.home} kind={row.kind} />
+            </td>
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+</div>

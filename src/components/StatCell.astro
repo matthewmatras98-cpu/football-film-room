@@ -1,0 +1,17 @@
+---
+import { formatStatKind, statFootnote, type StatKind } from '../lib/format-stat';
+import type { StatNumber } from '../lib/game-schema';
+
+interface Props {
+  stat: StatNumber;
+  kind: StatKind;
+}
+
+const { stat, kind } = Astro.props;
+const text = formatStatKind(stat, kind);
+---
+
+<span class="stat" data-value={stat.value === null ? 'null' : String(stat.value)} data-source={stat.source}>
+  <span class="stat-value">{text}</span>
+  <span class="stat-meta">{statFootnote(stat)}</span>
+</span>

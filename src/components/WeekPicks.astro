@@ -1,21 +1,39 @@
 ---
-import { picks, weekPickEntries } from '../lib/picks';
+import GameCardLink from './GameCardLink.astro';
+import { getAllGames, picksForGame } from '../lib/games';
+import { matchupLabel, picks } from '../lib/picks';
 
 interface Props {
   gameIds: string[];
 }
 
-const entries = weekPickEntries(Astro.props.gameIds, picks);
+const { gameIds } = Astro.props;
+const cards = new Map((await getAllGames()).map((game) => [game.game_id, game]));
 ---
 
 {
-  Astro.props.gameIds.length > 0 && (
+  gameIds.length > 0 && (
     <section class="week-picks">
       <h2>This week's picks</h2>
       <ul>
-        {entries.map((entry) => (
-          <li>{entry.href ? <a href={entry.href}>{entry.label}</a> : entry.label}</li>
-        ))}
+        {gameIds.map((gameId) => {
+          const card = cards.get(gameId);
+          const matching = picksForGame(gameId, picks);
+          return (
+            <li>
+              {card ? (
+                <GameCardLink gameId={card.game_id} away={card.away} home={card.home} />
+              ) : matching.length === 0 ? (
+                gameId
+              ) : null}
+              {matching.map((row) => (
+                <a href={`/picks/#pick-${row.pick_id}`}>
+                  {matchupLabel(row.game_id)} {row.market}
+                </a>
+              ))}
+            </li>
+          );
+        })}
       </ul>
     </section>
   )

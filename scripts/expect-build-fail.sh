@@ -3,38 +3,76 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-dest="src/content/weeks/missing-field.mdx"
-fixture="tests/fixtures/missing-field.mdx"
-log="$(mktemp)"
+week_dest="src/content/weeks/missing-field.mdx"
+game_dest="src/content/games/malformed.json"
+game_out="dist-game-fail"
 
 cleanup() {
-  rm -f "$dest"
-  rm -f "$log"
+  rm -f "$week_dest" "$game_dest"
+  rm -rf "$game_out"
 }
 trap cleanup EXIT
 
-if [[ -e "$dest" ]]; then
-  echo "refusing to overwrite $dest" >&2
-  exit 1
-fi
+run_expected_failure() {
+  local dest="$1"
+  local fixture="$2"
+  local pattern="$3"
+  local out_dir="${4:-}"
+  local log
+  log="$(mktemp)"
 
-cp "$fixture" "$dest"
+  if [[ -e "$dest" ]]; then
+    echo "refusing to overwrite $dest" >&2
+    rm -f "$log"
+    exit 1
+  fi
 
-set +e
-ASTRO_TELEMETRY_DISABLED=1 npm run build -- --force >"$log" 2>&1
-status=$?
-set -e
+  cp "$fixture" "$dest"
 
-cat "$log"
+  set +e
+  if [[ -n "$out_dir" ]]; then
+    ASTRO_TELEMETRY_DISABLED=1 npm run build -- --force --outDir "$out_dir" >"$log" 2>&1
+  else
+    ASTRO_TELEMETRY_DISABLED=1 npm run build -- --force >"$log" 2>&1
+  fi
+  local status=$?
+  set -e
 
-if [[ "$status" -eq 0 ]]; then
-  echo "expected astro build to fail when a required field is missing" >&2
-  exit 1
-fi
+  cat "$log"
 
-if ! grep -E -q 'summary|Invalid content entry|does not match schema|Content entry data' "$log"; then
-  echo "astro build failed, but not because the missing-field fixture was rejected" >&2
-  exit 1
-fi
+  if [[ "$status" -eq 0 ]]; then
+    rm -f "$dest" "$log"
+    if [[ -n "$out_dir" ]]; then
+      rm -rf "$out_dir"
+    fi
+    echo "expected astro build to fail for $fixture" >&2
+    exit 1
+  fi
 
-echo "astro build failed as expected (exit ${status})"
+  if ! grep -E -q "$pattern" "$log"; then
+    rm -f "$dest" "$log"
+    if [[ -n "$out_dir" ]]; then
+      rm -rf "$out_dir"
+    fi
+    echo "astro build failed, but not because $fixture was rejected" >&2
+    exit 1
+  fi
+
+  rm -f "$dest" "$log"
+  if [[ -n "$out_dir" ]]; then
+    rm -rf "$out_dir"
+  fi
+
+  echo "astro build failed as expected (exit ${status}) for $fixture"
+}
+
+run_expected_failure \
+  "$week_dest" \
+  "tests/fixtures/missing-field.mdx" \
+  "summary|Invalid content entry|does not match schema|Content entry data"
+
+run_expected_failure \
+  "$game_dest" \
+  "tests/fixtures/games/malformed.json" \
+  "malformed|Invalid content entry|does not match schema|Content entry data|game_id" \
+  "$game_out"

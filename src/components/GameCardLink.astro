@@ -1,0 +1,11 @@
+---
+interface Props {
+  gameId: string;
+  away: string;
+  home: string;
+}
+
+const { gameId, away, home } = Astro.props;
+---
+
+<a class="game-card-link" href={`/games/${gameId}/`}>{away} at {home}</a>

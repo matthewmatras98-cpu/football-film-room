@@ -180,3 +180,73 @@ tbody.is-rejected .record {
 .record-line {
   font-weight: 700;
 }
+
+.card-list {
+  list-style: none;
+  padding: 0;
+}
+
+.card-list li,
+.week-picks li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  align-items: baseline;
+  padding: 0.35rem 0;
+}
+
+.game-card-link {
+  font-weight: 700;
+}
+
+.pick-badge {
+  display: inline-block;
+  padding: 0.05rem 0.4rem;
+  border: 1px solid var(--line);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  text-decoration: none;
+}
+
+.card-stats {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.card-stats th,
+.card-stats td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.stat-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-meta,
+.note {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.stat-meta {
+  display: block;
+}
+
+.chart {
+  margin: 0.75rem 0 1rem;
+}
+
+.chart svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.card-sources ul {
+  margin: 0.4rem 0;
+  padding-left: 1.2rem;
+}

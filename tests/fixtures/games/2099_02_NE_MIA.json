@@ -1,0 +1,402 @@
+{
+  "schema_version": 1,
+  "game_id": "2099_02_NE_MIA",
+  "season": 2099,
+  "week": 2,
+  "kickoff_utc": "2099-09-21T17:00:00Z",
+  "home": "MIA",
+  "away": "NE",
+  "venue": "Seaside Park",
+  "roof": "outdoors",
+  "surface": "grass",
+  "home_rest": 7,
+  "away_rest": 6,
+  "line_open": {
+    "ts": "2099-09-16T15:00:00Z",
+    "home_spread": -2.5,
+    "total": 44.5,
+    "n_books": 8
+  },
+  "line_latest": {
+    "ts": "2099-09-20T15:00:00Z",
+    "home_spread": -3.5,
+    "total": null,
+    "n_books": 9
+  },
+  "line_history": [
+    {
+      "ts": "2099-09-16T15:00:00Z",
+      "home_spread": -2.5,
+      "total": 44.5,
+      "n_books": 8
+    },
+    {
+      "ts": "2099-09-18T15:00:00Z",
+      "home_spread": -3,
+      "total": 45,
+      "n_books": 9
+    },
+    {
+      "ts": "2099-09-20T15:00:00Z",
+      "home_spread": -3.5,
+      "total": null,
+      "n_books": 9
+    }
+  ],
+  "generated_at": "2099-09-20T18:00:00Z",
+  "data_through_week": 1,
+  "sources": [
+    "nflverse_pbp",
+    "nflverse_schedules",
+    "nflverse_injuries",
+    "ngs_via_nflverse",
+    "odds_api",
+    "nws"
+  ],
+  "sections": {
+    "epa": {
+      "home": {
+        "off_epa_season": {
+          "value": 0.08,
+          "source": "nflverse_pbp",
+          "sample": 640,
+          "range": "2099 wk1"
+        },
+        "off_epa_l4": {
+          "value": 0.11,
+          "source": "nflverse_pbp",
+          "sample": 180,
+          "range": "2099 wk1"
+        },
+        "def_epa_season": {
+          "value": -0.04,
+          "source": "nflverse_pbp",
+          "sample": 620,
+          "range": "2099 wk1"
+        },
+        "def_epa_l4": {
+          "value": 0.02,
+          "source": "nflverse_pbp",
+          "sample": 170,
+          "range": "2099 wk1"
+        },
+        "off_sr_season": {
+          "value": 0.46,
+          "source": "nflverse_pbp",
+          "sample": 640,
+          "range": "2099 wk1"
+        },
+        "def_sr_season": {
+          "value": 0.41,
+          "source": "nflverse_pbp",
+          "sample": 620,
+          "range": "2099 wk1"
+        }
+      },
+      "away": {
+        "off_epa_season": {
+          "value": 0.02,
+          "source": "nflverse_pbp",
+          "sample": 640,
+          "range": "2099 wk1"
+        },
+        "off_epa_l4": {
+          "value": null,
+          "source": "nflverse_pbp",
+          "sample": null,
+          "range": null
+        },
+        "def_epa_season": {
+          "value": 0.06,
+          "source": "nflverse_pbp",
+          "sample": 620,
+          "range": "2099 wk1"
+        },
+        "def_epa_l4": {
+          "value": -0.01,
+          "source": "nflverse_pbp",
+          "sample": 170,
+          "range": "2099 wk1"
+        },
+        "off_sr_season": {
+          "value": 0.43,
+          "source": "nflverse_pbp",
+          "sample": 640,
+          "range": "2099 wk1"
+        },
+        "def_sr_season": {
+          "value": 0.48,
+          "source": "nflverse_pbp",
+          "sample": 620,
+          "range": "2099 wk1"
+        }
+      }
+    },
+    "pass_rate_pace": {
+      "home": {
+        "neutral_ed_pass_rate": {
+          "value": 0.5,
+          "source": "nflverse_pbp",
+          "sample": 300,
+          "range": "2099 wk1"
+        },
+        "pace_sec_per_play": {
+          "value": 28.4,
+          "source": "nflverse_pbp",
+          "sample": 300,
+          "range": "2099 wk1"
+        }
+      },
+      "away": {
+        "neutral_ed_pass_rate": {
+          "value": 0.47,
+          "source": "nflverse_pbp",
+          "sample": 300,
+          "range": "2099 wk1"
+        },
+        "pace_sec_per_play": {
+          "value": 30.1,
+          "source": "nflverse_pbp",
+          "sample": 300,
+          "range": "2099 wk1"
+        }
+      }
+    },
+    "explosives": {
+      "home": {
+        "explosive_rate_for": {
+          "value": 0.12,
+          "source": "nflverse_pbp",
+          "sample": 640,
+          "range": "2099 wk1"
+        },
+        "explosive_rate_allowed": {
+          "value": 0.09,
+          "source": "nflverse_pbp",
+          "sample": 620,
+          "range": "2099 wk1"
+        }
+      },
+      "away": {
+        "explosive_rate_for": {
+          "value": 0.1,
+          "source": "nflverse_pbp",
+          "sample": 640,
+          "range": "2099 wk1"
+        },
+        "explosive_rate_allowed": {
+          "value": 0.11,
+          "source": "nflverse_pbp",
+          "sample": 620,
+          "range": "2099 wk1"
+        }
+      }
+    },
+    "qb": {
+      "home": {
+        "player": "A. Home",
+        "epa_per_db": {
+          "value": 0.14,
+          "source": "nflverse_pbp",
+          "sample": 210,
+          "range": "2099 wk1"
+        },
+        "cpoe": {
+          "value": 2.4,
+          "source": "nflverse_pbp",
+          "sample": 190,
+          "range": "2099 wk1"
+        },
+        "time_to_throw": {
+          "value": 2.71,
+          "source": "ngs_via_nflverse",
+          "sample": 180,
+          "range": "2099 wk1"
+        }
+      },
+      "away": {
+        "player": "A. Away",
+        "epa_per_db": {
+          "value": 0.05,
+          "source": "nflverse_pbp",
+          "sample": 210,
+          "range": "2099 wk1"
+        },
+        "cpoe": {
+          "value": -1.2,
+          "source": "nflverse_pbp",
+          "sample": 190,
+          "range": "2099 wk1"
+        },
+        "time_to_throw": {
+          "value": 2.95,
+          "source": "ngs_via_nflverse",
+          "sample": 180,
+          "range": "2099 wk1"
+        }
+      }
+    },
+    "sacks": {
+      "home": {
+        "sack_rate_for": {
+          "value": 0.08,
+          "source": "nflverse_pbp",
+          "sample": 210,
+          "range": "2099 wk1"
+        },
+        "sack_rate_allowed": {
+          "value": 0.06,
+          "source": "nflverse_pbp",
+          "sample": 200,
+          "range": "2099 wk1"
+        }
+      },
+      "away": {
+        "sack_rate_for": {
+          "value": 0.07,
+          "source": "nflverse_pbp",
+          "sample": 210,
+          "range": "2099 wk1"
+        },
+        "sack_rate_allowed": {
+          "value": 0.09,
+          "source": "nflverse_pbp",
+          "sample": 200,
+          "range": "2099 wk1"
+        }
+      }
+    },
+    "red_zone_downs": {
+      "home": {
+        "rz_td_rate_for": {
+          "value": 0.55,
+          "source": "nflverse_pbp",
+          "sample": 40,
+          "range": "2099 wk1"
+        },
+        "rz_td_rate_allowed": {
+          "value": 0.5,
+          "source": "nflverse_pbp",
+          "sample": 38,
+          "range": "2099 wk1"
+        },
+        "third_down_rate_for": {
+          "value": 0.4,
+          "source": "nflverse_pbp",
+          "sample": 120,
+          "range": "2099 wk1"
+        },
+        "third_down_rate_allowed": {
+          "value": 0.38,
+          "source": "nflverse_pbp",
+          "sample": 118,
+          "range": "2099 wk1"
+        },
+        "fourth_down_rate_for": {
+          "value": 0.52,
+          "source": "nflverse_pbp",
+          "sample": 16,
+          "range": "2099 wk1"
+        },
+        "fourth_down_rate_allowed": {
+          "value": 0.48,
+          "source": "nflverse_pbp",
+          "sample": 14,
+          "range": "2099 wk1"
+        }
+      },
+      "away": {
+        "rz_td_rate_for": {
+          "value": 0.49,
+          "source": "nflverse_pbp",
+          "sample": 40,
+          "range": "2099 wk1"
+        },
+        "rz_td_rate_allowed": {
+          "value": 0.57,
+          "source": "nflverse_pbp",
+          "sample": 38,
+          "range": "2099 wk1"
+        },
+        "third_down_rate_for": {
+          "value": 0.36,
+          "source": "nflverse_pbp",
+          "sample": 120,
+          "range": "2099 wk1"
+        },
+        "third_down_rate_allowed": {
+          "value": 0.42,
+          "source": "nflverse_pbp",
+          "sample": 118,
+          "range": "2099 wk1"
+        },
+        "fourth_down_rate_for": {
+          "value": 0.45,
+          "source": "nflverse_pbp",
+          "sample": 16,
+          "range": "2099 wk1"
+        },
+        "fourth_down_rate_allowed": {
+          "value": 0.5,
+          "source": "nflverse_pbp",
+          "sample": 14,
+          "range": "2099 wk1"
+        }
+      }
+    },
+    "injuries": {
+      "home": [
+        {
+          "player": "A. Receiver",
+          "position": "WR",
+          "status": "Questionable",
+          "detail": "ankle"
+        }
+      ],
+      "away": [
+        {
+          "player": "B. Lineman",
+          "position": "T",
+          "status": "Doubtful",
+          "detail": null
+        }
+      ]
+    },
+    "weather": {
+      "mode": "outdoor",
+      "temp_f": {
+        "value": 42,
+        "source": "nws",
+        "sample": null,
+        "range": "Sun afternoon"
+      },
+      "wind_mph": {
+        "value": 12,
+        "source": "nws",
+        "sample": null,
+        "range": "Sun afternoon"
+      },
+      "precip_prob_pct": {
+        "value": 30,
+        "source": "nws",
+        "sample": null,
+        "range": "Sun afternoon"
+      },
+      "summary": "Mostly cloudy"
+    },
+    "story_prompts": [
+      {
+        "title": "Pace between snaps",
+        "body": "b3-fixture-sentinel NE has taken longer between offensive snaps than the opponent over the recorded weeks."
+      },
+      {
+        "title": "Explosive plays",
+        "body": "NE has created a different rate of long gains than it has allowed."
+      },
+      {
+        "title": "Rest and the injury list",
+        "body": "NE brings the rest and injury report shown on this card. The numbers above are descriptive."
+      }
+    ]
+  }
+}

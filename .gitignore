@@ -2,6 +2,7 @@ node_modules/
 dist/
 dist-published-check/
 dist-picks-check/
+dist-game-fail/
 .astro/
 *.log
 .venv/
