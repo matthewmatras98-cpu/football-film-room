@@ -1,0 +1,59 @@
+name: pick-ledger
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - data/picks.csv
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pick-ledger-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ledger:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.13.7"
+
+      - name: Sync
+        working-directory: pipeline
+        run: uv sync --frozen
+
+      - name: Validate and append ledger
+        working-directory: pipeline
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          NFLREADPY_CACHE: "off"
+          NFLREADPY_CACHE_DURATION: "0"
+        run: |
+          set -euo pipefail
+          uv run --frozen python -m football_pipeline validate
+          uv run --frozen python -m football_pipeline ledger
+
+      - name: Commit ledger if it changed
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/pick_ledger.csv
+          if git diff --cached --quiet; then
+            echo "ledger unchanged"
+            exit 0
+          fi
+          git commit -m "Update pick ledger"
+          git push
