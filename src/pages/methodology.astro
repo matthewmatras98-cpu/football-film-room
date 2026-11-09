@@ -1,0 +1,65 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { disclaimer, fullCredits } from '../data/legal';
+import { siteName } from '../data/site';
+import { getPublishedWeeks } from '../lib/posts';
+
+await getPublishedWeeks();
+---
+
+<BaseLayout
+  title="Methodology"
+  description="How this site grades a pick record, credits its sources, and states its limits."
+>
+  <h1>Methodology</h1>
+  <p>
+    {siteName} publishes matchup notes and a public pick record. The rules on this page are the whole
+    standard.
+  </p>
+
+  <h2>Credits</h2>
+  {fullCredits.map((line) => <p>{line}</p>)}
+
+  <h2>Disclaimer</h2>
+  <p>{disclaimer}</p>
+
+  <h2>Closing line</h2>
+  <p>
+    The closing line is the median of N US books in the last valid pre-kick snapshot. The median is
+    kept exact and is not rounded. With an even number of books it can land on a quarter point.
+  </p>
+  <p>
+    That snapshot is the last one stored before kickoff, typically 5 to 75 minutes before kickoff. It
+    is not the true close at kickoff.
+  </p>
+  <ul>
+    <li>Three or more books: the exact median. Source: odds_api.</li>
+    <li>One or two books: the median of those books, marked thin. Source: odds_api_thin.</li>
+    <li>No books: the nflverse line. Source: nflverse.</li>
+    <li>Neither source available: the pick stays ungraded. The site does not guess.</li>
+    <li>
+      A snapshot more than 180 minutes before kickoff is marked stale. Source: odds_api_stale.
+    </li>
+  </ul>
+  <p>Lines are shown as a median of N US books. Book names are not shown, and there are no book links.</p>
+
+  <h2>Grading</h2>
+  <p>
+    Each pick is a flat 1 unit. Grading assumes standard −110 odds. A win is +0.909 units, a loss is
+    −1.000 units, and a push is 0 units. Win percentage excludes pushes. CLV is shown for reference
+    only and does not change the grade. Results are in units, never dollars.
+  </p>
+
+  <h2>Lock rule</h2>
+  <p>
+    A pick is rejected when picked_at is at or after kickoff, or when the server push time is at or
+    after kickoff. Rejected picks are marked rejected – late and left out of the record. A client-set
+    commit time does not lock a pick.
+  </p>
+
+  <h2>Film</h2>
+  <p>
+    Film is link-out only. This site does not rehost, download, or frame film. There is no fantasy
+    content.
+  </p>
+</BaseLayout>

@@ -1,0 +1,51 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: ci
+    runs-on: ubuntu-latest
+    env:
+      ASTRO_TELEMETRY_DISABLED: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Check
+        run: npm run check
+
+      - name: Test
+        run: npm test
+
+      - name: No-logo check
+        run: npm run lint:assets
+
+      - name: Build
+        run: |
+          start=$(date +%s)
+          npm run build
+          end=$(date +%s)
+          echo "astro build finished in $((end - start))s"
+
+      - name: Verify dist
+        run: node scripts/verify-dist.mjs
+
+      - name: Expect build fail
+        run: bash scripts/expect-build-fail.sh
