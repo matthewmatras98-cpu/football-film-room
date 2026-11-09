@@ -1,0 +1,19 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { siteName } from '../data/site';
+import { getPublishedWeeks } from '../lib/posts';
+
+await getPublishedWeeks();
+---
+
+<BaseLayout title="About" description={`What ${siteName} is for.`}>
+  <h1>About</h1>
+  <p>
+    {siteName} is a personal site for weekly football matchup notes and a public pick record.
+  </p>
+  <p>
+    Grades are kept in units. The <a href="/methodology/">methodology</a> page states the closing-line
+    rule, the credit lines, and the disclaimer.
+  </p>
+  <p>Film is linked out, not hosted here.</p>
+</BaseLayout>

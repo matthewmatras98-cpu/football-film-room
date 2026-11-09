@@ -1,0 +1,30 @@
+---
+import { render } from 'astro:content';
+import PostLayout from '../../layouts/PostLayout.astro';
+import { formatPublishedAt, getPublishedWeeks } from '../../lib/posts';
+
+export async function getStaticPaths() {
+  const posts = await getPublishedWeeks();
+  return posts.map((post) => ({
+    params: { slug: post.id },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+---
+
+<PostLayout title={post.data.title} description={post.data.summary}>
+  <p class="meta">
+    <time datetime={post.data.published_at}>{formatPublishedAt(post.data.published_at)}</time>
+    <span>Season {post.data.season}, week {post.data.week}</span>
+  </p>
+  <p class="summary">{post.data.summary}</p>
+  {
+    post.data.tags.length > 0 && (
+      <p class="meta">Tags: {post.data.tags.join(', ')}</p>
+    )
+  }
+  <Content />
+</PostLayout>
