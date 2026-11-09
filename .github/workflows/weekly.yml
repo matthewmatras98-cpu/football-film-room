@@ -18,6 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
@@ -32,15 +34,21 @@ jobs:
         working-directory: pipeline
         run: uv sync --frozen
 
-      - name: Refresh and grade
+      - name: Refresh, pull snapshots, grade, export lines
         working-directory: pipeline
         env:
           NFLREADPY_CACHE: "off"
           NFLREADPY_CACHE_DURATION: "0"
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ vars.CF_ACCOUNT_ID }}
+          D1_DATABASE_ID: ${{ vars.D1_DATABASE_ID }}
         run: |
           set -euo pipefail
           uv run --frozen python -m football_pipeline refresh
-          uv run --frozen python -m football_pipeline grade --as-of "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          uv run --frozen python -m football_pipeline pull-snapshots --out ../data/.cache/week.d1dump.csv
+          as_of="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          uv run --frozen python -m football_pipeline grade --as-of "$as_of" --snapshots ../data/.cache/week.d1dump.csv
+          uv run --frozen python -m football_pipeline lines-export --as-of "$as_of" --snapshots ../data/.cache/week.d1dump.csv
 
       - name: Commit grader outputs if they changed
         run: |
@@ -51,13 +59,12 @@ jobs:
           # stages data/picks.csv, so pick-ledger is not an event for this commit.
           # Pushing to main may need the ruleset bypass Matthew is adding.
           git add -- data/graded.csv src/data/summary.json src/data/picks_view.json
-          if git diff --name-only --cached | grep -qx 'data/picks.csv'; then
-            echo "weekly must not modify data/picks.csv"
-            exit 1
+          if compgen -G "data/lines/*.csv" > /dev/null; then
+            git add -- data/lines
           fi
           if git diff --cached --quiet; then
             echo "no grader changes"
             exit 0
           fi
-          git commit -m "Grade picks from the latest schedules"
-          git push
+          git commit -m "Grade picks and publish derived lines"
+          bash scripts/push_with_retry.sh

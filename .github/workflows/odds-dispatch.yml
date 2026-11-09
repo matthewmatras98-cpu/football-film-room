@@ -1,0 +1,55 @@
+name: odds-dispatch
+
+on:
+  schedule:
+    - cron: "7,37 12-23 * * *"
+    - cron: "7,37 0-3 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Check secrets, D1 schema, and event mapping. Calls /events only (0 credits)."
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: odds-dispatch
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.13.7"
+
+      - name: Sync
+        working-directory: pipeline
+        run: uv sync --frozen
+
+      - name: Dispatch
+        working-directory: pipeline
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ vars.CF_ACCOUNT_ID }}
+          D1_DATABASE_ID: ${{ vars.D1_DATABASE_ID }}
+          NFLREADPY_CACHE: "off"
+          NFLREADPY_CACHE_DURATION: "0"
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "true" ]; then
+            uv run --frozen python -m football_pipeline dispatch --dry-run
+          else
+            uv run --frozen python -m football_pipeline dispatch
+          fi

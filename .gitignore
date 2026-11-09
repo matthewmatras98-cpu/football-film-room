@@ -11,4 +11,7 @@ __pycache__/
 .ruff_cache/
 *.py[cod]
 data/.cache/
+data/raw/
+*.odds.json
+*.d1dump*
 pipeline/.venv/

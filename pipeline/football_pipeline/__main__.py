@@ -1,13 +1,16 @@
-"""CLI: python -m football_pipeline {refresh|validate|ledger|grade}."""
+"""CLI: python -m football_pipeline {refresh|validate|ledger|grade|dispatch|...}."""
 
 from __future__ import annotations
 
 import argparse
 import os
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 from football_pipeline.close import read_snapshot_closes
+from football_pipeline.d1 import D1Client
+from football_pipeline.dispatch import run_dispatch
 from football_pipeline.grade import grade_picks, write_outputs
 from football_pipeline.ledger import (
     append_new_rows,
@@ -17,7 +20,9 @@ from football_pipeline.ledger import (
     load_activity_file,
     load_ledger,
 )
+from football_pipeline.lines_export import book_lines_from_snapshots, export_lines, write_close_file
 from football_pipeline.nflv import load_games, load_schedule_frame, write_cache
+from football_pipeline.odds import OddsClient
 from football_pipeline.schema import PipelineError, format_ts, parse_pick_file, parse_ts
 from football_pipeline.validate import Issue, emit_annotations, validate_rows
 
@@ -34,6 +39,12 @@ def main(argv: list[str] | None = None) -> int:
             return _ledger(args)
         if args.command == "grade":
             return _grade(args)
+        if args.command == "dispatch":
+            return _dispatch(args)
+        if args.command == "pull-snapshots":
+            return _pull_snapshots(args)
+        if args.command == "lines-export":
+            return _lines_export(args)
     except (PipelineError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
@@ -124,6 +135,56 @@ def _grade(args: argparse.Namespace) -> int:
     return 0
 
 
+def _dispatch(args: argparse.Namespace) -> int:
+    key, token, account, database = _require_env(
+        "ODDS_API_KEY",
+        "CF_API_TOKEN",
+        "CF_ACCOUNT_ID",
+        "D1_DATABASE_ID",
+    )
+    now = parse_ts(args.now) if args.now else datetime.now(timezone.utc)
+    games, _source = load_games(fixture=args.schedules)
+    return run_dispatch(
+        now=now,
+        games=games,
+        odds=OddsClient(key),
+        d1=D1Client(account, database, token),
+        dry_run=args.dry_run,
+    )
+
+
+def _pull_snapshots(args: argparse.Namespace) -> int:
+    token, account, database = _require_env("CF_API_TOKEN", "CF_ACCOUNT_ID", "D1_DATABASE_ID")
+    games, _source = load_games(fixture=args.schedules)
+    d1 = D1Client(account, database, token)
+    d1.apply_schema()
+    books = book_lines_from_snapshots(d1.fetch_snapshots(), games)
+    write_close_file(args.out, books)
+    print(f"wrote {len(books)} close row(s)")
+    return 0
+
+
+def _lines_export(args: argparse.Namespace) -> int:
+    if not args.as_of:
+        raise PipelineError("lines-export requires --as-of")
+    if args.snapshots is None:
+        raise PipelineError("lines-export requires --snapshots")
+    as_of = parse_ts(args.as_of)
+    root = find_root(args.root)
+    games, _source = load_games(fixture=args.schedules)
+    books = read_snapshot_closes(args.snapshots)
+    written = export_lines(root, games, books, as_of)
+    print(f"wrote {len(written)} lines file(s)")
+    return 0
+
+
+def _require_env(*names: str) -> tuple[str, ...]:
+    missing = [name for name in names if not os.environ.get(name, "").strip()]
+    if missing:
+        raise PipelineError("missing " + ", ".join(missing))
+    return tuple(os.environ[name] for name in names)
+
+
 def _validated(root: Path, picks_path: Path, schedules: Path | None):
     del root
     if not picks_path.is_file():
@@ -164,8 +225,11 @@ def _parser() -> argparse.ArgumentParser:
     validate = sub.add_parser("validate", help="validate data/picks.csv")
     ledger = sub.add_parser("ledger", help="append the pick ledger from the activity API")
     grade = sub.add_parser("grade", help="write graded.csv, summary.json, and picks_view.json")
+    dispatch = sub.add_parser("dispatch", help="capture due odds snapshots into D1")
+    pull = sub.add_parser("pull-snapshots", help="read D1 snapshots into a close table")
+    lines = sub.add_parser("lines-export", help="write derived data/lines CSVs")
 
-    for command in (refresh, validate, ledger, grade):
+    for command in (refresh, validate, ledger, grade, dispatch, pull, lines):
         command.add_argument("--root", type=Path, default=None, help="repo root (default: auto)")
         command.add_argument(
             "--schedules",
@@ -184,8 +248,17 @@ def _parser() -> argparse.ArgumentParser:
         "--snapshots",
         type=Path,
         default=None,
-        help="optional per-book close table (fixtures; T2 supplies real snapshots)",
+        help="per-book close table; weekly writes this from D1",
     )
+    dispatch.add_argument("--now", default=None, help="ISO-8601 timestamp with offset (default: now)")
+    dispatch.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="check secrets, apply the D1 schema, and map /events; do not call /odds",
+    )
+    pull.add_argument("--out", type=Path, required=True, help="gitignored close-table path")
+    lines.add_argument("--as-of", dest="as_of", default=None, help="ISO-8601 timestamp with offset")
+    lines.add_argument("--snapshots", type=Path, required=True, help="close table from pull-snapshots")
     return parser
 
 

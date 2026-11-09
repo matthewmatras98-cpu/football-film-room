@@ -127,6 +127,95 @@ def test_latest_pre_kick_snapshot_wins_and_in_play_lines_drop():
     assert close.close_age_min == Decimal(20)
 
 
+def test_close_prefers_the_5_to_75_window_over_a_later_snapshot():
+    game = _game(spread_line=Decimal("9"))
+    close = select_close(
+        game,
+        [
+            _book("a", Decimal("-1"), minutes_before=90),
+            _book("b", Decimal("-1"), minutes_before=90),
+            _book("c", Decimal("-1"), minutes_before=90),
+            _book("a", Decimal("-3"), minutes_before=30),
+            _book("b", Decimal("-3"), minutes_before=30),
+            _book("c", Decimal("-2.5"), minutes_before=30),
+            _book("a", Decimal("9"), minutes_before=2),
+            _book("b", Decimal("9"), minutes_before=2),
+            _book("c", Decimal("9"), minutes_before=2),
+        ],
+    )
+    assert close.line == Decimal("-3")
+    assert close.close_age_min == Decimal(30)
+    assert close.source == "odds_api"
+    assert close.close_books == 3
+
+
+def test_age_boundaries_of_the_preferred_window():
+    game = _game()
+    at_five = select_close(
+        game,
+        [
+            _book("a", Decimal("-6"), minutes_before=5),
+            _book("a", Decimal("-1"), minutes_before=4),
+        ],
+    )
+    assert at_five.line == Decimal("-6")
+    assert at_five.close_age_min == Decimal(5)
+
+    at_seventy_five = select_close(
+        game,
+        [
+            _book("a", Decimal("-6"), minutes_before=75),
+            _book("a", Decimal("-1"), minutes_before=76),
+        ],
+    )
+    assert at_seventy_five.line == Decimal("-6")
+    assert at_seventy_five.close_age_min == Decimal(75)
+
+
+def test_snapshot_between_76_and_180_is_a_normal_close():
+    game = _game()
+    thin = select_close(game, [_book("only", Decimal("-2"), minutes_before=100)])
+    assert thin.source == "odds_api_thin"
+    assert thin.line == Decimal("-2")
+    assert thin.close_age_min == Decimal(100)
+
+    fresh = select_close(
+        game,
+        [
+            _book("a", Decimal("-3"), minutes_before=76),
+            _book("b", Decimal("-3"), minutes_before=76),
+            _book("c", Decimal("-2.5"), minutes_before=76),
+        ],
+    )
+    assert fresh.source == "odds_api"
+    assert fresh.line == Decimal("-3")
+    assert fresh.close_age_min == Decimal(76)
+
+
+def test_only_a_sub_five_minute_snapshot_is_still_used():
+    game = _game()
+    close = select_close(game, [_book("only", Decimal("-2"), minutes_before=4)])
+    assert close.line == Decimal("-2")
+    assert close.source == "odds_api_thin"
+    assert close.close_age_min == Decimal(4)
+
+
+def test_four_books_past_180_are_stale_not_odds_api():
+    game = _game()
+    close = select_close(
+        game,
+        [
+            _book("a", Decimal("-3"), minutes_before=181),
+            _book("b", Decimal("-3"), minutes_before=181),
+            _book("c", Decimal("-2.5"), minutes_before=181),
+            _book("d", Decimal("-2"), minutes_before=181),
+        ],
+    )
+    assert close.source == "odds_api_stale"
+    assert close.close_books == 4
+    assert close.line == Decimal("-3")
+
+
 def test_stale_snapshot_is_labeled_and_exact_180_is_not():
     game = _game(spread_line=Decimal("3"))
     stale = select_close(game, [_book("a", Decimal("-2"), minutes_before=181)])

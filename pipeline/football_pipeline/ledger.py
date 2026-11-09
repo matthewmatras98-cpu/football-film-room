@@ -27,6 +27,8 @@ from football_pipeline.schema import (
 
 RETRY_SECONDS = 120.0
 RETRY_PAUSE_SECONDS = 5.0
+# Newest supported REST API version. The supported list is 2026-03-10 and
+# 2022-11-28: https://docs.github.com/en/rest/about-the-rest-api/api-versions
 API_VERSION = "2026-03-10"
 
 

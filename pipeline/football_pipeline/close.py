@@ -9,9 +9,11 @@ The consensus line is never an average. Sort the book lines ascending and
 take element floor((n - 1) / 2): the lower-middle real book line. Whole
 numbers stay whole, so a pick can push.
 
-n >= 3 → odds_api. n of 1 or 2 → odds_api_thin. A snapshot more than 180
-minutes before kickoff is odds_api_stale instead. nflverse closes record an
-empty close_ts and null book count and age.
+Prefer the last pre-kick snapshot whose age is in [5, 75] minutes. If none
+sit in that window, use the latest pre-kick snapshot. n >= 3 → odds_api.
+n of 1 or 2 → odds_api_thin. Age from 76 through 180 minutes keeps those
+labels. Only age above 180 minutes is odds_api_stale. nflverse closes record
+an empty close_ts and null book count and age.
 """
 
 from __future__ import annotations
@@ -143,11 +145,11 @@ def read_snapshot_closes(path: Path) -> list[BookLine]:
 
 
 def _snapshot_close(game: Game, rows: list[BookLine], market: str) -> Close | None:
-    """Latest pre-kickoff snapshot for this game and market.
+    """Last snapshot in the [5, 75] minute window, else the latest pre-kick.
 
     Rows at or after kickoff are in-play and are dropped. Books that share a
-    snapshot_ts are one snapshot. Different timestamps are different snapshots;
-    the latest one still before kickoff wins.
+    snapshot_ts are one snapshot. A newer snapshot inside five minutes of
+    kickoff does not replace one that still sits in the window.
     """
     if game.kickoff_utc is None:
         return None
@@ -159,18 +161,29 @@ def _snapshot_close(game: Game, rows: list[BookLine], market: str) -> Close | No
     ]
     if not eligible:
         return None
-    latest = max(row.snapshot_ts for row in eligible)
+
+    def age_minutes(stamp: datetime) -> Decimal:
+        seconds = Decimal(str((kickoff - stamp).total_seconds()))
+        return seconds / Decimal(60)
+
+    by_ts: dict[datetime, list[BookLine]] = {}
+    for row in eligible:
+        by_ts.setdefault(row.snapshot_ts, []).append(row)
+    in_window = [
+        stamp
+        for stamp in by_ts
+        if Decimal(5) <= age_minutes(stamp) <= Decimal(75)
+    ]
+    chosen_ts = max(in_window) if in_window else max(by_ts)
     # One point per book. A repeated book keeps the last row in the file.
     by_book: dict[str, Decimal] = {}
-    for row in eligible:
-        if row.snapshot_ts == latest:
-            by_book[row.book] = row.point
+    for row in by_ts[chosen_ts]:
+        by_book[row.book] = row.point
     points = list(by_book.values())
     if not points:
         return None
     chosen = lower_middle(points)
-    age_seconds = Decimal(str((game.kickoff_utc - latest).total_seconds()))
-    age_min = age_seconds / Decimal(60)
+    age_min = age_minutes(chosen_ts)
     count = len(points)
     if age_min > STALE_AFTER_MINUTES:
         source = "odds_api_stale"
@@ -181,7 +194,7 @@ def _snapshot_close(game: Game, rows: list[BookLine], market: str) -> Close | No
     return Close(
         line=chosen,
         source=source,
-        close_ts=format_ts(latest),
+        close_ts=format_ts(chosen_ts),
         close_books=count,
         close_age_min=age_min,
     )
