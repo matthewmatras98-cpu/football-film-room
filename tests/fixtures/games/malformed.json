@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "game_id": "2099_03_NYG_DAL",
+  "season": 2099,
+  "week": 3,
+  "venue": "b3-malformed-card",
+  "roof": "outdoors",
+  "sections": {
+    "epa": {
+      "home": {
+        "off_epa_season": {
+          "value": 0.1,
+          "sample": 10,
+          "range": null
+        }
+      }
+    }
+  }
+}

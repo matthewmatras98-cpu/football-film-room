@@ -1,0 +1,342 @@
+{
+  "schema_version": 1,
+  "game_id": "2099_01_GB_CHI",
+  "season": 2099,
+  "week": 1,
+  "kickoff_utc": "2099-09-14T17:00:00Z",
+  "home": "CHI",
+  "away": "GB",
+  "venue": "Covered Field",
+  "roof": "dome",
+  "surface": "turf",
+  "home_rest": 9,
+  "away_rest": 10,
+  "line_open": null,
+  "line_latest": null,
+  "line_history": [],
+  "generated_at": "2099-09-13T18:00:00Z",
+  "data_through_week": 1,
+  "sources": [
+    "nflverse_pbp",
+    "nflverse_schedules",
+    "nflverse_injuries",
+    "ngs_via_nflverse"
+  ],
+  "sections": {
+    "epa": {
+      "home": {
+        "off_epa_season": {
+          "value": 0.03,
+          "source": "nflverse_pbp",
+          "sample": 640,
+          "range": "2099 wk1"
+        },
+        "off_epa_l4": {
+          "value": 0.03,
+          "source": "nflverse_pbp",
+          "sample": 180,
+          "range": "2099 wk1"
+        },
+        "def_epa_season": {
+          "value": 0.01,
+          "source": "nflverse_pbp",
+          "sample": 620,
+          "range": "2099 wk1"
+        },
+        "def_epa_l4": {
+          "value": 0.01,
+          "source": "nflverse_pbp",
+          "sample": 170,
+          "range": "2099 wk1"
+        },
+        "off_sr_season": {
+          "value": 0.45,
+          "source": "nflverse_pbp",
+          "sample": 640,
+          "range": "2099 wk1"
+        },
+        "def_sr_season": {
+          "value": 0.44,
+          "source": "nflverse_pbp",
+          "sample": 620,
+          "range": "2099 wk1"
+        }
+      },
+      "away": {
+        "off_epa_season": {
+          "value": 0.12,
+          "source": "nflverse_pbp",
+          "sample": 640,
+          "range": "2099 wk1"
+        },
+        "off_epa_l4": {
+          "value": 0.12,
+          "source": "nflverse_pbp",
+          "sample": 180,
+          "range": "2099 wk1"
+        },
+        "def_epa_season": {
+          "value": -0.06,
+          "source": "nflverse_pbp",
+          "sample": 620,
+          "range": "2099 wk1"
+        },
+        "def_epa_l4": {
+          "value": -0.06,
+          "source": "nflverse_pbp",
+          "sample": 170,
+          "range": "2099 wk1"
+        },
+        "off_sr_season": {
+          "value": 0.5,
+          "source": "nflverse_pbp",
+          "sample": 640,
+          "range": "2099 wk1"
+        },
+        "def_sr_season": {
+          "value": 0.39,
+          "source": "nflverse_pbp",
+          "sample": 620,
+          "range": "2099 wk1"
+        }
+      }
+    },
+    "pass_rate_pace": {
+      "home": {
+        "neutral_ed_pass_rate": {
+          "value": 0.48,
+          "source": "nflverse_pbp",
+          "sample": 300,
+          "range": "2099 wk1"
+        },
+        "pace_sec_per_play": {
+          "value": 29,
+          "source": "nflverse_pbp",
+          "sample": 300,
+          "range": "2099 wk1"
+        }
+      },
+      "away": {
+        "neutral_ed_pass_rate": {
+          "value": 0.56,
+          "source": "nflverse_pbp",
+          "sample": 300,
+          "range": "2099 wk1"
+        },
+        "pace_sec_per_play": {
+          "value": 26.4,
+          "source": "nflverse_pbp",
+          "sample": 300,
+          "range": "2099 wk1"
+        }
+      }
+    },
+    "explosives": {
+      "home": {
+        "explosive_rate_for": {
+          "value": 0.09,
+          "source": "nflverse_pbp",
+          "sample": 640,
+          "range": "2099 wk1"
+        },
+        "explosive_rate_allowed": {
+          "value": 0.1,
+          "source": "nflverse_pbp",
+          "sample": 620,
+          "range": "2099 wk1"
+        }
+      },
+      "away": {
+        "explosive_rate_for": {
+          "value": 0.13,
+          "source": "nflverse_pbp",
+          "sample": 640,
+          "range": "2099 wk1"
+        },
+        "explosive_rate_allowed": {
+          "value": 0.08,
+          "source": "nflverse_pbp",
+          "sample": 620,
+          "range": "2099 wk1"
+        }
+      }
+    },
+    "qb": {
+      "home": {
+        "player": "D. Home",
+        "epa_per_db": {
+          "value": 0.02,
+          "source": "nflverse_pbp",
+          "sample": 210,
+          "range": "2099 wk1"
+        },
+        "cpoe": {
+          "value": 0.8,
+          "source": "nflverse_pbp",
+          "sample": 190,
+          "range": "2099 wk1"
+        },
+        "time_to_throw": {
+          "value": 2.88,
+          "source": "ngs_via_nflverse",
+          "sample": 180,
+          "range": "2099 wk1"
+        }
+      },
+      "away": {
+        "player": "D. Away",
+        "epa_per_db": {
+          "value": 0.18,
+          "source": "nflverse_pbp",
+          "sample": 210,
+          "range": "2099 wk1"
+        },
+        "cpoe": {
+          "value": 4.2,
+          "source": "nflverse_pbp",
+          "sample": 190,
+          "range": "2099 wk1"
+        },
+        "time_to_throw": {
+          "value": 2.64,
+          "source": "ngs_via_nflverse",
+          "sample": 180,
+          "range": "2099 wk1"
+        }
+      }
+    },
+    "sacks": {
+      "home": {
+        "sack_rate_for": {
+          "value": 0.07,
+          "source": "nflverse_pbp",
+          "sample": 210,
+          "range": "2099 wk1"
+        },
+        "sack_rate_allowed": {
+          "value": 0.08,
+          "source": "nflverse_pbp",
+          "sample": 200,
+          "range": "2099 wk1"
+        }
+      },
+      "away": {
+        "sack_rate_for": {
+          "value": 0.1,
+          "source": "nflverse_pbp",
+          "sample": 210,
+          "range": "2099 wk1"
+        },
+        "sack_rate_allowed": {
+          "value": 0.04,
+          "source": "nflverse_pbp",
+          "sample": 200,
+          "range": "2099 wk1"
+        }
+      }
+    },
+    "red_zone_downs": {
+      "home": {
+        "rz_td_rate_for": {
+          "value": 0.5,
+          "source": "nflverse_pbp",
+          "sample": 40,
+          "range": "2099 wk1"
+        },
+        "rz_td_rate_allowed": {
+          "value": 0.51,
+          "source": "nflverse_pbp",
+          "sample": 38,
+          "range": "2099 wk1"
+        },
+        "third_down_rate_for": {
+          "value": 0.39,
+          "source": "nflverse_pbp",
+          "sample": 120,
+          "range": "2099 wk1"
+        },
+        "third_down_rate_allowed": {
+          "value": 0.4,
+          "source": "nflverse_pbp",
+          "sample": 118,
+          "range": "2099 wk1"
+        },
+        "fourth_down_rate_for": {
+          "value": 0.47,
+          "source": "nflverse_pbp",
+          "sample": 16,
+          "range": "2099 wk1"
+        },
+        "fourth_down_rate_allowed": {
+          "value": 0.49,
+          "source": "nflverse_pbp",
+          "sample": 14,
+          "range": "2099 wk1"
+        }
+      },
+      "away": {
+        "rz_td_rate_for": {
+          "value": 0.62,
+          "source": "nflverse_pbp",
+          "sample": 40,
+          "range": "2099 wk1"
+        },
+        "rz_td_rate_allowed": {
+          "value": 0.44,
+          "source": "nflverse_pbp",
+          "sample": 38,
+          "range": "2099 wk1"
+        },
+        "third_down_rate_for": {
+          "value": 0.46,
+          "source": "nflverse_pbp",
+          "sample": 120,
+          "range": "2099 wk1"
+        },
+        "third_down_rate_allowed": {
+          "value": 0.33,
+          "source": "nflverse_pbp",
+          "sample": 118,
+          "range": "2099 wk1"
+        },
+        "fourth_down_rate_for": {
+          "value": 0.58,
+          "source": "nflverse_pbp",
+          "sample": 16,
+          "range": "2099 wk1"
+        },
+        "fourth_down_rate_allowed": {
+          "value": 0.4,
+          "source": "nflverse_pbp",
+          "sample": 14,
+          "range": "2099 wk1"
+        }
+      }
+    },
+    "injuries": {
+      "home": [],
+      "away": []
+    },
+    "weather": {
+      "mode": "indoor",
+      "temp_f": null,
+      "wind_mph": null,
+      "precip_prob_pct": null,
+      "summary": null
+    },
+    "story_prompts": [
+      {
+        "title": "Pace between snaps",
+        "body": "b3-fixture-sentinel GB has taken longer between offensive snaps than the opponent over the recorded weeks."
+      },
+      {
+        "title": "Explosive plays",
+        "body": "GB has created a different rate of long gains than it has allowed."
+      },
+      {
+        "title": "Rest and the injury list",
+        "body": "GB brings the rest and injury report shown on this card. The numbers above are descriptive."
+      }
+    ]
+  }
+}

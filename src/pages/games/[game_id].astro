@@ -1,0 +1,340 @@
+---
+import CardSourceFooter from '../../components/CardSourceFooter.astro';
+import EpaBars from '../../components/EpaBars.astro';
+import LineSparkline from '../../components/LineSparkline.astro';
+import StatCell from '../../components/StatCell.astro';
+import StatCompare from '../../components/StatCompare.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { formatMst } from '../../lib/format-picks';
+import type { GameCard, LinePoint } from '../../lib/game-schema';
+import {
+  SOURCE_UNAVAILABLE,
+  formatHomeLine,
+  formatPlayer,
+  formatRest,
+  formatText,
+  formatTotalLine,
+  getAllGames,
+} from '../../lib/games';
+
+export async function getStaticPaths() {
+  const games = await getAllGames();
+  return games.map((game) => ({
+    params: { game_id: game.game_id },
+    props: { game },
+  }));
+}
+
+interface Props {
+  game: GameCard;
+}
+
+const { game } = Astro.props;
+const { sections } = game;
+const away = game.away;
+const home = game.home;
+const weather = sections.weather;
+const weatherNumbers =
+  weather.mode === 'outdoor' || weather.mode === 'retractable' || weather.mode === 'unavailable'
+    ? weather
+    : null;
+
+const lineSnapshots: Array<{ label: string; point: LinePoint | null }> = [
+  { label: 'Open', point: game.line_open },
+  { label: 'Latest', point: game.line_latest },
+];
+
+const epaRows = [
+  {
+    label: 'Offense EPA/play, season',
+    away: sections.epa.away.off_epa_season,
+    home: sections.epa.home.off_epa_season,
+    kind: 'epa' as const,
+  },
+  {
+    label: 'Offense EPA/play, last 4',
+    away: sections.epa.away.off_epa_l4,
+    home: sections.epa.home.off_epa_l4,
+    kind: 'epa' as const,
+  },
+  {
+    label: 'Defense EPA/play, season',
+    away: sections.epa.away.def_epa_season,
+    home: sections.epa.home.def_epa_season,
+    kind: 'epa' as const,
+  },
+  {
+    label: 'Defense EPA/play, last 4',
+    away: sections.epa.away.def_epa_l4,
+    home: sections.epa.home.def_epa_l4,
+    kind: 'epa' as const,
+  },
+  {
+    label: 'Success rate, offense',
+    away: sections.epa.away.off_sr_season,
+    home: sections.epa.home.off_sr_season,
+    kind: 'rate' as const,
+  },
+  {
+    label: 'Success rate allowed, defense',
+    away: sections.epa.away.def_sr_season,
+    home: sections.epa.home.def_sr_season,
+    kind: 'rate' as const,
+  },
+];
+
+const passRows = [
+  {
+    label: 'Neutral early-down pass rate',
+    away: sections.pass_rate_pace.away.neutral_ed_pass_rate,
+    home: sections.pass_rate_pace.home.neutral_ed_pass_rate,
+    kind: 'rate' as const,
+  },
+  {
+    label: 'Pace (seconds per play)',
+    away: sections.pass_rate_pace.away.pace_sec_per_play,
+    home: sections.pass_rate_pace.home.pace_sec_per_play,
+    kind: 'seconds' as const,
+  },
+];
+
+const explosiveRows = [
+  {
+    label: 'Explosive plays for',
+    away: sections.explosives.away.explosive_rate_for,
+    home: sections.explosives.home.explosive_rate_for,
+    kind: 'rate' as const,
+  },
+  {
+    label: 'Explosive plays allowed',
+    away: sections.explosives.away.explosive_rate_allowed,
+    home: sections.explosives.home.explosive_rate_allowed,
+    kind: 'rate' as const,
+  },
+];
+
+const qbRows = [
+  {
+    label: 'EPA per dropback',
+    away: sections.qb.away.epa_per_db,
+    home: sections.qb.home.epa_per_db,
+    kind: 'epa' as const,
+  },
+  {
+    label: 'CPOE',
+    away: sections.qb.away.cpoe,
+    home: sections.qb.home.cpoe,
+    kind: 'cpoe' as const,
+  },
+  {
+    label: 'Time to throw',
+    away: sections.qb.away.time_to_throw,
+    home: sections.qb.home.time_to_throw,
+    kind: 'seconds' as const,
+  },
+];
+
+const sackRows = [
+  {
+    label: 'Sack rate for',
+    away: sections.sacks.away.sack_rate_for,
+    home: sections.sacks.home.sack_rate_for,
+    kind: 'rate' as const,
+  },
+  {
+    label: 'Sack rate allowed',
+    away: sections.sacks.away.sack_rate_allowed,
+    home: sections.sacks.home.sack_rate_allowed,
+    kind: 'rate' as const,
+  },
+];
+
+const downRows = [
+  {
+    label: 'Red-zone TD rate for',
+    away: sections.red_zone_downs.away.rz_td_rate_for,
+    home: sections.red_zone_downs.home.rz_td_rate_for,
+    kind: 'rate' as const,
+  },
+  {
+    label: 'Red-zone TD rate allowed',
+    away: sections.red_zone_downs.away.rz_td_rate_allowed,
+    home: sections.red_zone_downs.home.rz_td_rate_allowed,
+    kind: 'rate' as const,
+  },
+  {
+    label: '3rd-down rate for',
+    away: sections.red_zone_downs.away.third_down_rate_for,
+    home: sections.red_zone_downs.home.third_down_rate_for,
+    kind: 'rate' as const,
+  },
+  {
+    label: '3rd-down rate allowed',
+    away: sections.red_zone_downs.away.third_down_rate_allowed,
+    home: sections.red_zone_downs.home.third_down_rate_allowed,
+    kind: 'rate' as const,
+  },
+  {
+    label: '4th-down rate for',
+    away: sections.red_zone_downs.away.fourth_down_rate_for,
+    home: sections.red_zone_downs.home.fourth_down_rate_for,
+    kind: 'rate' as const,
+  },
+  {
+    label: '4th-down rate allowed',
+    away: sections.red_zone_downs.away.fourth_down_rate_allowed,
+    home: sections.red_zone_downs.home.fourth_down_rate_allowed,
+    kind: 'rate' as const,
+  },
+];
+
+const injurySides = [
+  { team: away, rows: sections.injuries.away },
+  { team: home, rows: sections.injuries.home },
+];
+---
+
+<BaseLayout
+  title={`${away} @ ${home}`}
+  description={`Week ${game.week} matchup card for ${away} at ${home}.`}
+  wide
+>
+  <header data-section="header">
+    <h1>{away} @ {home}</h1>
+    <p class="meta">
+      <time datetime={game.kickoff_utc}>{formatMst(game.kickoff_utc)}</time>
+      <span>Season {game.season}, week {game.week}</span>
+    </p>
+    <p>
+      Venue: {formatText(game.venue)}. Roof: {game.roof}. Surface: {formatText(game.surface)}.
+    </p>
+    <p>
+      Rest: {away} {formatRest(game.away_rest)}, {home} {formatRest(game.home_rest)}.
+    </p>
+  </header>
+
+  <section data-section="lines">
+    <h2>Lines and movement</h2>
+    {
+      lineSnapshots.map(({ label, point }) =>
+        point ? (
+          <div>
+            <h3>{label}</h3>
+            <p>
+              Home line {formatHomeLine(point.home_spread)}. Total {formatTotalLine(point.total)}.
+            </p>
+            <p>
+              Lower-middle of {point.n_books} books.{' '}
+              <time datetime={point.ts}>{formatMst(point.ts)}</time>
+            </p>
+          </div>
+        ) : (
+          <p>
+            {label}: {SOURCE_UNAVAILABLE}
+          </p>
+        ),
+      )
+    }
+    <LineSparkline history={game.line_history} />
+  </section>
+
+  <section data-section="epa">
+    <h2>Unit EPA/play and success rate</h2>
+    <p>On defense, lower EPA is better.</p>
+    <EpaBars away={away} home={home} epa={sections.epa} />
+    <StatCompare away={away} home={home} rows={epaRows} />
+  </section>
+
+  <section data-section="pass-rate-pace">
+    <h2>Neutral early-down pass rate and pace</h2>
+    <StatCompare away={away} home={home} rows={passRows} />
+  </section>
+
+  <section data-section="explosives">
+    <h2>Explosive plays for and allowed</h2>
+    <StatCompare away={away} home={home} rows={explosiveRows} />
+  </section>
+
+  <section data-section="qb">
+    <h2>QB EPA per dropback, CPOE, and time to throw</h2>
+    <p>
+      {away}: {formatPlayer(sections.qb.away.player)}. {home}: {formatPlayer(sections.qb.home.player)}.
+    </p>
+    <StatCompare away={away} home={home} rows={qbRows} />
+  </section>
+
+  <section data-section="sacks">
+    <h2>Sack rate for and allowed</h2>
+    <StatCompare away={away} home={home} rows={sackRows} />
+  </section>
+
+  <section data-section="red-zone-downs">
+    <h2>Red zone and 3rd/4th down</h2>
+    <StatCompare away={away} home={home} rows={downRows} />
+  </section>
+
+  <section data-section="injuries">
+    <h2>Injuries</h2>
+    {
+      injurySides.map(({ team, rows }) => (
+        <div>
+          <h3>{team}</h3>
+          {rows.length === 0 ? (
+            <p>None listed.</p>
+          ) : (
+            <ul>
+              {rows.map((injury) => (
+                <li>
+                  {injury.player}, {injury.position}, {injury.status}
+                  {injury.detail ? ` (${injury.detail})` : ''}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ))
+    }
+  </section>
+
+  <section data-section="weather">
+    <h2>Weather</h2>
+    {weather.mode === 'indoor' ? <p>Indoors (dome)</p> : null}
+    {weather.mode === 'retractable' ? <p>Retractable roof: status not confirmed</p> : null}
+    {
+      weatherNumbers ? (
+        <div>
+          <p>
+            Temperature <StatCell stat={weatherNumbers.temp_f} kind="temp" />
+          </p>
+          <p>
+            Wind <StatCell stat={weatherNumbers.wind_mph} kind="wind" />
+          </p>
+          <p>
+            Precipitation probability <StatCell stat={weatherNumbers.precip_prob_pct} kind="precip" />
+          </p>
+          {weatherNumbers.summary ? <p>{weatherNumbers.summary}</p> : null}
+        </div>
+      ) : null
+    }
+  </section>
+
+  <section data-section="story-prompts">
+    <h2>Story prompts</h2>
+    <ol>
+      {
+        sections.story_prompts.map((prompt) => (
+          <li>
+            <h3>{prompt.title}</h3>
+            <p>{prompt.body}</p>
+          </li>
+        ))
+      }
+    </ol>
+  </section>
+
+  <CardSourceFooter
+    sources={game.sources}
+    dataThroughWeek={game.data_through_week}
+    generatedAt={game.generated_at}
+  />
+</BaseLayout>

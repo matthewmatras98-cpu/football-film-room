@@ -1,0 +1,88 @@
+---
+import { SOURCE_UNAVAILABLE } from '../lib/format-stat';
+import type { LinePoint } from '../lib/game-schema';
+
+interface Props {
+  history: LinePoint[];
+}
+
+const { history } = Astro.props;
+
+interface PlotPoint {
+  x: number;
+  y: number;
+}
+
+const width = 320;
+const panelHeight = 44;
+const pad = 6;
+
+function plot(values: Array<number | null>): PlotPoint[] {
+  const present = values.flatMap((value, index) => (value === null ? [] : [{ index, value }]));
+  if (present.length === 0) {
+    return [];
+  }
+  const nums = present.map((point) => point.value);
+  const min = Math.min(...nums);
+  const max = Math.max(...nums);
+  const span = max - min || 1;
+  const lastIndex = Math.max(values.length - 1, 1);
+  return present.map((point) => {
+    const x = values.length === 1 ? width / 2 : pad + (point.index / lastIndex) * (width - pad * 2);
+    const y = pad + (1 - (point.value - min) / span) * (panelHeight - pad * 2);
+    return { x, y };
+  });
+}
+
+function pathOf(points: PlotPoint[]): string {
+  return points
+    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`)
+    .join(' ');
+}
+
+const spread = plot(history.map((point) => point.home_spread));
+const total = plot(history.map((point) => point.total));
+const drawable = spread.length > 0 || total.length > 0;
+
+const panels = [
+  { label: 'Home line', points: spread, offset: 16 },
+  { label: 'Total', points: total, offset: 78 },
+];
+---
+
+{
+  drawable ? (
+    <figure class="chart">
+      <svg
+        data-chart="sparkline"
+        viewBox={`0 0 ${width} 128`}
+        role="img"
+        aria-label="Home line and total across recorded snapshots"
+      >
+        {panels.map((panel) => (
+          <g>
+            <text x="0" y={panel.offset - 6} font-size="12">
+              {panel.label}
+            </text>
+            {panel.points.length === 0 ? (
+              <text x="0" y={panel.offset + 22} font-size="12">
+                {SOURCE_UNAVAILABLE}
+              </text>
+            ) : panel.points.length === 1 && panel.points[0] ? (
+              <circle cx={panel.points[0].x} cy={panel.points[0].y + panel.offset} r="2.5" />
+            ) : (
+              <path
+                d={pathOf(panel.points.map((point) => ({ x: point.x, y: point.y + panel.offset })))}
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              />
+            )}
+          </g>
+        ))}
+      </svg>
+    </figure>
+  ) : (
+    <p data-empty-sparkline>{SOURCE_UNAVAILABLE}</p>
+  )
+}

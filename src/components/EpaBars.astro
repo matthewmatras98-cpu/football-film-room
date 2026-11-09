@@ -1,0 +1,90 @@
+---
+import { formatStatKind, SOURCE_UNAVAILABLE } from '../lib/format-stat';
+import type { GameCard } from '../lib/game-schema';
+
+interface Props {
+  away: string;
+  home: string;
+  epa: GameCard['sections']['epa'];
+}
+
+const { away, home, epa } = Astro.props;
+
+interface Bar {
+  key: string;
+  label: string;
+  value: number | null;
+  tone: 'season' | 'recent';
+}
+
+const bars: Bar[] = [
+  { key: 'away-off-season', label: `${away} offense, season`, value: epa.away.off_epa_season.value, tone: 'season' },
+  { key: 'away-off-l4', label: `${away} offense, last 4`, value: epa.away.off_epa_l4.value, tone: 'recent' },
+  { key: 'away-def-season', label: `${away} defense, season`, value: epa.away.def_epa_season.value, tone: 'season' },
+  { key: 'away-def-l4', label: `${away} defense, last 4`, value: epa.away.def_epa_l4.value, tone: 'recent' },
+  { key: 'home-off-season', label: `${home} offense, season`, value: epa.home.off_epa_season.value, tone: 'season' },
+  { key: 'home-off-l4', label: `${home} offense, last 4`, value: epa.home.off_epa_l4.value, tone: 'recent' },
+  { key: 'home-def-season', label: `${home} defense, season`, value: epa.home.def_epa_season.value, tone: 'season' },
+  { key: 'home-def-l4', label: `${home} defense, last 4`, value: epa.home.def_epa_l4.value, tone: 'recent' },
+];
+
+const width = 560;
+const rowHeight = 32;
+const labelX = 0;
+const barX = 230;
+const barWidth = 200;
+const center = barX + barWidth / 2;
+const present = bars.flatMap((bar) => (bar.value === null ? [] : [Math.abs(bar.value)]));
+const max = Math.max(0.05, ...present);
+const height = bars.length * rowHeight + 8;
+
+function barRect(value: number): { x: number; width: number } {
+  const span = (Math.abs(value) / max) * (barWidth / 2);
+  if (value >= 0) {
+    return { x: center, width: span };
+  }
+  return { x: center - span, width: span };
+}
+---
+
+<figure class="chart">
+  <svg
+    data-chart="epa-bars"
+    viewBox={`0 0 ${width} ${height}`}
+    role="img"
+    aria-label={`EPA per play for ${away} and ${home}. On defense, lower EPA is better.`}
+  >
+    <line x1={center} y1="4" x2={center} y2={height - 4} stroke="currentColor" stroke-width="1" />
+    {
+      bars.map((bar, index) => {
+        const y = index * rowHeight;
+        const rect = bar.value === null ? null : barRect(bar.value);
+        return (
+          <g data-series={bar.key} data-value={bar.value === null ? 'null' : String(bar.value)}>
+            <text x={labelX} y={y + 20} font-size="12">
+              {bar.label}
+            </text>
+            {rect ? (
+              <rect
+                x={rect.x}
+                y={y + 8}
+                width={rect.width}
+                height="14"
+                fill={bar.tone === 'season' ? 'currentColor' : 'none'}
+                stroke="currentColor"
+                stroke-width="1"
+              />
+            ) : (
+              <text x={barX} y={y + 20} font-size="12">
+                {SOURCE_UNAVAILABLE}
+              </text>
+            )}
+            <text x={barX + barWidth + 12} y={y + 20} font-size="12">
+              {bar.value === null ? '' : formatStatKind({ value: bar.value }, 'epa')}
+            </text>
+          </g>
+        );
+      })
+    }
+  </svg>
+</figure>

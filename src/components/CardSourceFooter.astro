@@ -1,0 +1,21 @@
+---
+import { formatMst } from '../lib/format-picks';
+
+interface Props {
+  sources: string[];
+  dataThroughWeek: number;
+  generatedAt: string;
+}
+
+const { sources, dataThroughWeek, generatedAt } = Astro.props;
+---
+
+<section class="card-sources" data-section="source-footer">
+  <h2>Sources</h2>
+  <ul>
+    {sources.map((source) => <li data-source={source}>{source}</li>)}
+  </ul>
+  <p>
+    Data through week {dataThroughWeek} · <time datetime={generatedAt}>{formatMst(generatedAt)}</time>
+  </p>
+</section>

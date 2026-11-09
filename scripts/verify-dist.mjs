@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
-import { copyFile, readFile, readdir, rm, stat } from 'node:fs/promises';
+import { copyFile, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import { register } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -16,6 +17,11 @@ import {
   matchupLabel,
 } from '../src/lib/format-picks.ts';
 
+register(new URL('./ts-resolver.mjs', import.meta.url));
+
+const { formatStatKind } = await import('../src/lib/format-stat.ts');
+const { gameCardSchema } = await import('../src/lib/game-schema.ts');
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const weeksDir = path.join(root, 'src/content/weeks');
 const publishedFixture = path.join(root, 'tests/fixtures/published-post.mdx');
@@ -30,6 +36,26 @@ const summaryDest = path.join(root, 'src/data/summary.json');
 const viewDest = path.join(root, 'src/data/picks_view.json');
 const templatePath = path.join(root, 'docs/post-template.mdx');
 const templateSentinel = 'b2-post-template-sentinel';
+const gamesFixtureDir = path.join(root, 'tests/fixtures/games');
+const gamesContentDir = path.join(root, 'src/content/games');
+const cardLinkSlug = 'card-link-check';
+const cardLinkCopy = path.join(weeksDir, `${cardLinkSlug}.mdx`);
+const cardLinkUnknownId = '2026_11_DET_PHI';
+
+const sectionMarkers = [
+  'header',
+  'lines',
+  'epa',
+  'pass-rate-pace',
+  'explosives',
+  'qb',
+  'sacks',
+  'red-zone-downs',
+  'injuries',
+  'weather',
+  'story-prompts',
+  'source-footer',
+];
 
 const sportsbookNames = [
   'draftkings',
@@ -305,9 +331,355 @@ async function assertNoPublishedFixture(distDir) {
   }
 }
 
+async function gameFixtureNeedles() {
+  const names = (await readdir(gamesFixtureDir)).filter((name) => name.endsWith('.json'));
+  const needles = ['b3-fixture-sentinel', 'b3-malformed-card'];
+  for (const name of names) {
+    const data = JSON.parse(await readFile(path.join(gamesFixtureDir, name), 'utf8'));
+    if (typeof data.game_id === 'string') {
+      needles.push(data.game_id);
+    }
+  }
+  return needles;
+}
+
+function hasNullStat(value) {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  if (
+    Object.prototype.hasOwnProperty.call(value, 'value') &&
+    Object.prototype.hasOwnProperty.call(value, 'source') &&
+    value.value === null
+  ) {
+    return true;
+  }
+  return Object.values(value).some((item) => hasNullStat(item));
+}
+
+function section(html, name) {
+  const marker = `data-section="${name}"`;
+  const start = html.indexOf(marker);
+  if (start < 0) {
+    fail(`missing ${marker}`);
+  }
+  let end = html.length;
+  const next = html.indexOf('data-section="', start + marker.length);
+  if (next !== -1) {
+    end = next;
+  }
+  const siteFooter = html.indexOf('data-footer', start);
+  if (siteFooter !== -1 && siteFooter < end) {
+    end = siteFooter;
+  }
+  return html.slice(start, end);
+}
+
+function weekCardsHeading(html) {
+  return /This week(?:'|&#39;|&#x27;|’)s cards/.test(html);
+}
+
+async function loadGameFixtures() {
+  const names = (await readdir(gamesFixtureDir)).filter((name) => name.endsWith('.json')).sort();
+  const valid = [];
+  const invalid = [];
+  for (const name of names) {
+    const data = JSON.parse(await readFile(path.join(gamesFixtureDir, name), 'utf8'));
+    const parsed = gameCardSchema.safeParse(data);
+    if (parsed.success) {
+      valid.push({ name, card: parsed.data });
+    } else {
+      invalid.push(name);
+    }
+  }
+  if (invalid.length !== 1 || invalid[0] !== 'malformed.json') {
+    fail(`expected only malformed.json to fail the card schema, got ${invalid.join(', ') || 'none'}`);
+  }
+  if (valid.length < 2) {
+    fail('expected at least two valid card fixtures');
+  }
+  const cards = valid.map((entry) => entry.card);
+  const modes = new Set(cards.map((card) => card.sections.weather.mode));
+  for (const mode of ['outdoor', 'indoor', 'retractable', 'unavailable']) {
+    if (!modes.has(mode)) {
+      fail(`card fixtures are missing weather mode ${mode}`);
+    }
+  }
+  const roofs = new Set(cards.map((card) => card.roof));
+  for (const roof of ['outdoors', 'dome', 'retractable', 'unknown']) {
+    if (!roofs.has(roof)) {
+      fail(`card fixtures are missing roof ${roof}`);
+    }
+  }
+  if (!cards.some((card) => card.line_history.length > 0)) {
+    fail('card fixtures are missing a line history');
+  }
+  if (!cards.some((card) => card.line_history.length === 0 && card.line_open === null && card.line_latest === null)) {
+    fail('card fixtures are missing an empty line history');
+  }
+  if (!cards.some((card) => card.sections.injuries.home.length === 0 && card.sections.injuries.away.length === 0)) {
+    fail('card fixtures are missing empty injuries');
+  }
+  if (!cards.some((card) => card.sections.injuries.home.length + card.sections.injuries.away.length > 0)) {
+    fail('card fixtures are missing an injury');
+  }
+  if (!cards.some((card) => hasNullStat(card))) {
+    fail('card fixtures are missing a null StatNumber');
+  }
+  if (!cards.every((card) => card.sections.story_prompts.length === 3)) {
+    fail('card fixtures must have three story prompts');
+  }
+  return valid;
+}
+
+async function assertEmptyCards(distDir) {
+  const home = await readHtml(distDir, 'index.html');
+  if (home.includes('data-week-cards') || weekCardsHeading(home)) {
+    fail(`${path.relative(root, distDir)} shows a card section with zero cards`);
+  }
+  const pages = await listHtml(path.join(distDir, 'games'));
+  if (pages.length > 0) {
+    fail(`${path.relative(root, distDir)} contains /games/ pages`);
+  }
+}
+
+function gameItem(html, gameId) {
+  const marker = `data-game-id="${gameId}"`;
+  const start = html.indexOf(marker);
+  if (start < 0) {
+    fail(`home is missing data-game-id="${gameId}"`);
+  }
+  const end = html.indexOf('</li>', start);
+  return html.slice(start, end === -1 ? html.length : end);
+}
+
+function cardLinkSource(card) {
+  return `---
+title: Card link check
+season: ${card.season}
+week: ${card.week}
+published_at: "2099-09-18T12:00:00Z"
+summary: A temporary post that links a known card and an unknown game id.
+picks:
+  - ${card.game_id}
+  - ${cardLinkUnknownId}
+tags: []
+draft: false
+---
+
+Temporary card link check.
+`;
+}
+
+async function assertFixtureCards(distDir, fixtures, picks, knownGameId) {
+  const cards = fixtures.map((entry) => entry.card);
+  const maxWeek = Math.max(...cards.map((card) => card.week));
+  const home = await readHtml(distDir, 'index.html');
+  if (!home.includes('data-week-cards') || !weekCardsHeading(home)) {
+    fail("home is missing This week's cards");
+  }
+
+  for (const card of cards) {
+    const page = await readHtml(distDir, 'games', card.game_id, 'index.html');
+    const relative = `games/${card.game_id}/index.html`;
+    for (const marker of sectionMarkers) {
+      if (!page.includes(`data-section="${marker}"`)) {
+        fail(`${relative} is missing data-section="${marker}"`);
+      }
+    }
+    if (!page.includes('n/a (source unavailable)')) {
+      fail(`${relative} is missing n/a (source unavailable)`);
+    }
+    if (!page.includes('On defense, lower EPA is better.')) {
+      fail(`${relative} is missing the defense EPA note`);
+    }
+    if (/<img\b/i.test(page)) {
+      fail(`${relative} contains an img`);
+    }
+    if (/recharts|chart\.js|chartjs|highcharts|plotly|vega-embed|apexcharts|\bnivo\b/i.test(page)) {
+      fail(`${relative} references a chart library`);
+    }
+    const sourceFooter = section(page, 'source-footer');
+    if (/ftn/i.test(sourceFooter)) {
+      fail(`${relative} credits FTN on the card`);
+    }
+    for (const source of card.sources) {
+      if (!sourceFooter.includes(`data-source="${source}"`)) {
+        fail(`${relative} source footer is missing ${source}`);
+      }
+    }
+    if (!sourceFooter.includes(`Data through week ${card.data_through_week}`)) {
+      fail(`${relative} is missing the data-through line`);
+    }
+    if (!sourceFooter.includes('MST')) {
+      fail(`${relative} source footer is missing MST`);
+    }
+    for (const needle of ['data-footer', 'nflverse', '21+', '1-800-GAMBLER']) {
+      if (!page.includes(needle)) {
+        fail(`${relative} is missing the site footer marker ${needle}`);
+      }
+    }
+
+    const nullStats = [
+      ...page.matchAll(
+        /<span class="stat" data-value="null" data-source="[^"]*">\s*<span class="stat-value">([^<]*)<\/span>/g,
+      ),
+    ];
+    if (hasNullStat(card) && nullStats.length === 0) {
+      fail(`${relative} did not render a null stat`);
+    }
+    for (const match of nullStats) {
+      if (match[1] !== 'n/a (source unavailable)') {
+        fail(`${relative} rendered a null stat as ${match[1]}`);
+      }
+    }
+
+    const lines = section(page, 'lines');
+    const drawable = card.line_history.some((point) => point.home_spread !== null || point.total !== null);
+    if (!drawable) {
+      if (lines.includes('<svg') || lines.includes('data-chart="sparkline"')) {
+        fail(`${relative} drew a sparkline for an empty line history`);
+      }
+      if (!lines.includes('n/a (source unavailable)')) {
+        fail(`${relative} empty line history is missing the unavailable note`);
+      }
+    } else if (!lines.includes('<svg') || !lines.includes('data-chart="sparkline"')) {
+      fail(`${relative} is missing the line sparkline`);
+    }
+
+    const epa = section(page, 'epa');
+    if (!epa.includes('data-chart="epa-bars"') || !epa.includes('<svg')) {
+      fail(`${relative} is missing the EPA bars`);
+    }
+    const groups = [...epa.matchAll(/<g data-series="([^"]+)" data-value="([^"]*)">([\s\S]*?)<\/g>/g)];
+    if (groups.length === 0) {
+      fail(`${relative} EPA chart has no series`);
+    }
+    for (const group of groups) {
+      const value = group[2];
+      const body = group[3] ?? '';
+      if (value === 'null' && body.includes('<rect')) {
+        fail(`${relative} drew an EPA bar for a null value`);
+      }
+      if (value !== 'null' && !body.includes('<rect')) {
+        fail(`${relative} omitted an EPA bar for ${group[1]}`);
+      }
+    }
+
+    const weatherHtml = section(page, 'weather');
+    const weather = card.sections.weather;
+    if (weather.mode === 'indoor') {
+      if (!weatherHtml.includes('Indoors (dome)')) {
+        fail(`${relative} indoor weather is missing Indoors (dome)`);
+      }
+      if (
+        weatherHtml.includes('Retractable roof: status not confirmed') ||
+        weatherHtml.includes('data-value=') ||
+        weatherHtml.includes('\u00b0') ||
+        weatherHtml.includes('mph') ||
+        weatherHtml.includes('%')
+      ) {
+        fail(`${relative} indoor weather rendered numbers`);
+      }
+    } else if (weather.mode === 'retractable') {
+      if (!weatherHtml.includes('Retractable roof: status not confirmed')) {
+        fail(`${relative} is missing the retractable roof note`);
+      }
+      if (!weatherHtml.includes(formatStatKind(weather.temp_f, 'temp'))) {
+        fail(`${relative} retractable weather is missing the temperature`);
+      }
+    } else if (weather.mode === 'outdoor') {
+      if (
+        weatherHtml.includes('Indoors (dome)') ||
+        weatherHtml.includes('Retractable roof: status not confirmed')
+      ) {
+        fail(`${relative} outdoor weather used an indoor label`);
+      }
+      const precip = formatStatKind(weather.precip_prob_pct, 'precip');
+      if (!weatherHtml.includes(precip)) {
+        fail(`${relative} is missing precipitation ${precip}`);
+      }
+      if (weatherHtml.includes('3000%') || weatherHtml.includes('3000.0%')) {
+        fail(`${relative} treated precip_prob_pct as a fraction`);
+      }
+    } else if (weather.mode === 'unavailable') {
+      if (!weatherHtml.includes('n/a (source unavailable)')) {
+        fail(`${relative} unavailable weather is missing n/a`);
+      }
+      if (weatherHtml.includes('Indoors (dome)') || weatherHtml.includes('Retractable roof: status not confirmed')) {
+        fail(`${relative} unavailable weather used a roof label`);
+      }
+    }
+
+    const rate = formatStatKind(card.sections.pass_rate_pace.home.neutral_ed_pass_rate, 'rate');
+    if (!page.includes(rate)) {
+      fail(`${relative} is missing pass rate ${rate}`);
+    }
+    const cpoe = formatStatKind(card.sections.qb.home.cpoe, 'cpoe');
+    if (!page.includes(cpoe)) {
+      fail(`${relative} is missing CPOE ${cpoe}`);
+    }
+    if (!page.includes(`Roof: ${card.roof}`)) {
+      fail(`${relative} is missing roof ${card.roof}`);
+    }
+
+    const onHome = home.includes(`/games/${card.game_id}/`);
+    if (card.week === maxWeek && !onHome) {
+      fail(`home is missing current-week card ${card.game_id}`);
+    }
+    if (card.week !== maxWeek && onHome) {
+      fail(`home fell back to older card ${card.game_id}`);
+    }
+    if (card.week === maxWeek) {
+      const item = gameItem(home, card.game_id);
+      const matches = picks.filter((row) => row.game_id === card.game_id);
+      if (matches.length === 0 && item.includes('pick-badge')) {
+        fail(`home gave ${card.game_id} a pick badge without a pick`);
+      }
+      for (const row of matches) {
+        if (!item.includes('pick-badge') || !item.includes(`/picks/#pick-${row.pick_id}`)) {
+          fail(`home is missing the Pick badge for ${row.pick_id}`);
+        }
+      }
+    }
+
+    if (card.sections.injuries.home.length === 0 && card.sections.injuries.away.length === 0) {
+      const injuries = section(page, 'injuries');
+      const listed = injuries.split('None listed.').length - 1;
+      if (listed < 2) {
+        fail(`${relative} did not show an empty injury list for both teams`);
+      }
+    }
+  }
+
+  const linkedWeek = await weekPage(distDir, cardLinkSlug);
+  if (!linkedWeek) {
+    fail('card link week page is missing');
+  }
+  const weekHtml = await readFile(linkedWeek, 'utf8');
+  if (!weekHtml.includes(`/games/${knownGameId}/`)) {
+    fail('week post did not link to the known card');
+  }
+  if (!weekHtml.includes(cardLinkUnknownId)) {
+    fail('unknown game id was dropped from the week post');
+  }
+  if (weekHtml.includes(`/games/${cardLinkUnknownId}`)) {
+    fail('unknown game id was linked to a card');
+  }
+  if (weekHtml.includes(`#pick-${cardLinkUnknownId}`)) {
+    fail('unknown game id was linked to a pick row');
+  }
+  for (const row of picks.filter((row) => row.game_id === knownGameId)) {
+    if (!weekHtml.includes(`/picks/#pick-${row.pick_id}`)) {
+      fail(`week post dropped the pick link for ${row.pick_id}`);
+    }
+  }
+}
+
 async function assertNoFixtureContent(distDir) {
   const needles = [
     ...(await fixtureNeedles()),
+    ...(await gameFixtureNeedles()),
     'This file omits summary and must fail the build.',
   ];
   for (const filePath of await listHtml(distDir)) {
@@ -558,6 +930,7 @@ async function main() {
 
   await assertPages(deployDist, committed, { requirePublished: false });
   await assertEmptyPicks(deployDist);
+  await assertEmptyCards(deployDist);
   await assertNoTemplate(deployDist);
   await assertNoFixtureContent(deployDist);
   await assertNoPublishedFixture(deployDist);
@@ -580,6 +953,7 @@ async function main() {
     }
     await assertPages(tempDist, withFixture, { requirePublished: true });
     await assertPublishedPickLink(tempDist);
+    await assertEmptyCards(tempDist);
     await assertNoTemplate(tempDist);
     await assertNoFixtureContent(tempDist);
     await assertNoDollar(tempDist);
@@ -593,20 +967,51 @@ async function main() {
   if ((await exists(summaryDest)) || (await exists(viewDest))) {
     fail('refusing to overwrite src/data/summary.json or src/data/picks_view.json');
   }
+  if (await exists(cardLinkCopy)) {
+    fail(`refusing to overwrite ${path.relative(root, cardLinkCopy)}`);
+  }
+  const preexistingGames = (await readdir(gamesContentDir)).filter((name) => name.endsWith('.json'));
+  if (preexistingGames.length > 0) {
+    fail(`refusing to overwrite src/content/games/${preexistingGames[0]}`);
+  }
+  const gameFixtures = await loadGameFixtures();
+  const picksForCards = JSON.parse(await readFile(viewFixture, 'utf8'));
+  const maxCardWeek = Math.max(...gameFixtures.map((entry) => entry.card.week));
+  const knownCard =
+    gameFixtures.find(
+      (entry) =>
+        entry.card.week === maxCardWeek && picksForCards.some((row) => row.game_id === entry.card.game_id),
+    ) ?? gameFixtures.find((entry) => entry.card.week === maxCardWeek);
+  if (!knownCard) {
+    fail('card fixtures have no current-week game');
+  }
+  const copiedGames = [];
   await copyFile(summaryFixture, summaryDest);
   await copyFile(viewFixture, viewDest);
   try {
+    for (const entry of gameFixtures) {
+      const dest = path.join(gamesContentDir, entry.name);
+      await copyFile(path.join(gamesFixtureDir, entry.name), dest);
+      copiedGames.push(dest);
+    }
+    await writeFile(cardLinkCopy, cardLinkSource(knownCard.card));
     await rm(picksDist, { recursive: true, force: true });
     await runAstroBuild(picksDist);
     await assertPages(picksDist, committed, { requirePublished: false });
     await assertFixturePicks(picksDist);
+    await assertFixtureCards(picksDist, gameFixtures, picksForCards, knownCard.card.game_id);
     await assertNoTemplate(picksDist);
     await assertNoDollar(picksDist);
     await assertNoSportsbooks(picksDist);
     console.log('fixture build: /picks/ matches the grader summary and shows every row');
+    console.log('fixture build: game cards render every section and stay out of the empty dist');
   } finally {
     await rm(summaryDest, { force: true });
     await rm(viewDest, { force: true });
+    await rm(cardLinkCopy, { force: true });
+    for (const dest of copiedGames) {
+      await rm(dest, { force: true });
+    }
     await rm(picksDist, { recursive: true, force: true });
   }
 }

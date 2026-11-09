@@ -1,14 +1,17 @@
 ---
+import GameCardLink from '../components/GameCardLink.astro';
 import SeasonSummary from '../components/SeasonSummary.astro';
 import PicksTable from '../components/PicksTable.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { siteDescription, siteName } from '../data/site';
+import { currentWeekGames, getAllGames, picksForGame } from '../lib/games';
 import { currentWeekPicks, picks, summary } from '../lib/picks';
 import { formatPublishedAt, getPublishedWeeks } from '../lib/posts';
 
 const posts = await getPublishedWeeks();
 const latest = posts[0];
 const thisWeek = currentWeekPicks(picks);
+const thisWeekCards = currentWeekGames(await getAllGames());
 ---
 
 <BaseLayout title={siteName} description={siteDescription}>
@@ -16,6 +19,29 @@ const thisWeek = currentWeekPicks(picks);
   <p class="lede">{siteDescription}</p>
 
   {summary ? <SeasonSummary summary={summary} /> : null}
+
+  {
+    thisWeekCards.length > 0 && (
+      <section data-week-cards>
+        <h2>This week's cards</h2>
+        <ul class="card-list">
+          {thisWeekCards.map((card) => {
+            const badges = picksForGame(card.game_id, picks);
+            return (
+              <li data-game-id={card.game_id}>
+                <GameCardLink gameId={card.game_id} away={card.away} home={card.home} />
+                {badges.map((row) => (
+                  <a class="pick-badge" href={`/picks/#pick-${row.pick_id}`}>
+                    Pick
+                  </a>
+                ))}
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    )
+  }
 
   {
     thisWeek.length === 0 ? (
