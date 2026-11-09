@@ -28,6 +28,39 @@ draft: false
 
 The two files already in `src/content/weeks/` are drafts. Do not publish anything labeled sample.
 
+`published_at` stays quoted in the file. `docs/post-template.mdx` is the same frontmatter, kept outside `src/content` so the build does not publish it. Copy that file to `src/content/weeks/` when a post is ready.
+
+## Add a pick
+
+Edit `data/picks.csv` on `main`. One row per pick. Agents do not edit that file.
+
+| Column | What to enter |
+|---|---|
+| `pick_id` | `{game_id}-{market}`, for example `2026_11_DET_PHI-spread` |
+| `game_id` | nflverse id, `YYYY_WW_AWAY_HOME` |
+| `season`, `week` | The game's season and week |
+| `market` | `spread` or `total` |
+| `side` | Team abbreviation, or `over` / `under` |
+| `line_at_pick` | The number from the picked side. A negative spread means that side is laying points |
+| `picked_at` | ISO-8601 timestamp with a timezone offset, before kickoff |
+| `units` | `1.0` |
+| `confidence` | `1`, `2`, or `3`. Display only |
+| `tags` | Optional, separated with `;` |
+| `note` | One line of reasoning |
+
+Quote nothing in the CSV except a note that contains a comma. `picked_at` still needs the offset, as in `2026-11-14T18:00:00-07:00`.
+
+### Lock rule
+
+A pick counts only if it was locked before kickoff. Both of these have to be earlier than kickoff:
+
+- `picked_at`, the time on the row
+- `first_pushed_at`, GitHub's server push time for that exact row
+
+A commit timestamp does not lock a pick. Pushing the row, or editing it, at or after kickoff marks it `Rejected – late`. Rejected rows stay on `/picks/` and are left out of the W-L-P, units, and CLV.
+
+Do not hand-edit `src/data/summary.json` or `src/data/picks_view.json`. The grader writes them. Until those files exist, `/` and `/picks/` build with an empty state.
+
 ## Local checks
 
 ```sh
@@ -38,7 +71,13 @@ npm run lint:assets
 npm run build
 ```
 
-`npm run build` writes the site to `dist/`.
+`npm test` checks `tests/fixtures/summary.json` and `tests/fixtures/picks_view.json` against a fresh grader run. That step needs [uv](https://docs.astral.sh/uv/) 0.13.7, the version pinned in `.github/workflows/ci.yml`. The numbers come from `python -m football_pipeline grade` on `pipeline/tests/fixtures/`, plus one rejected row in `tests/fixtures/b2/` so a stale close is on the page. After a grader change, regenerate the two JSON files and commit them:
+
+```sh
+python3 scripts/grade_ui_fixtures.py --write
+```
+
+`npm run build` writes the site to `dist/`. The pick JSON files are not required for that build.
 
 ## Cloudflare Pages
 

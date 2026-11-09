@@ -113,3 +113,70 @@ h2 {
 .site-footer p {
   margin: 0.4rem 0;
 }
+
+.layout-wide .wrap {
+  width: min(100% - 2rem, 72rem);
+}
+
+.table-scroll {
+  overflow-x: auto;
+  margin: 0.5rem 0 1.25rem;
+}
+
+.picks {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.picks th,
+.picks td {
+  text-align: left;
+  padding: 0.4rem 0.55rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.picks th {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.picks td.record {
+  white-space: nowrap;
+}
+
+.pick-note {
+  margin: 0 0 0.2rem;
+  white-space: normal;
+}
+
+.pick-times {
+  margin: 0;
+  white-space: normal;
+}
+
+tbody.is-rejected .record {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+.marker {
+  color: var(--muted);
+  font-size: 0.85em;
+  text-decoration: underline dotted;
+  cursor: help;
+  white-space: nowrap;
+}
+
+.status {
+  white-space: nowrap;
+}
+
+.season-summary p {
+  margin: 0.25rem 0;
+}
+
+.record-line {
+  font-weight: 700;
+}

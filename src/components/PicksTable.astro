@@ -1,0 +1,86 @@
+---
+import CloseMarker from './CloseMarker.astro';
+import StatusBadge from './StatusBadge.astro';
+import {
+  EM_DASH,
+  formatClv,
+  formatFinal,
+  formatMst,
+  formatPickLine,
+  formatSideLine,
+  formatUnits,
+  matchupLabel,
+} from '../lib/picks';
+import type { PickView } from '../lib/picks-schema';
+
+interface Props {
+  picks: PickView[];
+}
+
+const { picks } = Astro.props;
+
+function dataValue(value: number | null): string {
+  return value === null ? 'null' : String(value);
+}
+---
+
+<div class="table-scroll">
+  <table class="picks">
+    <thead>
+      <tr>
+        <th scope="col">Matchup</th>
+        <th scope="col">Market</th>
+        <th scope="col">Side and line</th>
+        <th scope="col">Close</th>
+        <th scope="col">Final</th>
+        <th scope="col">Result</th>
+        <th scope="col">Units</th>
+        <th scope="col">CLV</th>
+        <th scope="col">Status</th>
+      </tr>
+    </thead>
+    {
+      picks.map((pick) => (
+        <tbody
+          id={`pick-${pick.pick_id}`}
+          class:list={{ 'is-rejected': pick.status === 'rejected_late' }}
+          data-pick-id={pick.pick_id}
+          data-status={pick.status}
+          data-close-source={pick.close_source ?? 'null'}
+          data-close={dataValue(pick.closing_line)}
+          data-units-pl={dataValue(pick.units_pl)}
+          data-clv={dataValue(pick.clv_pts)}
+        >
+          <tr>
+            <td class="record">{matchupLabel(pick.game_id)}</td>
+            <td class="record">{pick.market}</td>
+            <td class="record">{formatSideLine(pick.market, pick.side, pick.line_at_pick)}</td>
+            <td class="record">
+              {formatPickLine(pick.market, pick.closing_line)} <CloseMarker source={pick.close_source} />
+            </td>
+            <td class="record">{formatFinal(pick.game_id, pick.final_away, pick.final_home)}</td>
+            <td class="record">{pick.result ?? EM_DASH}</td>
+            <td class="record">{formatUnits(pick.units_pl)}</td>
+            <td class="record">{formatClv(pick.clv_pts)}</td>
+            <td>
+              <StatusBadge status={pick.status} />
+            </td>
+          </tr>
+          <tr>
+            <td class="pick-detail" colspan="9">
+              {pick.note ? <p class="record pick-note">{pick.note}</p> : null}
+              <p class="meta pick-times">
+                Picked <time datetime={pick.picked_at}>{formatMst(pick.picked_at)}</time>. Locked (GitHub push time){' '}
+                {pick.first_pushed_at ? (
+                  <time datetime={pick.first_pushed_at}>{formatMst(pick.first_pushed_at)}</time>
+                ) : (
+                  formatMst(null)
+                )}.
+              </p>
+            </td>
+          </tr>
+        </tbody>
+      ))
+    }
+  </table>
+</div>

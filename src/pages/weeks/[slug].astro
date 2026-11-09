@@ -1,5 +1,6 @@
 ---
 import { render } from 'astro:content';
+import WeekPicks from '../../components/WeekPicks.astro';
 import PostLayout from '../../layouts/PostLayout.astro';
 import { formatPublishedAt, getPublishedWeeks } from '../../lib/posts';
 
@@ -21,6 +22,7 @@ const { Content } = await render(post);
     <span>Season {post.data.season}, week {post.data.week}</span>
   </p>
   <p class="summary">{post.data.summary}</p>
+  <WeekPicks gameIds={post.data.picks} />
   {
     post.data.tags.length > 0 && (
       <p class="meta">Tags: {post.data.tags.join(', ')}</p>

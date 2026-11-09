@@ -1,0 +1,4 @@
+game_id,market,book,point,snapshot_ts
+2099_01_TB_ATL,spread,book_a,-3.5,2099-09-13T12:00:00Z
+2099_01_TB_ATL,spread,book_b,-3,2099-09-13T12:00:00Z
+2099_01_TB_ATL,spread,book_c,-2.5,2099-09-13T12:00:00Z

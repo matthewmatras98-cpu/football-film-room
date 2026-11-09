@@ -1,0 +1,22 @@
+---
+import { picks, weekPickEntries } from '../lib/picks';
+
+interface Props {
+  gameIds: string[];
+}
+
+const entries = weekPickEntries(Astro.props.gameIds, picks);
+---
+
+{
+  Astro.props.gameIds.length > 0 && (
+    <section class="week-picks">
+      <h2>This week's picks</h2>
+      <ul>
+        {entries.map((entry) => (
+          <li>{entry.href ? <a href={entry.href}>{entry.label}</a> : entry.label}</li>
+        ))}
+      </ul>
+    </section>
+  )
+}
