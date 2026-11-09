@@ -15,7 +15,17 @@ const fullCredits = [
   'Data: nflverse (nflfastR / nflreadr), licensed CC-BY 4.0. NFL data belongs to its respective owners.',
   'Charting data: FTN Data via nflverse, licensed CC-BY-SA 4.0. Any published table derived from FTN data is also CC-BY-SA. Label those tables so readers can see it.',
   'Next Gen Stats data via nflverse; NGS is a product of the NFL.',
-  'Odds data: The Odds API. Lines shown are medians of N US books.',
+  'Odds data: The Odds API. Lines shown are the lower-middle line of N US books.',
+];
+
+const closingLinePhrases = [
+  'floor((n-1)/2)',
+  'lower-middle',
+  'never an average',
+  'Thin: 1-2 books',
+  'Stale: the snapshot is more than 180 minutes before kickoff',
+  'nflverse: no books, so the nflverse line is used',
+  'Ungraded: no line from either source',
 ];
 
 const disclaimer =
@@ -125,10 +135,13 @@ async function assertPages(distDir, entries, { requirePublished }) {
     fail('methodology/index.html is missing');
   }
   const methodologyHtml = await readFile(methodology, 'utf8');
-  for (const line of [...fullCredits, disclaimer]) {
+  for (const line of [...fullCredits, disclaimer, ...closingLinePhrases]) {
     if (!methodologyHtml.includes(line)) {
       fail(`methodology is missing the full text: ${line}`);
     }
+  }
+  if (/exact median|quarter[- ]point|\bmedian\b/i.test(methodologyHtml)) {
+    fail('methodology still describes a median or a quarter-point close');
   }
 
   if (requirePublished) {

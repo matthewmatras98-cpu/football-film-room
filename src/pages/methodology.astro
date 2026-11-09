@@ -25,23 +25,25 @@ await getPublishedWeeks();
 
   <h2>Closing line</h2>
   <p>
-    The closing line is the median of N US books in the last valid pre-kick snapshot. The median is
-    kept exact and is not rounded. With an even number of books it can land on a quarter point.
+    The closing line is the lower-middle line of N US books in the last valid pre-kick snapshot. Sort
+    the books' lines ascending and take element floor((n-1)/2). That is a real book line, never an
+    average.
   </p>
   <p>
     That snapshot is the last one stored before kickoff, typically 5 to 75 minutes before kickoff. It
     is not the true close at kickoff.
   </p>
   <ul>
-    <li>Three or more books: the exact median. Source: odds_api.</li>
-    <li>One or two books: the median of those books, marked thin. Source: odds_api_thin.</li>
-    <li>No books: the nflverse line. Source: nflverse.</li>
-    <li>Neither source available: the pick stays ungraded. The site does not guess.</li>
-    <li>
-      A snapshot more than 180 minutes before kickoff is marked stale. Source: odds_api_stale.
-    </li>
+    <li>Three or more books: that lower-middle line. Source: odds_api.</li>
+    <li>Thin: 1-2 books. The same lower-middle line of those books is used. Source: odds_api_thin.</li>
+    <li>Stale: the snapshot is more than 180 minutes before kickoff. Source: odds_api_stale.</li>
+    <li>nflverse: no books, so the nflverse line is used. Source: nflverse.</li>
+    <li>Ungraded: no line from either source. The site does not guess.</li>
   </ul>
-  <p>Lines are shown as a median of N US books. Book names are not shown, and there are no book links.</p>
+  <p>
+    Lines are shown as the lower-middle line of N US books. Book names are not shown, and there are
+    no book links.
+  </p>
 
   <h2>Grading</h2>
   <p>

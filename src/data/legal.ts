@@ -13,7 +13,7 @@ export const ngsCredit =
   'Next Gen Stats data via nflverse; NGS is a product of the NFL.';
 
 export const oddsCredit =
-  'Odds data: The Odds API. Lines shown are medians of N US books.';
+  'Odds data: The Odds API. Lines shown are the lower-middle line of N US books.';
 
 export const fullCredits = [dataCredit, chartingCredit, ngsCredit, oddsCredit] as const;
 

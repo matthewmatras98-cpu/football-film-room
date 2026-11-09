@@ -12,7 +12,7 @@ Add an MDX file at `src/content/weeks/2026-wXX.mdx`. Every frontmatter field is 
 title: Week 11 notes
 season: 2026
 week: 11
-published_at: 2026-11-14T18:00:00-07:00
+published_at: "2026-11-14T18:00:00-07:00"
 summary: One or two sentences.
 picks:
   - 2026_11_DET_PHI
@@ -21,7 +21,7 @@ tags:
 draft: false
 ```
 
-- `published_at` is an ISO-8601 datetime with a timezone offset, as in the example. An unquoted value is fine.
+- `published_at` must be a quoted ISO-8601 datetime with a timezone offset, as in the example. Leave the quotes in place so the timestamp stays a string.
 - `picks` lists nflverse game ids: `YYYY_WW_AWAY_HOME`, with 2- or 3-letter abbreviations.
 - `draft: false` publishes the post at `/weeks/2026-wXX/`. `draft: true` is left out of the build.
 - A draft stays in this public git repo even though the site does not render it.
