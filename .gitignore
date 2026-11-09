@@ -1,6 +1,7 @@
 node_modules/
 dist/
 dist-published-check/
+dist-picks-check/
 .astro/
 *.log
 .venv/

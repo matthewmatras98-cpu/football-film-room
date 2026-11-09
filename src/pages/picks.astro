@@ -1,0 +1,34 @@
+---
+import SeasonSummary from '../components/SeasonSummary.astro';
+import PicksTable from '../components/PicksTable.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { byWeek, picks, summary } from '../lib/picks';
+
+const weeks = byWeek(picks);
+---
+
+<BaseLayout
+  title="Picks"
+  description="Every published pick, graded against the closing line and kept in units."
+  wide
+>
+  <h1>Picks</h1>
+  {summary ? <SeasonSummary summary={summary} /> : null}
+  {
+    picks.length === 0 ? (
+      <p>No picks yet this season.</p>
+    ) : (
+      weeks.map((group) => (
+        <section>
+          <h2>
+            Season {group.season}, week {group.week}
+          </h2>
+          <PicksTable picks={group.picks} />
+        </section>
+      ))
+    )
+  }
+  <p>
+    <a href="/methodology/">Methodology</a>
+  </p>
+</BaseLayout>

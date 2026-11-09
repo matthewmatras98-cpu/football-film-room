@@ -6,9 +6,10 @@ import '../styles/global.css';
 interface Props {
   title: string;
   description: string;
+  wide?: boolean;
 }
 
-const { title, description } = Astro.props;
+const { title, description, wide = false } = Astro.props;
 const documentTitle = title === siteName ? siteName : `${title} · ${siteName}`;
 ---
 
@@ -21,12 +22,13 @@ const documentTitle = title === siteName ? siteName : `${title} · ${siteName}`;
     <meta name="description" content={description} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   </head>
-  <body>
+  <body class:list={{ 'layout-wide': wide }}>
     <a class="skip" href="#content">Skip to content</a>
     <header class="site-header wrap">
       <a class="site-name" href="/">{siteName}</a>
       <nav class="site-nav" aria-label="Primary">
         <a href="/">Home</a>
+        <a href="/picks/">Picks</a>
         <a href="/about/">About</a>
         <a href="/methodology/">Methodology</a>
       </nav>

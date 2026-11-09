@@ -1,0 +1,45 @@
+---
+import {
+  formatClv,
+  formatMst,
+  formatPct,
+  formatUnits,
+  formatWinPct,
+} from '../lib/picks';
+import type { Summary } from '../lib/picks-schema';
+
+interface Props {
+  summary: Summary;
+}
+
+const { summary } = Astro.props;
+const record = `${summary.w}-${summary.l}-${summary.p}`;
+---
+
+<section
+  class="season-summary"
+  data-season-summary
+  data-w={String(summary.w)}
+  data-l={String(summary.l)}
+  data-p={String(summary.p)}
+  data-units={String(summary.units)}
+  data-avg-clv={summary.avg_clv === null ? 'null' : String(summary.avg_clv)}
+  data-win-pct={summary.win_pct === null ? 'null' : String(summary.win_pct)}
+  data-pct-clv={summary.pct_clv_pos === null ? 'null' : String(summary.pct_clv_pos)}
+  data-rejected={String(summary.rejected_count)}
+  data-ungraded={String(summary.ungraded_count)}
+>
+  <h2>Season record</h2>
+  <p><span class="record-line">{record}</span> W-L-P</p>
+  <p>
+    Win % {formatWinPct(summary)}
+    <span class="meta">pushes excluded</span>
+  </p>
+  <p>Units {formatUnits(summary.units)}</p>
+  <p>Average CLV {formatClv(summary.avg_clv)}</p>
+  <p>Beating the close {formatPct(summary.pct_clv_pos)}</p>
+  <p>Rejected late: {summary.rejected_count}. Ungraded: {summary.ungraded_count}.</p>
+  <p>
+    Last graded <time datetime={summary.generated_at}>{formatMst(summary.generated_at)}</time>
+  </p>
+</section>

@@ -1,0 +1,12 @@
+---
+import { STATUS_LABEL } from '../lib/picks';
+import type { PickStatus } from '../lib/picks-schema';
+
+interface Props {
+  status: PickStatus;
+}
+
+const { status } = Astro.props;
+---
+
+<span class:list={['status', `status-${status}`]}>{STATUS_LABEL[status]}</span>

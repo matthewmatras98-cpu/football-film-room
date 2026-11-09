@@ -1,0 +1,11 @@
+---
+import { closeMarker } from '../lib/picks';
+
+interface Props {
+  source: string | null;
+}
+
+const marker = closeMarker(Astro.props.source);
+---
+
+{marker && <abbr class="marker" title={marker.title}>{marker.text}</abbr>}
