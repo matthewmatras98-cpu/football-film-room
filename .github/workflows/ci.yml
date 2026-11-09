@@ -49,3 +49,28 @@ jobs:
 
       - name: Expect build fail
         run: bash scripts/expect-build-fail.sh
+
+  pipeline:
+    name: pipeline
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.13.7"
+
+      - name: Sync
+        working-directory: pipeline
+        run: uv sync --frozen
+
+      - name: Test
+        working-directory: pipeline
+        env:
+          NFLREADPY_CACHE: "off"
+        run: uv run --frozen pytest

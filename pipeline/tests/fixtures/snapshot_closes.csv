@@ -1,0 +1,10 @@
+game_id,market,book,point,snapshot_ts
+2099_01_GB_CHI,spread,book_d,-2,2099-09-13T16:30:00Z
+2099_01_GB_CHI,spread,book_a,-3,2099-09-13T16:30:00Z
+2099_01_GB_CHI,spread,book_c,-2.5,2099-09-13T16:30:00Z
+2099_01_GB_CHI,spread,book_b,-2.5,2099-09-13T16:30:00Z
+2099_01_LAR_SEA,spread,book_a,-3.5,2099-09-13T16:30:00Z
+2099_01_LAR_SEA,spread,book_b,-3.0,2099-09-13T16:30:00Z
+2099_01_HOU_IND,spread,book_c,-2.5,2099-09-13T16:30:00Z
+2099_01_HOU_IND,spread,book_a,-3,2099-09-13T16:30:00Z
+2099_01_HOU_IND,spread,book_b,-3,2099-09-13T16:30:00Z

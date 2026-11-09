@@ -3,3 +3,11 @@ dist/
 dist-published-check/
 .astro/
 *.log
+.venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.py[cod]
+data/.cache/
+pipeline/.venv/
