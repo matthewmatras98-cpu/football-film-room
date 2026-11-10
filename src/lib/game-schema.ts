@@ -295,6 +295,7 @@ export const gameCardSchema = z
     generated_at: utcTimestamp,
     data_through_week: z.number().int(),
     sources: z.array(z.enum(CARD_SOURCES)),
+    injuries_status: z.enum(['reported', 'pending']),
     sections: sectionsSchema,
   })
   .strict()
@@ -384,6 +385,17 @@ export const gameCardSchema = z
         });
         break;
       }
+    }
+
+    if (
+      card.injuries_status === 'pending' &&
+      (card.sections.injuries.home.length > 0 || card.sections.injuries.away.length > 0)
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'pending injury status requires empty home and away lists',
+        path: ['injuries_status'],
+      });
     }
 
     for (const prompt of card.sections.story_prompts) {

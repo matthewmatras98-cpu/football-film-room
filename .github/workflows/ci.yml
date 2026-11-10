@@ -60,6 +60,9 @@ jobs:
       - name: Expect build fail
         run: bash scripts/expect-build-fail.sh
 
+      - name: Check generated card pages
+        run: bash scripts/check-card-pages.sh
+
   pipeline:
     name: pipeline
     runs-on: ubuntu-latest

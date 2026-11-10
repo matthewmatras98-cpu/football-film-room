@@ -768,8 +768,17 @@ async function assertFixtureCards(distDir, fixtures, picks, knownGameId) {
       }
     }
 
-    if (card.sections.injuries.home.length === 0 && card.sections.injuries.away.length === 0) {
-      const injuries = section(page, 'injuries');
+    const injuries = section(page, 'injuries');
+    if (card.injuries_status === 'pending') {
+      if (!injuries.includes('Injury report not posted yet')) {
+        fail(`${relative} pending injury report is missing the not-posted line`);
+      }
+      if (injuries.includes('None listed.')) {
+        fail(`${relative} pending injury report rendered an empty list`);
+      }
+    } else if (injuries.includes('Injury report not posted yet')) {
+      fail(`${relative} reported injury list used the pending line`);
+    } else if (card.sections.injuries.home.length === 0 && card.sections.injuries.away.length === 0) {
       const listed = injuries.split('None listed.').length - 1;
       if (listed < 2) {
         fail(`${relative} did not show an empty injury list for both teams`);

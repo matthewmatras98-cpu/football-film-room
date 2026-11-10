@@ -201,6 +201,31 @@ def test_budget_uses_the_last_stored_remaining_when_the_header_is_missing(capsys
     assert skipped[0].credits_remaining == 80
 
 
+def test_d1_logs_are_counts_only_and_dry_run_is_silent(capsys):
+    game = _game("2026_11_GB_CHI", TUESDAY + timedelta(days=2))
+    code, _transport, _d1 = _run([game], TUESDAY, 400)
+    captured = capsys.readouterr()
+    assert code == 0
+    assert "d1 snapshots: wrote 4 row(s), total 4" in captured.out
+    assert "d1 shots: wrote 1 row(s)" in captured.out
+    blob = captured.out + captured.err
+    for secret in (SENTINEL, "acct-1", "db-1", "cf-token", "draftkings"):
+        assert secret not in blob
+
+    dry, _transport, _d1 = _run([game], TUESDAY, 400, dry_run=True)
+    dry_out = capsys.readouterr().out
+    assert dry == 0
+    assert "dry_run ok" in dry_out
+    assert "d1 snapshots:" not in dry_out
+    assert "d1 shots:" not in dry_out
+
+    skipped, _transport, _d1 = _run([game], TUESDAY, 19)
+    skipped_out = capsys.readouterr().out
+    assert skipped == 0
+    assert "d1 snapshots:" not in skipped_out
+    assert "d1 shots:" not in skipped_out
+
+
 def test_dry_run_checks_mapping_and_does_not_spend_a_shot(capsys):
     game = _game("2026_11_GB_CHI", TUESDAY + timedelta(hours=2))
     code, transport, d1 = _run([game], TUESDAY, 400, dry_run=True)

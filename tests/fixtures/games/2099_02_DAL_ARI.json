@@ -47,6 +47,7 @@
     "odds_api",
     "nws"
   ],
+  "injuries_status": "reported",
   "sections": {
     "epa": {
       "home": {

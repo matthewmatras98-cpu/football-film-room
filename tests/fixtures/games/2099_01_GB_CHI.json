@@ -22,6 +22,7 @@
     "nflverse_injuries",
     "ngs_via_nflverse"
   ],
+  "injuries_status": "pending",
   "sections": {
     "epa": {
       "home": {

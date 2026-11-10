@@ -1,0 +1,39 @@
+stadium_id,stadium,roof_class,lat,lon,country
+ATL97,Mercedes-Benz Stadium,retractable,33.75556,-84.4,US
+BAL00,M&T Bank Stadium,outdoors,39.27806,-76.62278,US
+BOS00,Gillette Stadium,outdoors,42.091,-71.264,US
+BUF00,Highmark Stadium,outdoors,42.77306,-78.79222,US
+CAR00,Bank of America Stadium,outdoors,35.22583,-80.85278,US
+CHI98,Soldier Field,outdoors,41.8623,-87.6167,US
+CIN00,Paycor Stadium,outdoors,39.095,-84.516,US
+CLE00,Huntington Bank Field,outdoors,41.50611,-81.69944,US
+DAL00,AT&T Stadium,retractable,32.74778,-97.09278,US
+DEN00,Empower Field at Mile High,outdoors,39.74389,-105.02,US
+DET00,Ford Field,dome,42.34,-83.04556,US
+GNB00,Lambeau Field,outdoors,44.50139,-88.06222,US
+HOU00,Reliant Stadium,retractable,29.68472,-95.41083,US
+IND00,Lucas Oil Stadium,retractable,39.76006,-86.16381,US
+JAX00,EverBank Stadium,outdoors,30.32389,-81.6375,US
+KAN00,GEHA Field at Arrowhead Stadium,outdoors,39.04889,-94.48389,US
+LAX01,SoFi Stadium,dome,33.953,-118.339,US
+LON00,Wembley Stadium,outdoors,51.5556,-0.2794,GB
+LON02,Tottenham Hotspur Stadium,outdoors,51.6044,-0.0664,GB
+MAD01,Bernabeu,retractable,40.45306,-3.68835,ES
+MEL00,Melbourne Cricket Ground,outdoors,-37.82,144.98333,AU
+MEX00,Estadio Banorte,outdoors,19.303,-99.1505,MX
+MIA00,Hard Rock Stadium,outdoors,25.95806,-80.23889,US
+MIN01,U.S. Bank Stadium,dome,44.974,-93.258,US
+MUN01,FC Bayern Munich Stadium,outdoors,48.21878,11.62475,DE
+NAS00,Nissan Stadium,outdoors,36.16639,-86.77139,US
+NOR00,Caesars Superdome,dome,29.95083,-90.08111,US
+NYC01,MetLife Stadium,outdoors,40.81361,-74.07444,US
+PAR00,Stade de France,outdoors,48.9244,2.36,FR
+PHI00,Lincoln Financial Field,outdoors,39.90083,-75.1675,US
+PHO00,State Farm Stadium,retractable,33.528,-112.263,US
+PIT00,Acrisure Stadium,outdoors,40.44667,-80.01583,US
+RIO00,Maracana Stadium,outdoors,-22.9122,-43.2303,BR
+SEA00,Lumen Field,outdoors,47.5952,-122.3316,US
+SFO01,Levi's Stadium,outdoors,37.403,-121.97,US
+TAM00,Raymond James Stadium,outdoors,27.97583,-82.50333,US
+VEG00,Allegiant Stadium,dome,36.09056,-115.18389,US
+WAS00,Northwest Stadium,outdoors,38.90778,-76.86444,US

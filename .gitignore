@@ -3,6 +3,7 @@ dist/
 dist-published-check/
 dist-picks-check/
 dist-game-fail/
+dist-cards-check/
 .astro/
 *.log
 .venv/

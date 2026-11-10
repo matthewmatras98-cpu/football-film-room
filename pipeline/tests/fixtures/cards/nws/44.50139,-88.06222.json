@@ -1,0 +1,5 @@
+{
+  "properties": {
+    "forecastHourly": "fixture:hourly/gb.json"
+  }
+}

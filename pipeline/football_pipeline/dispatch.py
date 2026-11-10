@@ -199,6 +199,9 @@ def run_dispatch(
     after = _remaining(odds_headers, stored, fallback=remaining)
     rows = rows_from_odds(odds_payload, games, now, _kind_for(games, take))
     d1.insert_snapshots(rows)
+    total = d1.query("SELECT COUNT(*) AS n FROM snapshots", [])
+    stored_rows = int(total[0]["n"])
+    print(f"d1 snapshots: wrote {len(rows)} row(s), total {stored_rows}")
     taken_at = format_ts(now)
     for shot in take:
         d1.insert_shot(
@@ -211,6 +214,7 @@ def run_dispatch(
                 status="taken",
             )
         )
+    print(f"d1 shots: wrote {len(take)} row(s)")
     print(f"dispatch took {len(take)} shot(s), skipped {len(skip)}")
     return 0
 

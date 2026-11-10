@@ -58,6 +58,7 @@ describe('game card schema', () => {
     expect(cards.some((card) => card.sections.injuries.home.length === 0 && card.sections.injuries.away.length === 0)).toBe(
       true,
     );
+    expect(new Set(cards.map((card) => card.injuries_status))).toEqual(new Set(['reported', 'pending']));
     expect(cards.every((card) => card.schema_version === 1)).toBe(true);
     expect(cards.every((card) => card.sections.story_prompts.length === 3)).toBe(true);
     expect(cards.every((card) => card.sources.every((source) => CARD_SOURCES.includes(source)))).toBe(true);
@@ -82,6 +83,7 @@ describe('game card schema', () => {
     'generated_at',
     'data_through_week',
     'sources',
+    'injuries_status',
     'sections',
   ])('rejects a card missing %s', (field) => {
     const data = clone(base);
@@ -141,6 +143,23 @@ describe('game card schema', () => {
       data.game_id = gameId;
       expect(gameCardSchema.safeParse(data).success, gameId).toBe(false);
     }
+  });
+
+  it('rejects a missing injuries_status, a bad value, and pending with rows', () => {
+    const missing = clone(base);
+    delete missing.injuries_status;
+    expect(gameCardSchema.safeParse(missing).success).toBe(false);
+
+    const bad = clone(base);
+    bad.injuries_status = 'posted';
+    expect(gameCardSchema.safeParse(bad).success).toBe(false);
+
+    const pending = clone(base);
+    pending.injuries_status = 'pending';
+    const injuries = (pending.sections as { injuries: { home: unknown[]; away: unknown[] } }).injuries;
+    injuries.home = [{ player: 'A. Player', position: 'QB', status: 'Out', detail: null }];
+    injuries.away = [];
+    expect(gameCardSchema.safeParse(pending).success).toBe(false);
   });
 
   it('rejects indoor weather numbers and outdoor nulls', () => {

@@ -1,0 +1,13 @@
+game_id,season,week,game_type,gameday,gametime,away_team,home_team,away_score,home_score,stadium_id,stadium,surface,home_rest,away_rest
+2099_01_DET_CHI,2099,1,REG,2099-09-07,13:00,DET,CHI,17,24,CHI98,Soldier Field,grass,7,7
+2099_01_HOU_TEN,2099,1,REG,2099-09-07,13:00,HOU,TEN,14,21,NAS00,Nissan Stadium,grass,7,7
+2099_01_MIN_GB,2099,1,REG,2099-09-07,16:00,MIN,GB,10,27,GNB00,Lambeau Field,grass,7,7
+2099_01_DEN_KC,2099,1,REG,2099-09-07,20:20,DEN,KC,13,31,KAN00,GEHA Field at Arrowhead Stadium,grass,7,7
+2099_02_CHI_DET,2099,2,REG,2099-09-14,13:00,CHI,DET,20,17,DET00,Ford Field,fieldturf,7,7
+2099_02_TEN_HOU,2099,2,REG,2099-09-14,13:00,TEN,HOU,24,24,HOU00,Reliant Stadium,fieldturf,7,7
+2099_02_GB_MIN,2099,2,REG,2099-09-14,16:00,GB,MIN,21,14,MIN01,U.S. Bank Stadium,fieldturf,7,7
+2099_02_KC_DEN,2099,2,REG,2099-09-14,16:00,KC,DEN,27,10,DEN00,Empower Field at Mile High,grass,7,7
+2099_03_CHI_DET,2099,3,REG,2099-09-21,13:00,CHI,DET,,,DET00,Ford Field,fieldturf,7,6
+2099_03_TEN_HOU,2099,3,REG,2099-09-21,14:00,TEN,HOU,,,HOU00,Reliant Stadium,fieldturf,7,7
+2099_03_MIN_GB,2099,3,REG,2099-09-21,16:00,MIN,GB,,,GNB00,Lambeau Field,grass,8,7
+2099_03_KC_DEN,2099,3,REG,2099-09-21,20:20,KC,DEN,,,DEN00,Empower Field at Mile High,grass,7,7
