@@ -1,0 +1,366 @@
+{
+  "schema_version": 1,
+  "game_id": "2026_10_CAR_NO",
+  "season": 2026,
+  "week": 10,
+  "kickoff_utc": "2026-11-15T18:00:00Z",
+  "home": "NO",
+  "away": "CAR",
+  "venue": "Caesars Superdome",
+  "roof": "dome",
+  "surface": "sportturf",
+  "home_rest": 7,
+  "away_rest": 7,
+  "line_open": {
+    "ts": "2026-11-10T01:00:48Z",
+    "home_spread": -1,
+    "total": 48,
+    "n_books": 9
+  },
+  "line_latest": {
+    "ts": "2026-11-10T14:13:19Z",
+    "home_spread": -1,
+    "total": 48,
+    "n_books": 9
+  },
+  "line_history": [
+    {
+      "ts": "2026-11-10T01:00:48Z",
+      "home_spread": -1,
+      "total": 48,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-10T14:13:19Z",
+      "home_spread": -1,
+      "total": 48,
+      "n_books": 9
+    }
+  ],
+  "generated_at": "2026-11-10T15:22:50Z",
+  "data_through_week": 9,
+  "sources": [
+    "nflverse_pbp",
+    "nflverse_schedules",
+    "ngs_via_nflverse",
+    "odds_api"
+  ],
+  "injuries_status": "pending",
+  "sections": {
+    "epa": {
+      "home": {
+        "off_epa_season": {
+          "value": -0.027817,
+          "source": "nflverse_pbp",
+          "sample": 551,
+          "range": "2026 wk1–9"
+        },
+        "off_epa_l4": {
+          "value": -0.073793,
+          "source": "nflverse_pbp",
+          "sample": 247,
+          "range": "2026 wk5–9"
+        },
+        "def_epa_season": {
+          "value": 0.055975,
+          "source": "nflverse_pbp",
+          "sample": 529,
+          "range": "2026 wk1–9"
+        },
+        "def_epa_l4": {
+          "value": -0.035462,
+          "source": "nflverse_pbp",
+          "sample": 272,
+          "range": "2026 wk5–9"
+        },
+        "off_sr_season": {
+          "value": 0.422868,
+          "source": "nflverse_pbp",
+          "sample": 551,
+          "range": "2026 wk1–9"
+        },
+        "def_sr_season": {
+          "value": 0.470699,
+          "source": "nflverse_pbp",
+          "sample": 529,
+          "range": "2026 wk1–9"
+        }
+      },
+      "away": {
+        "off_epa_season": {
+          "value": 0.026048,
+          "source": "nflverse_pbp",
+          "sample": 553,
+          "range": "2026 wk1–9"
+        },
+        "off_epa_l4": {
+          "value": -0.036451,
+          "source": "nflverse_pbp",
+          "sample": 271,
+          "range": "2026 wk6–9"
+        },
+        "def_epa_season": {
+          "value": 0.049857,
+          "source": "nflverse_pbp",
+          "sample": 551,
+          "range": "2026 wk1–9"
+        },
+        "def_epa_l4": {
+          "value": 0.085592,
+          "source": "nflverse_pbp",
+          "sample": 268,
+          "range": "2026 wk6–9"
+        },
+        "off_sr_season": {
+          "value": 0.424955,
+          "source": "nflverse_pbp",
+          "sample": 553,
+          "range": "2026 wk1–9"
+        },
+        "def_sr_season": {
+          "value": 0.450091,
+          "source": "nflverse_pbp",
+          "sample": 551,
+          "range": "2026 wk1–9"
+        }
+      }
+    },
+    "pass_rate_pace": {
+      "home": {
+        "neutral_ed_pass_rate": {
+          "value": 0.54902,
+          "source": "nflverse_pbp",
+          "sample": 255,
+          "range": "2026 wk1–9"
+        },
+        "pace_sec_per_play": {
+          "value": 37.147059,
+          "source": "nflverse_pbp",
+          "sample": 170,
+          "range": "2026 wk1–9"
+        }
+      },
+      "away": {
+        "neutral_ed_pass_rate": {
+          "value": 0.596639,
+          "source": "nflverse_pbp",
+          "sample": 238,
+          "range": "2026 wk1–9"
+        },
+        "pace_sec_per_play": {
+          "value": 40,
+          "source": "nflverse_pbp",
+          "sample": 171,
+          "range": "2026 wk1–9"
+        }
+      }
+    },
+    "explosives": {
+      "home": {
+        "explosive_rate_for": {
+          "value": 0.061706,
+          "source": "nflverse_pbp",
+          "sample": 551,
+          "range": "2026 wk1–9"
+        },
+        "explosive_rate_allowed": {
+          "value": 0.092803,
+          "source": "nflverse_pbp",
+          "sample": 528,
+          "range": "2026 wk1–9"
+        }
+      },
+      "away": {
+        "explosive_rate_for": {
+          "value": 0.086799,
+          "source": "nflverse_pbp",
+          "sample": 553,
+          "range": "2026 wk1–9"
+        },
+        "explosive_rate_allowed": {
+          "value": 0.065336,
+          "source": "nflverse_pbp",
+          "sample": 551,
+          "range": "2026 wk1–9"
+        }
+      }
+    },
+    "qb": {
+      "home": {
+        "player": "T.Shough",
+        "epa_per_db": {
+          "value": -0.01643,
+          "source": "nflverse_pbp",
+          "sample": 328,
+          "range": "2026 wk1–9"
+        },
+        "cpoe": {
+          "value": -0.248619,
+          "source": "nflverse_pbp",
+          "sample": 295,
+          "range": "2026 wk1–9"
+        },
+        "time_to_throw": {
+          "value": 2.727739,
+          "source": "ngs_via_nflverse",
+          "sample": 308,
+          "range": "2026 wk1–9"
+        }
+      },
+      "away": {
+        "player": "B.Young",
+        "epa_per_db": {
+          "value": 0.055641,
+          "source": "nflverse_pbp",
+          "sample": 334,
+          "range": "2026 wk1–9"
+        },
+        "cpoe": {
+          "value": 1.266621,
+          "source": "nflverse_pbp",
+          "sample": 278,
+          "range": "2026 wk1–9"
+        },
+        "time_to_throw": {
+          "value": 2.839114,
+          "source": "ngs_via_nflverse",
+          "sample": 308,
+          "range": "2026 wk1–9"
+        }
+      }
+    },
+    "sacks": {
+      "home": {
+        "sack_rate_for": {
+          "value": 0.075658,
+          "source": "nflverse_pbp",
+          "sample": 304,
+          "range": "2026 wk1–9"
+        },
+        "sack_rate_allowed": {
+          "value": 0.05848,
+          "source": "nflverse_pbp",
+          "sample": 342,
+          "range": "2026 wk1–9"
+        }
+      },
+      "away": {
+        "sack_rate_for": {
+          "value": 0.038961,
+          "source": "nflverse_pbp",
+          "sample": 308,
+          "range": "2026 wk1–9"
+        },
+        "sack_rate_allowed": {
+          "value": 0.074713,
+          "source": "nflverse_pbp",
+          "sample": 348,
+          "range": "2026 wk1–9"
+        }
+      }
+    },
+    "red_zone_downs": {
+      "home": {
+        "rz_td_rate_for": {
+          "value": 0.612903,
+          "source": "nflverse_pbp",
+          "sample": 31,
+          "range": "2026 wk1–9"
+        },
+        "rz_td_rate_allowed": {
+          "value": 0.461538,
+          "source": "nflverse_pbp",
+          "sample": 39,
+          "range": "2026 wk1–9"
+        },
+        "third_down_rate_for": {
+          "value": 0.434783,
+          "source": "nflverse_pbp",
+          "sample": 115,
+          "range": "2026 wk1–9"
+        },
+        "third_down_rate_allowed": {
+          "value": 0.472222,
+          "source": "nflverse_pbp",
+          "sample": 108,
+          "range": "2026 wk1–9"
+        },
+        "fourth_down_rate_for": {
+          "value": 0.8,
+          "source": "nflverse_pbp",
+          "sample": 15,
+          "range": "2026 wk1–9"
+        },
+        "fourth_down_rate_allowed": {
+          "value": 0.25,
+          "source": "nflverse_pbp",
+          "sample": 4,
+          "range": "2026 wk1–9"
+        }
+      },
+      "away": {
+        "rz_td_rate_for": {
+          "value": 0.558824,
+          "source": "nflverse_pbp",
+          "sample": 34,
+          "range": "2026 wk1–9"
+        },
+        "rz_td_rate_allowed": {
+          "value": 0.5625,
+          "source": "nflverse_pbp",
+          "sample": 32,
+          "range": "2026 wk1–9"
+        },
+        "third_down_rate_for": {
+          "value": 0.377358,
+          "source": "nflverse_pbp",
+          "sample": 106,
+          "range": "2026 wk1–9"
+        },
+        "third_down_rate_allowed": {
+          "value": 0.476636,
+          "source": "nflverse_pbp",
+          "sample": 107,
+          "range": "2026 wk1–9"
+        },
+        "fourth_down_rate_for": {
+          "value": 0.5,
+          "source": "nflverse_pbp",
+          "sample": 18,
+          "range": "2026 wk1–9"
+        },
+        "fourth_down_rate_allowed": {
+          "value": 0.363636,
+          "source": "nflverse_pbp",
+          "sample": 11,
+          "range": "2026 wk1–9"
+        }
+      }
+    },
+    "injuries": {
+      "home": [],
+      "away": []
+    },
+    "weather": {
+      "mode": "indoor",
+      "temp_f": null,
+      "wind_mph": null,
+      "precip_prob_pct": null,
+      "summary": null
+    },
+    "story_prompts": [
+      {
+        "title": "Offense EPA per play",
+        "body": "CAR is 0.026048 and NO is -0.027817 over 2026 wk1–9."
+      },
+      {
+        "title": "Neutral early-down pass rate",
+        "body": "CAR is 0.596639 and NO is 0.54902."
+      },
+      {
+        "title": "Sack rate for",
+        "body": "CAR defense is 0.038961 and NO defense is 0.075658 per opponent dropback."
+      }
+    ]
+  }
+}

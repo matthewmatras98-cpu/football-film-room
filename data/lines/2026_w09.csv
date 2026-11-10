@@ -1,0 +1,3 @@
+snapshot_ts,game_id,market,line,n_books,min,max
+2026-11-10T01:00:48Z,2026_09_BUF_MIN,spread,3.5,9,3,3.5
+2026-11-10T01:00:48Z,2026_09_BUF_MIN,total,45.5,9,45.5,46
