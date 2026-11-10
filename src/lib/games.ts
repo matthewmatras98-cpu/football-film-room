@@ -1,4 +1,5 @@
 import { getCollection } from 'astro:content';
+import { compareSeasonWeek, currentWeekRows } from './current-week';
 import type { GameCard } from './game-schema';
 
 export {
@@ -20,7 +21,7 @@ export interface WeekGames<T> {
   games: T[];
 }
 
-/** Groups by season and week, newest season and week first. Order inside a week is kept. */
+/** Groups by season and week, latest season and week first. Order inside a week is kept. */
 export function gamesByWeek<T extends { season: number; week: number }>(
   rows: readonly T[],
 ): WeekGames<T>[] {
@@ -34,7 +35,7 @@ export function gamesByWeek<T extends { season: number; week: number }>(
       groups.set(key, { season: row.season, week: row.week, games: [row] });
     }
   }
-  return [...groups.values()].sort((a, b) => b.season - a.season || b.week - a.week);
+  return [...groups.values()].sort((a, b) => compareSeasonWeek(b, a));
 }
 
 /** Cards for one week number. An unknown week is empty. This does not substitute an older week. */
@@ -43,16 +44,17 @@ export function gamesForWeek<T extends { week: number }>(rows: readonly T[], wee
 }
 
 /**
- * "This week" is the highest week number present, matching the picks page.
- * It is not the calendar week. Pass an explicit week to read that week only:
+ * "This week" is the latest (season, week), the same rule as the picks page.
+ * Season is compared first, then week. It is not the calendar week.
+ * Pass an explicit week to read that week number only:
  * a week with zero cards returns an empty list and does not fall back.
  */
-export function currentWeekGames<T extends { week: number }>(rows: readonly T[], week?: number): T[] {
+export function currentWeekGames<T extends { season: number; week: number }>(
+  rows: readonly T[],
+  week?: number,
+): T[] {
   if (week === undefined) {
-    if (rows.length === 0) {
-      return [];
-    }
-    week = Math.max(...rows.map((row) => row.week));
+    return currentWeekRows(rows);
   }
   return gamesForWeek(rows, week);
 }

@@ -3,6 +3,7 @@ import { copyFile, readFile, readdir, rm, stat, writeFile } from 'node:fs/promis
 import { register } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { siteUrl } from '../src/data/site-url.mjs';
 import {
   CLOSE_MARKER,
   STATUS_LABEL,
@@ -21,6 +22,7 @@ register(new URL('./ts-resolver.mjs', import.meta.url));
 
 const { formatStatKind } = await import('../src/lib/format-stat.ts');
 const { gameCardSchema } = await import('../src/lib/game-schema.ts');
+const { currentSeasonWeek } = await import('../src/lib/current-week.ts');
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const weeksDir = path.join(root, 'src/content/weeks');
@@ -107,7 +109,7 @@ async function exists(filePath) {
   }
 }
 
-async function listHtml(dir) {
+async function listFiles(dir, suffix) {
   if (!(await exists(dir))) {
     return [];
   }
@@ -116,12 +118,134 @@ async function listHtml(dir) {
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      files.push(...(await listHtml(fullPath)));
-    } else if (entry.isFile() && entry.name.endsWith('.html')) {
+      files.push(...(await listFiles(fullPath, suffix)));
+    } else if (entry.isFile() && entry.name.endsWith(suffix)) {
       files.push(fullPath);
     }
   }
   return files;
+}
+
+async function listHtml(dir) {
+  return listFiles(dir, '.html');
+}
+
+function sameSeasonWeek(row, key) {
+  return key !== null && row.season === key.season && row.week === key.week;
+}
+
+function attribute(tag, name) {
+  const match = new RegExp(`\\s${name}\\s*=\\s*("([^"]*)"|'([^']*)')`, 'i').exec(tag);
+  if (!match) {
+    return null;
+  }
+  return match[2] ?? match[3] ?? null;
+}
+
+function linkHrefs(html, rel) {
+  const tags = html.match(/<link\b[^>]*>/gi) ?? [];
+  const hrefs = [];
+  for (const tag of tags) {
+    const value = attribute(tag, 'rel');
+    if (!value || !value.toLowerCase().split(/\s+/).includes(rel)) {
+      continue;
+    }
+    hrefs.push(attribute(tag, 'href'));
+  }
+  return hrefs;
+}
+
+function metaContents(html, property) {
+  const tags = html.match(/<meta\b[^>]*>/gi) ?? [];
+  const contents = [];
+  for (const tag of tags) {
+    const value = attribute(tag, 'property');
+    if (!value || value.toLowerCase() !== property) {
+      continue;
+    }
+    contents.push(attribute(tag, 'content'));
+  }
+  return contents;
+}
+
+function sitemapListsNotFound(xml) {
+  return /<loc>[^<]*\/404(?:\.html)?\/?<\/loc>/i.test(xml);
+}
+
+async function assertSeo(distDir) {
+  const label = path.relative(root, distDir);
+  const site = new URL(siteUrl());
+  const notFoundPath = path.join(distDir, '404.html');
+  if (!(await exists(notFoundPath))) {
+    fail(`${label}/404.html is missing`);
+  }
+  const notFoundHtml = await readFile(notFoundPath, 'utf8');
+  if (!notFoundHtml.includes('noindex')) {
+    fail(`${label}/404.html is missing noindex`);
+  }
+
+  const robotsPath = path.join(distDir, 'robots.txt');
+  if (!(await exists(robotsPath))) {
+    fail(`${label}/robots.txt is missing`);
+  }
+  const robots = await readFile(robotsPath, 'utf8');
+  const sitemapLine = robots
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find((line) => /^sitemap:/i.test(line));
+  if (!sitemapLine) {
+    fail(`${label}/robots.txt is missing a Sitemap line`);
+  }
+  const expectedSitemap = new URL('/sitemap-index.xml', site).href;
+  const actualSitemap = sitemapLine.replace(/^sitemap:\s*/i, '').trim();
+  if (actualSitemap !== expectedSitemap) {
+    fail(`${label}/robots.txt Sitemap is ${actualSitemap}, expected ${expectedSitemap}`);
+  }
+
+  if (!(await exists(path.join(distDir, 'sitemap-index.xml')))) {
+    fail(`${label}/sitemap-index.xml is missing`);
+  }
+  const xmlFiles = await listFiles(distDir, '.xml');
+  if (xmlFiles.length === 0) {
+    fail(`${label} has no sitemap xml`);
+  }
+  for (const filePath of xmlFiles) {
+    const xml = await readFile(filePath, 'utf8');
+    if (sitemapListsNotFound(xml)) {
+      fail(`${path.relative(root, filePath)} includes the 404 page`);
+    }
+  }
+
+  const htmlFiles = await listHtml(distDir);
+  if (htmlFiles.length === 0) {
+    fail(`${label} has no HTML pages`);
+  }
+  for (const filePath of htmlFiles) {
+    const html = await readFile(filePath, 'utf8');
+    const relativePath = path.relative(root, filePath);
+    const canonicals = linkHrefs(html, 'canonical');
+    const ogUrls = metaContents(html, 'og:url');
+    if (canonicals.length !== 1) {
+      fail(`${relativePath} has ${canonicals.length} canonical tags`);
+    }
+    if (ogUrls.length !== 1) {
+      fail(`${relativePath} has ${ogUrls.length} og:url tags`);
+    }
+    for (const href of [canonicals[0], ogUrls[0]]) {
+      if (typeof href !== 'string' || href.length === 0) {
+        fail(`${relativePath} is missing a canonical or og:url value`);
+      }
+      let url;
+      try {
+        url = new URL(href);
+      } catch {
+        fail(`${relativePath} has a non-absolute canonical or og:url (${href})`);
+      }
+      if (url.origin !== site.origin) {
+        fail(`${relativePath} uses origin ${url.origin}, expected ${site.origin}`);
+      }
+    }
+  }
 }
 
 function slugFromFilename(filename) {
@@ -160,6 +284,7 @@ async function weekPage(distDir, slug) {
 }
 
 async function assertPages(distDir, entries, { requirePublished }) {
+  await assertSeo(distDir);
   const htmlFiles = await listHtml(distDir);
   if (htmlFiles.length === 0) {
     fail(`${path.relative(root, distDir)} has no HTML pages`);
@@ -473,7 +598,7 @@ Temporary card link check.
 
 async function assertFixtureCards(distDir, fixtures, picks, knownGameId) {
   const cards = fixtures.map((entry) => entry.card);
-  const maxWeek = Math.max(...cards.map((card) => card.week));
+  const current = currentSeasonWeek(cards);
   const home = await readHtml(distDir, 'index.html');
   if (!home.includes('data-week-cards') || !weekCardsHeading(home)) {
     fail("home is missing This week's cards");
@@ -624,13 +749,13 @@ async function assertFixtureCards(distDir, fixtures, picks, knownGameId) {
     }
 
     const onHome = home.includes(`/games/${card.game_id}/`);
-    if (card.week === maxWeek && !onHome) {
+    if (sameSeasonWeek(card, current) && !onHome) {
       fail(`home is missing current-week card ${card.game_id}`);
     }
-    if (card.week !== maxWeek && onHome) {
+    if (!sameSeasonWeek(card, current) && onHome) {
       fail(`home fell back to older card ${card.game_id}`);
     }
-    if (card.week === maxWeek) {
+    if (sameSeasonWeek(card, current)) {
       const item = gameItem(home, card.game_id);
       const matches = picks.filter((row) => row.game_id === card.game_id);
       if (matches.length === 0 && item.includes('pick-badge')) {
@@ -866,13 +991,13 @@ async function assertFixturePicks(distDir) {
     weekAt = at;
   }
 
-  const maxWeek = Math.max(...view.map((row) => row.week));
+  const current = currentSeasonWeek(view);
   for (const row of view) {
     const present = homeHtml.includes(row.pick_id);
-    if (row.week === maxWeek && !present) {
+    if (sameSeasonWeek(row, current) && !present) {
       fail(`home is missing current-week pick ${row.pick_id}`);
     }
-    if (row.week !== maxWeek && present) {
+    if (!sameSeasonWeek(row, current) && present) {
       fail(`home fell back to older pick ${row.pick_id}`);
     }
   }
@@ -976,12 +1101,13 @@ async function main() {
   }
   const gameFixtures = await loadGameFixtures();
   const picksForCards = JSON.parse(await readFile(viewFixture, 'utf8'));
-  const maxCardWeek = Math.max(...gameFixtures.map((entry) => entry.card.week));
+  const currentCardWeek = currentSeasonWeek(gameFixtures.map((entry) => entry.card));
   const knownCard =
     gameFixtures.find(
       (entry) =>
-        entry.card.week === maxCardWeek && picksForCards.some((row) => row.game_id === entry.card.game_id),
-    ) ?? gameFixtures.find((entry) => entry.card.week === maxCardWeek);
+        sameSeasonWeek(entry.card, currentCardWeek) &&
+        picksForCards.some((row) => row.game_id === entry.card.game_id),
+    ) ?? gameFixtures.find((entry) => sameSeasonWeek(entry.card, currentCardWeek));
   if (!knownCard) {
     fail('card fixtures have no current-week game');
   }
