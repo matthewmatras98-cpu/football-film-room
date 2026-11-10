@@ -7,7 +7,7 @@ on:
       - data/picks.csv
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: pick-ledger-${{ github.ref }}
@@ -16,10 +16,13 @@ concurrency:
 jobs:
   ledger:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          ssh-key: ${{ secrets.LEDGER_DEPLOY_KEY }}
 
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
@@ -52,7 +55,7 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/pick_ledger.csv
+          git add -- data/pick_ledger.csv
           if git diff --cached --quiet; then
             echo "ledger unchanged"
             exit 0

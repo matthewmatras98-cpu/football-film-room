@@ -276,23 +276,27 @@ const injurySides = [
   <section data-section="injuries">
     <h2>Injuries</h2>
     {
-      injurySides.map(({ team, rows }) => (
-        <div>
-          <h3>{team}</h3>
-          {rows.length === 0 ? (
-            <p>None listed.</p>
-          ) : (
-            <ul>
-              {rows.map((injury) => (
-                <li>
-                  {injury.player}, {injury.position}, {injury.status}
-                  {injury.detail ? ` (${injury.detail})` : ''}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      ))
+      game.injuries_status === 'pending' ? (
+        <p>Injury report not posted yet</p>
+      ) : (
+        injurySides.map(({ team, rows }) => (
+          <div>
+            <h3>{team}</h3>
+            {rows.length === 0 ? (
+              <p>None listed.</p>
+            ) : (
+              <ul>
+                {rows.map((injury) => (
+                  <li>
+                    {injury.player}, {injury.position}, {injury.status}
+                    {injury.detail ? ` (${injury.detail})` : ''}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))
+      )
     }
   </section>
 

@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "periods": [
+      {
+        "startTime": "2099-09-21T20:00:00Z",
+        "endTime": "2099-09-21T21:00:00Z",
+        "shortForecast": "Clear",
+        "temperature": 46,
+        "windSpeed": "10 mph",
+        "probabilityOfPrecipitation": {
+          "unitCode": "wmoUnit:percent",
+          "value": 5
+        }
+      }
+    ]
+  }
+}

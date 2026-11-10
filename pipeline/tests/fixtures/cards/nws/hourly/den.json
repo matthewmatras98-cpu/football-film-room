@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "periods": [
+      {
+        "startTime": "2099-09-21T18:00:00Z",
+        "endTime": "2099-09-21T19:00:00Z",
+        "shortForecast": "Breezy",
+        "temperature": 60,
+        "windSpeed": "15 mph",
+        "probabilityOfPrecipitation": {
+          "unitCode": "wmoUnit:percent",
+          "value": 10
+        }
+      }
+    ]
+  }
+}

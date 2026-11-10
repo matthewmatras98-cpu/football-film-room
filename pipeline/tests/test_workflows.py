@@ -82,6 +82,84 @@ def test_only_weekly_and_the_ledger_push_and_they_use_the_helper():
     assert "${{ secrets.ODDS_API_KEY }}" not in weekly
 
 
+def test_deploy_key_pushes_are_read_only_and_cannot_stage_picks():
+    weekly_path = WORKFLOWS / "weekly.yml"
+    ledger_path = WORKFLOWS / "pick-ledger.yml"
+    weekly = weekly_path.read_text(encoding="utf-8")
+    ledger = ledger_path.read_text(encoding="utf-8")
+    for path in sorted(WORKFLOWS.glob("*.yml")):
+        assert "contents: write" not in path.read_text(encoding="utf-8"), path.name
+    for text in (weekly, ledger):
+        assert len(re.findall(r"(?m)^permissions:\n  contents: read\n", text)) == 1
+        assert len(re.findall(r"(?m)^    permissions:\n      contents: read\n", text)) == 1
+        assert text.count("LEDGER_DEPLOY_KEY") == 1
+        assert "ssh-key: ${{ secrets.LEDGER_DEPLOY_KEY }}" in text
+        assert "persist-credentials: false" not in text
+        assert "pull_request" not in text
+        assert "fetch-depth: 0" in text
+    assert "push:" not in _top_block(weekly, "on")
+    assert 'cron: "7 11 * * 4"' in weekly
+    assert 'cron: "7 13 * * 2"' in weekly
+    for command in ("refresh", "pull-snapshots", "grade", "lines-export", "build-db", "cards"):
+        assert command in weekly
+    ledger_on = [line.strip() for line in _top_block(ledger, "on").splitlines() if line.strip()]
+    assert ledger_on == [
+        "push:",
+        "branches: [main]",
+        "paths:",
+        "- data/picks.csv",
+    ]
+    weekly_specs = _git_add_pathspecs(weekly)
+    ledger_specs = _git_add_pathspecs(ledger)
+    assert weekly_specs == [
+        "data/graded.csv",
+        "src/data/summary.json",
+        "src/data/picks_view.json",
+        "data/lines/*.csv",
+        "src/content/games/*.json",
+    ]
+    assert ledger_specs == ["data/pick_ledger.csv"]
+    allowed = set(weekly_specs) | set(ledger_specs)
+    forbidden = {".", "-A", "--all", "-u", "data/", "data/*"}
+    for spec in weekly_specs + ledger_specs:
+        assert spec in allowed
+        assert spec not in forbidden
+        assert not _matches_picks(spec)
+
+
+def _top_block(text: str, key: str) -> str:
+    lines = text.splitlines()
+    start = lines.index(f"{key}:")
+    body: list[str] = []
+    for line in lines[start + 1 :]:
+        if line and not line.startswith(" ") and not line.startswith("#"):
+            break
+        body.append(line)
+    return "\n".join(body)
+
+
+def _git_add_pathspecs(text: str) -> list[str]:
+    specs: list[str] = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "git add" not in stripped:
+            continue
+        match = re.search(r"\bgit add\b(.*)$", stripped)
+        assert match is not None
+        tokens = match.group(1).split()
+        if tokens and tokens[0] == "--":
+            tokens = tokens[1:]
+        assert tokens
+        specs.extend(tokens)
+    return specs
+
+
+def _matches_picks(spec: str) -> bool:
+    import fnmatch
+
+    return fnmatch.fnmatch("data/picks.csv", spec)
+
+
 def test_gitignore_blocks_raw_odds_files():
     lines = (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
     for pattern in ("data/raw/", "data/.cache/", "*.odds.json", "*.d1dump*"):

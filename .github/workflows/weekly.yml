@@ -4,10 +4,12 @@ on:
   schedule:
     # Tuesday 6:07 AM MST. Phoenix does not observe DST, so this is 13:07 UTC.
     - cron: "7 13 * * 2"
+    # Thursday 11:07 UTC is 4:07 AM MST. Same chain, and it does not call the Odds API.
+    - cron: "7 11 * * 4"
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: weekly-grade
@@ -16,10 +18,13 @@ concurrency:
 jobs:
   grade:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          ssh-key: ${{ secrets.LEDGER_DEPLOY_KEY }}
 
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
@@ -34,7 +39,7 @@ jobs:
         working-directory: pipeline
         run: uv sync --frozen
 
-      - name: Refresh, pull snapshots, grade, export lines
+      - name: Refresh, pull snapshots, grade, export lines, build cards
         working-directory: pipeline
         env:
           NFLREADPY_CACHE: "off"
@@ -49,22 +54,27 @@ jobs:
           as_of="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           uv run --frozen python -m football_pipeline grade --as-of "$as_of" --snapshots ../data/.cache/week.d1dump.csv
           uv run --frozen python -m football_pipeline lines-export --as-of "$as_of" --snapshots ../data/.cache/week.d1dump.csv
+          season="$(uv run --frozen python -c 'from nflreadpy.utils_date import get_current_season; print(get_current_season())')"
+          uv run --frozen python -m football_pipeline build-db --season "$season" --out ../data/.cache/football.duckdb
+          uv run --frozen python -m football_pipeline cards --db ../data/.cache/football.duckdb --as-of "$as_of"
 
       - name: Commit grader outputs if they changed
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # GITHUB_TOKEN pushes do not start workflows. This step also never
-          # stages data/picks.csv, so pick-ledger is not an event for this commit.
-          # Pushing to main may need the ruleset bypass Matthew is adding.
+          # The deploy key pushes this commit. data/picks.csv is not staged,
+          # so pick-ledger does not run. ci and pipeline re-check the commit.
           git add -- data/graded.csv src/data/summary.json src/data/picks_view.json
           if compgen -G "data/lines/*.csv" > /dev/null; then
-            git add -- data/lines
+            git add -- data/lines/*.csv
+          fi
+          if compgen -G "src/content/games/*.json" > /dev/null; then
+            git add -- src/content/games/*.json
           fi
           if git diff --cached --quiet; then
             echo "no grader changes"
             exit 0
           fi
-          git commit -m "Grade picks and publish derived lines"
+          git commit -m "Grade picks, publish derived lines, and write game cards"
           bash scripts/push_with_retry.sh

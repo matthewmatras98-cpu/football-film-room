@@ -8,6 +8,8 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from football_pipeline.build_db import build_database
+from football_pipeline.cards import write_cards
 from football_pipeline.close import read_snapshot_closes
 from football_pipeline.d1 import D1Client
 from football_pipeline.dispatch import run_dispatch
@@ -45,6 +47,10 @@ def main(argv: list[str] | None = None) -> int:
             return _pull_snapshots(args)
         if args.command == "lines-export":
             return _lines_export(args)
+        if args.command == "build-db":
+            return _build_db(args)
+        if args.command == "cards":
+            return _cards(args)
     except (PipelineError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
@@ -178,6 +184,23 @@ def _lines_export(args: argparse.Namespace) -> int:
     return 0
 
 
+def _build_db(args: argparse.Namespace) -> int:
+    if args.season is None:
+        raise PipelineError("build-db requires --season")
+    root = find_root(args.root)
+    build_database(root, int(args.season), args.out, fixtures=args.fixtures)
+    return 0
+
+
+def _cards(args: argparse.Namespace) -> int:
+    if not args.as_of:
+        raise PipelineError("cards requires --as-of so generated_at is deterministic")
+    as_of = parse_ts(args.as_of)
+    root = find_root(args.root)
+    write_cards(root, args.db, as_of, nws_fixtures=args.nws_fixtures)
+    return 0
+
+
 def _require_env(*names: str) -> tuple[str, ...]:
     missing = [name for name in names if not os.environ.get(name, "").strip()]
     if missing:
@@ -228,8 +251,10 @@ def _parser() -> argparse.ArgumentParser:
     dispatch = sub.add_parser("dispatch", help="capture due odds snapshots into D1")
     pull = sub.add_parser("pull-snapshots", help="read D1 snapshots into a close table")
     lines = sub.add_parser("lines-export", help="write derived data/lines CSVs")
+    build_db = sub.add_parser("build-db", help="load nflverse, lines, and the D1 dump into DuckDB")
+    cards = sub.add_parser("cards", help="write open-week game cards")
 
-    for command in (refresh, validate, ledger, grade, dispatch, pull, lines):
+    for command in (refresh, validate, ledger, grade, dispatch, pull, lines, build_db, cards):
         command.add_argument("--root", type=Path, default=None, help="repo root (default: auto)")
         command.add_argument(
             "--schedules",
@@ -259,6 +284,22 @@ def _parser() -> argparse.ArgumentParser:
     pull.add_argument("--out", type=Path, required=True, help="gitignored close-table path")
     lines.add_argument("--as-of", dest="as_of", default=None, help="ISO-8601 timestamp with offset")
     lines.add_argument("--snapshots", type=Path, required=True, help="close table from pull-snapshots")
+    build_db.add_argument("--season", type=int, required=True, help="nflverse season to load")
+    build_db.add_argument("--out", type=Path, required=True, help="duckdb path (gitignored)")
+    build_db.add_argument(
+        "--fixtures",
+        type=Path,
+        default=None,
+        help="offline CSV/parquet directory; skips nflverse",
+    )
+    cards.add_argument("--db", type=Path, required=True, help="duckdb from build-db")
+    cards.add_argument("--as-of", dest="as_of", default=None, help="ISO-8601 timestamp with offset")
+    cards.add_argument(
+        "--nws-fixtures",
+        type=Path,
+        default=None,
+        help="offline NWS points/hourly JSON; skips api.weather.gov",
+    )
     return parser
 
 

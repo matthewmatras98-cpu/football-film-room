@@ -1,0 +1,28 @@
+{
+  "properties": {
+    "periods": [
+      {
+        "startTime": "2099-09-21T17:00:00Z",
+        "endTime": "2099-09-21T18:00:00Z",
+        "shortForecast": "Sunny",
+        "temperature": 70,
+        "windSpeed": "5 mph",
+        "probabilityOfPrecipitation": {
+          "unitCode": "wmoUnit:percent",
+          "value": 0
+        }
+      },
+      {
+        "startTime": "2099-09-21T18:00:00Z",
+        "endTime": "2099-09-21T19:00:00Z",
+        "shortForecast": "Partly Cloudy",
+        "temperature": 88,
+        "windSpeed": "7 to 11 mph",
+        "probabilityOfPrecipitation": {
+          "unitCode": "wmoUnit:percent",
+          "value": 20
+        }
+      }
+    ]
+  }
+}

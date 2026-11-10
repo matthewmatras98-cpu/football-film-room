@@ -22,6 +22,9 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["football_pipeline"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"football_pipeline/venues.csv" = "football_pipeline/venues.csv"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"

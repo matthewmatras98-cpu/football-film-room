@@ -1,0 +1,15 @@
+season,week,season_type,team_abbr,player_gsis_id,player_display_name,player_short_name,avg_time_to_throw,attempts
+2099,1,REG,CHI,00-0001,A  Home,A. Home,2.4,20
+2099,2,REG,CHI,00-0001,A  Home,A. Home,2.7,25
+2099,1,REG,DET,00-0002,B  Away,B. Away,2.45,20
+2099,2,REG,DET,00-0002,B  Away,B. Away,2.75,25
+2099,1,REG,TEN,00-0003,C  Passer,C. Passer,2.5,20
+2099,2,REG,TEN,00-0003,C  Passer,C. Passer,2.8,25
+2099,1,REG,HOU,00-0004,D  Passer,D. Passer,2.55,20
+2099,2,REG,HOU,00-0004,D  Passer,D. Passer,2.85,25
+2099,1,REG,MIN,00-0005,E  Passer,E. Passer,2.6,20
+2099,2,REG,MIN,00-0005,E  Passer,E. Passer,2.9,25
+2099,1,REG,GB,00-0006,F  Passer,F. Passer,2.65,20
+2099,2,REG,GB,00-0006,F  Passer,F. Passer,2.95,25
+2099,1,REG,KC,00-0007,G  Passer,G. Passer,2.7,20
+2099,2,REG,KC,00-0007,G  Passer,G. Passer,3.0,25
