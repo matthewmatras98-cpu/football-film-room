@@ -7,13 +7,29 @@ await getPublishedWeeks();
 ---
 
 <BaseLayout title="About" description={`What ${siteName} is for.`}>
+  <p class="kicker">A personal football notebook</p>
   <h1>About</h1>
-  <p>
-    {siteName} is a personal site for weekly football matchup notes and a public pick record.
-  </p>
-  <p>
-    Grades are kept in units. The <a href="/methodology/">methodology</a> page states the closing-line
-    rule, the credit lines, and the disclaimer.
-  </p>
-  <p>Film is linked out, not hosted here.</p>
+  <p class="lede">What this site is for, and what it is not.</p>
+  <div class="prose">
+    <p>
+      {siteName} is a personal site for weekly football matchup notes and a public pick record.
+    </p>
+    <p>
+      Grades are kept in units. The <a href="/methodology/">methodology</a> page states the closing-line
+      rule, the credit lines, and the disclaimer.
+    </p>
+    <p>Film is linked out, not hosted here.</p>
+    <h2>What you will find</h2>
+    <ul>
+      <li>The story of a game: scheme, personnel, and situation.</li>
+      <li>A public ledger of official picks, graded against the closing line.</li>
+      <li>Credits for every data source used on the site.</li>
+    </ul>
+    <h2>What you will not find</h2>
+    <ul>
+      <li>Betting advice, sportsbook links, or tout language.</li>
+      <li>Fantasy content.</li>
+      <li>Hosted or framed film.</li>
+    </ul>
+  </div>
 </BaseLayout>

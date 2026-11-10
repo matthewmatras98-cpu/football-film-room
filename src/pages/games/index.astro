@@ -1,0 +1,76 @@
+---
+import ProgramCard from '../../components/ProgramCard.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { currentSeasonWeek } from '../../lib/current-week';
+import { gamesByWeek, getAllGames, picksForGame } from '../../lib/games';
+import { picks } from '../../lib/picks';
+import { kickoffWindow } from '../../lib/program';
+
+const games = await getAllGames();
+const groups = gamesByWeek(games);
+const current = currentSeasonWeek(games);
+const earlyCount = games.filter((game) => kickoffWindow(game.kickoff_utc) === 'early').length;
+const lateCount = games.length - earlyCount;
+---
+
+<BaseLayout title="Games" description="Every published matchup, with the story of each game." wide>
+  {
+    groups.length === 0 || !current ? (
+      <>
+        <h1>Games</h1>
+        <p>No published weeks yet.</p>
+      </>
+    ) : (
+      <>
+        <p class="kicker">Season {current.season}</p>
+        <h1>Week {current.week}</h1>
+        <p class="lede">
+          Every published matchup, team names only. Early is before 4:00 PM ET. Late is 4:00 PM ET and primetime.
+          Times on the cards are MST.
+        </p>
+        <div class="window-filter">
+          <div class="filter-row" role="group" aria-label="Filter games">
+            <label class="chip">
+              <input type="radio" name="window" value="all" checked />
+              All windows ({games.length})
+            </label>
+            <label class="chip">
+              <input type="radio" name="window" value="early" />
+              Early ({earlyCount})
+            </label>
+            <label class="chip">
+              <input type="radio" name="window" value="late" />
+              Late / primetime ({lateCount})
+            </label>
+          </div>
+          {earlyCount === 0 ? (
+            <p class="window-empty" data-empty="early">
+              No games in this window.
+            </p>
+          ) : null}
+          {lateCount === 0 ? (
+            <p class="window-empty" data-empty="late">
+              No games in this window.
+            </p>
+          ) : null}
+          {
+            groups.map((group) => (
+              <section class="week-block">
+                <h2>
+                  Season {group.season}, week {group.week}
+                </h2>
+                <div class="games-grid">
+                  {group.games.map((card) => (
+                    <article class="slate-card" data-window={kickoffWindow(card.kickoff_utc)}>
+                      <ProgramCard card={card} picks={picksForGame(card.game_id, picks)} level="h3" />
+                    </article>
+                  ))}
+                </div>
+              </section>
+            ))
+          }
+        </div>
+      </>
+    )
+  }
+</BaseLayout>

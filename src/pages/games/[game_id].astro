@@ -199,7 +199,9 @@ const injurySides = [
   description={`Week ${game.week} matchup card for ${away} at ${home}.`}
   wide
 >
+  <div class="card-sheet">
   <header data-section="header">
+    <p class="kicker">Season {game.season} · Week {game.week}</p>
     <h1>{away} @ {home}</h1>
     <p class="meta">
       <time datetime={game.kickoff_utc}>{formatMst(game.kickoff_utc)}</time>
@@ -210,6 +212,9 @@ const injurySides = [
     </p>
     <p>
       Rest: {away} {formatRest(game.away_rest)}, {home} {formatRest(game.home_rest)}.
+    </p>
+    <p>
+      <a href="/games/">All games</a>
     </p>
   </header>
 
@@ -341,4 +346,5 @@ const injurySides = [
     dataThroughWeek={game.data_through_week}
     generatedAt={game.generated_at}
   />
+  </div>
 </BaseLayout>
