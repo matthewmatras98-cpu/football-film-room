@@ -77,7 +77,13 @@ npm run build
 python3 scripts/grade_ui_fixtures.py --write
 ```
 
-`npm run build` writes the site to `dist/`. The pick JSON files are not required for that build.
+`npm run build` writes the site to `dist/`. The pick JSON files are not required for that build. After that, `node scripts/verify-dist.mjs` checks `dist/` against the paths the build reads: `src/data/summary.json`, `src/data/picks_view.json`, and `src/content/games/*.json`.
+
+When both grader files are missing, `/` and `/picks/` must show "No picks yet this season." and must not render a season summary or a `pick-{pick_id}` anchor. When either file is present, the season summary has to match `summary.json`, every row in `picks_view.json` has to appear on `/picks/` with its anchor and a units figure (never a dollar amount), and `/` shows only the picks from the current `(season, week)`. An empty `picks_view.json` still shows the no-picks line, because the list itself is empty, and it still shows the season summary when `summary.json` is present.
+
+When `src/content/games/` has no card JSON, the home page has no card section and `dist/games/` is empty. When cards are present, each `game_id` has a page at `/games/{game_id}/`, a sparkline is drawn when `line_history` contains a spread or a total, and the home page links only to the cards in the current `(season, week)`.
+
+If those files are already in the tree, verify-dist moves them to a temporary directory, rebuilds into `dist-empty-check/`, and runs the empty-state checks. It puts the files back, then builds the fixture picks and cards. That covers both states on a tree that already has grader output. With the files absent, `dist/` is the empty-state check and the fixture build is the data-present check.
 
 ## Cloudflare Pages
 
