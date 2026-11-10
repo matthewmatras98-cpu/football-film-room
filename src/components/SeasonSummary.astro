@@ -10,14 +10,17 @@ import type { Summary } from '../lib/picks-schema';
 
 interface Props {
   summary: Summary;
+  variant?: 'home' | 'ledger';
 }
 
-const { summary } = Astro.props;
+const { summary, variant = 'home' } = Astro.props;
 const record = `${summary.w}-${summary.l}-${summary.p}`;
+const graded = summary.w + summary.l + summary.p;
+const stamp = graded === 0 ? 'Last updated' : 'Last graded';
 ---
 
 <section
-  class="season-summary"
+  class="box-score"
   data-season-summary
   data-w={String(summary.w)}
   data-l={String(summary.l)}
@@ -29,17 +32,67 @@ const record = `${summary.w}-${summary.l}-${summary.p}`;
   data-rejected={String(summary.rejected_count)}
   data-ungraded={String(summary.ungraded_count)}
 >
-  <h2>Season record</h2>
-  <p><span class="record-line">{record}</span> W-L-P</p>
-  <p>
-    Win % {formatWinPct(summary)}
-    <span class="meta">pushes excluded</span>
-  </p>
-  <p>Units {formatUnits(summary.units)}</p>
-  <p>Average CLV {formatClv(summary.avg_clv)}</p>
-  <p>Beating the close {formatPct(summary.pct_clv_pos)}</p>
-  <p>Rejected late: {summary.rejected_count}. Ungraded: {summary.ungraded_count}.</p>
-  <p>
-    Last graded <time datetime={summary.generated_at}>{formatMst(summary.generated_at)}</time>
-  </p>
+  <div class="stat-well">
+    <p class="kicker kicker--ink">Season record</p>
+    <span class="stat-figure nums">{record}</span>
+    <p class="stat-note">
+      {
+        variant === 'home' ? (
+          <>
+            W-L-P · Win %: {formatWinPct(summary)} · <span>pushes excluded</span>
+          </>
+        ) : (
+          'W-L-P'
+        )
+      }
+    </p>
+  </div>
+  {
+    variant === 'ledger' ? (
+      <div class="stat-well">
+        <p class="kicker kicker--ink">Win rate</p>
+        <span class="stat-figure nums">{formatWinPct(summary)}</span>
+        <p class="stat-note">pushes excluded</p>
+      </div>
+    ) : (
+      <div class="stat-well">
+        <p class="kicker kicker--ink">Net units</p>
+        <span class="stat-figure nums">{formatUnits(summary.units)}</span>
+        <p class="stat-note">Average CLV: {formatClv(summary.avg_clv)}</p>
+      </div>
+    )
+  }
+  <div class="stat-well">
+    <p class="kicker kicker--ink">Graded plays</p>
+    <span class="stat-figure nums">{graded}</span>
+    <p class="stat-note">
+      Rejected late: {summary.rejected_count}. Ungraded: {summary.ungraded_count}.
+    </p>
+  </div>
+  {
+    variant === 'home' ? (
+      <div class="stat-well stat-well--ink">
+        <p class="kicker">Closing standard</p>
+        <span class="stat-figure stat-figure--phrase">Graded vs. the close</span>
+        <p class="stat-note">Beating the close: {formatPct(summary.pct_clv_pos)}</p>
+      </div>
+    ) : (
+      <div class="stat-well">
+        <p class="kicker kicker--ink">Net units</p>
+        <span class="stat-figure nums">{formatUnits(summary.units)}</span>
+        <p class="stat-note">Average CLV: {formatClv(summary.avg_clv)}</p>
+      </div>
+    )
+  }
 </section>
+<p class="summary-note">
+  {
+    variant === 'ledger' ? (
+      <>
+        Beating the close: {formatPct(summary.pct_clv_pos)}
+        <br />
+      </>
+    ) : null
+  }
+  {stamp} <time datetime={summary.generated_at}>{formatMst(summary.generated_at)}</time>
+</p>

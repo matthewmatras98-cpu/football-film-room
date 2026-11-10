@@ -94,6 +94,41 @@ const closingLinePhrases = [
 const disclaimer =
   'For entertainment and analysis only. Not betting advice. No sportsbook affiliation. 21+. If you or someone you know has a gambling problem, call 1-800-GAMBLER.';
 
+const footerCreditLine =
+  'Data: nflverse (CC-BY 4.0). Charting: FTN Data via nflverse (CC-BY-SA 4.0). Next Gen Stats via nflverse. Odds: The Odds API.';
+
+const primaryNav = ['Home', 'Picks', 'Games', 'Methodology', 'About'];
+
+const exampleMarkers = [
+  '7\u20133\u20132',
+  'Example data',
+  'design specimen',
+  'Example Week',
+  'not live results',
+  '+3.363',
+];
+
+const singularWeek = 'No published week yet.';
+const pluralWeeks = 'No published weeks yet.';
+
+function countOccurrences(haystack, needle) {
+  let count = 0;
+  let from = 0;
+  while (from <= haystack.length) {
+    const at = haystack.indexOf(needle, from);
+    if (at < 0) {
+      return count;
+    }
+    count += 1;
+    from = at + needle.length;
+  }
+  return count;
+}
+
+function gradedStamp(summary) {
+  return summary.w + summary.l + summary.p === 0 ? 'Last updated' : 'Last graded';
+}
+
 function fail(message) {
   console.error(message);
   process.exitCode = 1;
@@ -286,6 +321,101 @@ async function weekPage(distDir, slug) {
   return null;
 }
 
+function collapsedText(html) {
+  return html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+}
+
+function isGamesIndex(distDir, filePath) {
+  return path.relative(path.join(distDir, 'games'), filePath) === 'index.html';
+}
+
+async function assertWeekEmptyCopy(distDir) {
+  for (const filePath of await listHtml(distDir)) {
+    const html = await readFile(filePath, 'utf8');
+    if (html.includes(singularWeek) && html.includes(pluralWeeks)) {
+      fail(`${path.relative(root, filePath)} contains both empty-week lines`);
+    }
+  }
+  const home = await readHtml(distDir, 'index.html');
+  const start = home.indexOf('data-dispatches');
+  if (start < 0) {
+    fail('home is missing the dispatches rail');
+  }
+  const end = home.indexOf('</aside>', start);
+  const rail = home.slice(start, end === -1 ? home.length : end);
+  const emptyLines = countOccurrences(rail, singularWeek) + countOccurrences(rail, pluralWeeks);
+  if (emptyLines > 1) {
+    fail(`home rail shows ${emptyLines} empty-state lines`);
+  }
+}
+
+async function assertGameProgram(distDir, htmlFiles) {
+  const label = path.relative(root, distDir);
+  for (const filePath of htmlFiles) {
+    const html = await readFile(filePath, 'utf8');
+    const relativePath = path.relative(root, filePath);
+    const lowered = html.toLowerCase();
+    if (lowered.includes('fonts.googleapis.com') || lowered.includes('fonts.gstatic.com')) {
+      fail(`${relativePath} references a Google Fonts host`);
+    }
+    for (const marker of exampleMarkers) {
+      if (html.includes(marker)) {
+        fail(`${relativePath} ships example data: ${marker}`);
+      }
+    }
+    const footerStart = html.indexOf('data-footer');
+    const footerEnd = html.indexOf('</footer>', footerStart);
+    if (footerStart < 0 || footerEnd < 0) {
+      fail(`${relativePath} is missing the site footer`);
+    }
+    const footerHtml = html.slice(footerStart, footerEnd);
+    const footerText = collapsedText(footerHtml);
+    if (!footerText.includes(footerCreditLine)) {
+      fail(`${relativePath} footer is missing the credit line`);
+    }
+    if (!footerText.includes(disclaimer)) {
+      fail(`${relativePath} footer is missing the disclaimer`);
+    }
+    if (!footerHtml.includes('href="/methodology/"') || !footerHtml.includes('>Full credits<')) {
+      fail(`${relativePath} footer Full credits link is not /methodology/`);
+    }
+    if (!/class="nowrap"[^>]*>\s*1-800-GAMBLER\s*</.test(footerHtml)) {
+      fail(`${relativePath} does not keep 1-800-GAMBLER on one line`);
+    }
+    const nav = html.match(/<nav\b[^>]*aria-label="Primary"[^>]*>([\s\S]*?)<\/nav>/i);
+    if (!nav) {
+      fail(`${relativePath} is missing the primary nav`);
+    }
+    const labels = [...nav[1].matchAll(/<a\b[^>]*>([^<]*)<\/a>/gi)].map((match) => match[1].trim());
+    if (labels.join('|') !== primaryNav.join('|')) {
+      fail(`${relativePath} nav is ${labels.join(', ') || 'empty'}`);
+    }
+  }
+
+  for (const filePath of await listFiles(distDir, '.css')) {
+    const css = (await readFile(filePath, 'utf8')).toLowerCase();
+    if (css.includes('fonts.googleapis.com') || css.includes('fonts.gstatic.com')) {
+      fail(`${path.relative(root, filePath)} references a Google Fonts host`);
+    }
+  }
+
+  const gamesIndex = path.join(distDir, 'games', 'index.html');
+  if (!(await exists(gamesIndex))) {
+    fail(`${label}/games/index.html is missing`);
+  }
+  const xmlFiles = await listFiles(distDir, '.xml');
+  const listed = [];
+  for (const filePath of xmlFiles) {
+    const xml = await readFile(filePath, 'utf8');
+    if (/<loc>[^<]*\/games\/(?:index\.html)?<\/loc>/i.test(xml)) {
+      listed.push(path.relative(root, filePath));
+    }
+  }
+  if (listed.length === 0) {
+    fail(`${label} sitemap does not list /games/`);
+  }
+}
+
 async function assertPages(distDir, entries, { requirePublished }) {
   await assertSeo(distDir);
   const htmlFiles = await listHtml(distDir);
@@ -305,6 +435,9 @@ async function assertPages(distDir, entries, { requirePublished }) {
       fail(`${relativePath} ships something labeled sample`);
     }
   }
+
+  await assertGameProgram(distDir, htmlFiles);
+  await assertWeekEmptyCopy(distDir);
 
   for (const entry of entries) {
     const page = await weekPage(distDir, entry.slug);
@@ -566,8 +699,16 @@ async function assertEmptyCards(distDir) {
     fail(`${path.relative(root, distDir)} shows a card section with zero cards`);
   }
   const pages = await listHtml(path.join(distDir, 'games'));
-  if (pages.length > 0) {
-    fail(`${path.relative(root, distDir)} contains /games/ pages`);
+  const extras = pages.filter((filePath) => !isGamesIndex(distDir, filePath));
+  if (extras.length > 0) {
+    fail(`${path.relative(root, distDir)} contains game card pages with zero cards`);
+  }
+  if (!pages.some((filePath) => isGamesIndex(distDir, filePath))) {
+    fail(`${path.relative(root, distDir)} is missing /games/index.html`);
+  }
+  const gamesIndex = await readHtml(distDir, 'games', 'index.html');
+  if (!gamesIndex.includes('No published weeks yet.')) {
+    fail(`${path.relative(root, distDir)} /games/ is missing the no-week text`);
   }
 }
 
@@ -902,11 +1043,16 @@ async function assertPresentCards(distDir, cards) {
   if (!home.includes('data-week-cards') || !weekCardsHeading(home)) {
     fail("home is missing This week's cards");
   }
-  const pages = await listHtml(path.join(distDir, 'games'));
+  const pages = (await listHtml(path.join(distDir, 'games'))).filter(
+    (filePath) => !isGamesIndex(distDir, filePath),
+  );
+  if (!(await exists(path.join(distDir, 'games', 'index.html')))) {
+    fail(`${path.relative(root, distDir)} is missing /games/index.html`);
+  }
   const pageIds = pages.map((filePath) => gamePageId(distDir, filePath));
   if (pages.length !== cards.length) {
     fail(
-      `${path.relative(root, distDir)} has ${pages.length} game page(s), source has ${cards.length} card(s)`,
+      `${path.relative(root, distDir)} has ${pages.length} game card page(s), source has ${cards.length} card(s)`,
     );
   }
   for (const card of cards) {
@@ -950,8 +1096,9 @@ async function assertPresentPicks(distDir, summary, view) {
   } else {
     assertSummary(picksPage, summary, '/picks/');
     assertSummary(home, summary, '/');
-    if (!picksPage.includes('Last graded') || !picksPage.includes(formatMst(summary.generated_at))) {
-      fail('/picks/ is missing the last-graded timestamp');
+    const stamp = gradedStamp(summary);
+    if (!picksPage.includes(stamp) || !picksPage.includes(formatMst(summary.generated_at))) {
+      fail(`/picks/ is missing the ${stamp} timestamp`);
     }
     const units = formatUnits(summary.units);
     if (!home.includes(units) || !picksPage.includes(units)) {
@@ -1153,7 +1300,7 @@ function assertPickRow(block, row) {
   if (row.note && !block.includes(row.note)) {
     fail(`${row.pick_id} is missing its note`);
   }
-  if (!block.includes('Locked (GitHub push time)')) {
+  if (!block.includes('Locked at')) {
     fail(`${row.pick_id} is missing the lock label`);
   }
   if (!block.includes(formatMst(row.picked_at))) {
@@ -1194,8 +1341,9 @@ async function assertFixturePicks(distDir) {
   if (!picksHtml.includes('href="/methodology/"')) {
     fail('/picks/ is missing the methodology link');
   }
-  if (!picksHtml.includes('Last graded') || !picksHtml.includes(formatMst(summary.generated_at))) {
-    fail('/picks/ is missing the last-graded timestamp');
+  const stamp = gradedStamp(summary);
+  if (!picksHtml.includes(stamp) || !picksHtml.includes(formatMst(summary.generated_at))) {
+    fail(`/picks/ is missing the ${stamp} timestamp`);
   }
   if (picksHtml.includes('No picks yet this season.') || homeHtml.includes('No picks yet this season.')) {
     fail('fixture build shows the empty state');

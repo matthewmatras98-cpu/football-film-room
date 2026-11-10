@@ -1,11 +1,21 @@
 ---
 import { disclaimer, footerCredit } from '../data/legal';
+
+const helpline = '1-800-GAMBLER';
+const helplineAt = disclaimer.indexOf(helpline);
+const beforeHelpline = disclaimer.slice(0, helplineAt);
+const afterHelpline = disclaimer.slice(helplineAt + helpline.length);
 ---
 
-<footer class="site-footer wrap" data-footer>
-  <p>
-    {footerCredit}{' '}
-    <a href="/methodology/">Full credits</a>.
-  </p>
-  <p>{disclaimer}</p>
+<footer class="site-footer" data-footer>
+  <div class="wrap">
+    <hr class="rule-double rule-double--flip" />
+    <p>
+      {footerCredit}{' '}
+      <a href="/methodology/">Full credits</a>.
+    </p>
+    <p>
+      {beforeHelpline}<span class="nowrap">{helpline}</span>{afterHelpline}
+    </p>
+  </div>
 </footer>

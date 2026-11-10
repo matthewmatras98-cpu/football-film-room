@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   SOURCE_UNAVAILABLE,
+  formatEpaStory,
+  formatEpaValue,
   formatHomeLine,
   formatRest,
   formatStat,
@@ -49,6 +51,18 @@ describe('formatStat', () => {
     expect(formatStatKind({ value: 2.71 }, 'seconds')).toBe('2.71 s');
     expect(formatStatKind({ value: 0.08 }, 'epa')).toBe('+0.080');
     expect(formatStatKind({ value: -0.04 }, 'epa')).toBe('\u22120.040');
+    expect(formatEpaValue(0.139771)).toBe('+0.140');
+    expect(formatEpaValue(-0.027817)).toBe('\u22120.028');
+    expect(formatEpaValue(-0.027817)).not.toContain('-');
+    expect(
+      formatEpaStory(
+        'Offense EPA per play',
+        'BUF is 0.139771 and NYJ is -0.027817 over 2026 wk1\u20139.',
+      ),
+    ).toBe('BUF is +0.140 and NYJ is \u22120.028 over 2026 wk1\u20139.');
+    expect(formatEpaStory('Sack rate for', 'BUF defense is 0.051829')).toBe(
+      'BUF defense is 0.051829',
+    );
     expect(formatStatKind({ value: 42 }, 'temp')).toBe('42\u00b0F');
     expect(formatStatKind({ value: 12 }, 'wind')).toBe('12 mph');
     expect(formatHomeLine(null)).toBe('n/a (source unavailable)');

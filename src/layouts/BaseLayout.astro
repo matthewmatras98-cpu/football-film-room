@@ -1,6 +1,7 @@
 ---
 import Footer from '../components/Footer.astro';
-import { siteName } from '../data/site';
+import { siteDescription, siteName } from '../data/site';
+import { formatUnits, summary } from '../lib/picks';
 import '../styles/global.css';
 
 interface Props {
@@ -13,6 +14,32 @@ interface Props {
 const { title, description, wide = false, noindex = false } = Astro.props;
 const documentTitle = title === siteName ? siteName : `${title} · ${siteName}`;
 const canonical = new URL(Astro.url.pathname, Astro.site);
+const record = summary ? `${summary.w}-${summary.l}-${summary.p}` : null;
+
+const nav = [
+  { href: '/', label: 'Home' },
+  { href: '/picks/', label: 'Picks' },
+  { href: '/games/', label: 'Games' },
+  { href: '/methodology/', label: 'Methodology' },
+  { href: '/about/', label: 'About' },
+];
+
+function normalize(pathname: string): string {
+  if (pathname.length > 1 && pathname.endsWith('/')) {
+    return pathname.slice(0, -1);
+  }
+  return pathname;
+}
+
+const path = normalize(Astro.url.pathname);
+
+function isCurrent(href: string): boolean {
+  const target = normalize(href);
+  if (target === '/') {
+    return path === '/';
+  }
+  return path === target || path.startsWith(`${target}/`);
+}
 ---
 
 <!doctype html>
@@ -27,19 +54,47 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     {noindex ? <meta name="robots" content="noindex" /> : null}
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   </head>
-  <body class:list={{ 'layout-wide': wide }}>
+  <body class="page">
     <a class="skip" href="#content">Skip to content</a>
-    <header class="site-header wrap">
-      <a class="site-name" href="/">{siteName}</a>
-      <nav class="site-nav" aria-label="Primary">
-        <a href="/">Home</a>
-        <a href="/picks/">Picks</a>
-        <a href="/about/">About</a>
-        <a href="/methodology/">Methodology</a>
-      </nav>
+    <header class="masthead">
+      <hr class="rule-double" />
+      <div class="wrap">
+        <div class="brand">
+          <p class="kicker brand-eyebrow">The gameday program</p>
+          <a class="wordmark" href="/">{siteName}</a>
+          <p class="brand-dek">{siteDescription} No fantasy. Not betting advice.</p>
+        </div>
+      </div>
+      <hr class="rule-double rule-double--flip" />
+      <div class="site-nav-bar">
+        <div class="wrap site-nav-inner">
+          <a class="nav-wordmark" href="/">{siteName}</a>
+          <nav class="site-nav" aria-label="Primary">
+            {
+              nav.map((item) => (
+                <a href={item.href} aria-current={isCurrent(item.href) ? 'page' : undefined}>
+                  {item.label}
+                </a>
+              ))
+            }
+          </nav>
+          <a class="ledger-chip" href="/picks/">
+            Official ledger
+            {
+              record && summary ? (
+                <span class="nums">
+                  {record} · {formatUnits(summary.units)}
+                </span>
+              ) : null
+            }
+          </a>
+        </div>
+      </div>
     </header>
-    <main id="content" class="wrap">
-      <slot />
+    <main id="content">
+      <div class:list={['wrap', { 'wrap--reading': !wide }]}>
+        <slot />
+      </div>
     </main>
     <Footer />
   </body>

@@ -1,0 +1,46 @@
+---
+import { formatEpaStory } from '../lib/format-stat';
+import { formatSideLine, formatMst } from '../lib/picks';
+import { slateLine } from '../lib/program';
+import type { GameCard } from '../lib/game-schema';
+import type { PickView } from '../lib/picks-schema';
+
+interface Props {
+  card: GameCard;
+  picks: PickView[];
+  level?: 'h2' | 'h3';
+}
+
+const { card, picks, level = 'h3' } = Astro.props;
+const Title = level;
+const prompt = card.sections.story_prompts[0];
+---
+
+<div class="game-card-meta">
+  <span class="when">
+    <time datetime={card.kickoff_utc}>{formatMst(card.kickoff_utc)}</time>
+  </span>
+  <span class="line nums">{slateLine(card.line_latest)}</span>
+</div>
+<Title class="game-title">
+  <a class="game-card-link" href={`/games/${card.game_id}/`}>{card.away} @ {card.home}</a>
+</Title>
+{prompt ? <p class="game-angle">{prompt.title}</p> : null}
+{prompt ? <p class="game-story">{formatEpaStory(prompt.title, prompt.body)}</p> : null}
+<div class="game-card-foot">
+  <div class="program-pick">
+    Program pick
+    {
+      picks.length === 0 ? (
+        <span class="badge badge--none">No official pick</span>
+      ) : (
+        picks.map((row) => (
+          <a class="pick-badge badge badge--pick" href={`/picks/#pick-${row.pick_id}`}>
+            {formatSideLine(row.market, row.side, row.line_at_pick)}
+          </a>
+        ))
+      )
+    }
+  </div>
+  <a class="section-link" href={`/games/${card.game_id}/`}>Read matchup notes</a>
+</div>

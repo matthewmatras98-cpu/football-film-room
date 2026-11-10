@@ -15,12 +15,35 @@ import type { PickView } from '../lib/picks-schema';
 
 interface Props {
   picks: PickView[];
+  gameIds?: ReadonlySet<string>;
 }
 
 const { picks } = Astro.props;
+const gameIds = Astro.props.gameIds ?? new Set<string>();
 
 function dataValue(value: number | null): string {
   return value === null ? 'null' : String(value);
+}
+
+function resultWord(result: PickView['result']): string | null {
+  if (result === 'W') return 'Win';
+  if (result === 'L') return 'Loss';
+  if (result === 'P') return 'Push';
+  return null;
+}
+
+function resultClass(result: PickView['result']): string | undefined {
+  if (result === 'W') return 'badge--win';
+  if (result === 'L') return 'badge--loss';
+  if (result === 'P') return 'badge--push';
+  return undefined;
+}
+
+function unitsClass(result: PickView['result']): string | undefined {
+  if (result === 'W') return 'units--win';
+  if (result === 'L') return 'units--loss';
+  if (result === 'P') return 'units--push';
+  return undefined;
 }
 ---
 
@@ -28,59 +51,78 @@ function dataValue(value: number | null): string {
   <table class="picks">
     <thead>
       <tr>
-        <th scope="col">Matchup</th>
-        <th scope="col">Market</th>
-        <th scope="col">Side and line</th>
-        <th scope="col">Close</th>
-        <th scope="col">Final</th>
+        <th scope="col">Week</th>
+        <th scope="col">Game</th>
+        <th scope="col">Pick</th>
+        <th scope="col">Line taken</th>
+        <th scope="col">Closing line</th>
         <th scope="col">Result</th>
         <th scope="col">Units</th>
-        <th scope="col">CLV</th>
-        <th scope="col">Status</th>
       </tr>
     </thead>
     {
-      picks.map((pick) => (
-        <tbody
-          id={`pick-${pick.pick_id}`}
-          class:list={{ 'is-rejected': pick.status === 'rejected_late' }}
-          data-pick-id={pick.pick_id}
-          data-status={pick.status}
-          data-close-source={pick.close_source ?? 'null'}
-          data-close={dataValue(pick.closing_line)}
-          data-units-pl={dataValue(pick.units_pl)}
-          data-clv={dataValue(pick.clv_pts)}
-        >
-          <tr>
-            <td class="record">{matchupLabel(pick.game_id)}</td>
-            <td class="record">{pick.market}</td>
-            <td class="record">{formatSideLine(pick.market, pick.side, pick.line_at_pick)}</td>
-            <td class="record">
-              {formatPickLine(pick.market, pick.closing_line)} <CloseMarker source={pick.close_source} />
-            </td>
-            <td class="record">{formatFinal(pick.game_id, pick.final_away, pick.final_home)}</td>
-            <td class="record">{pick.result ?? EM_DASH}</td>
-            <td class="record">{formatUnits(pick.units_pl)}</td>
-            <td class="record">{formatClv(pick.clv_pts)}</td>
-            <td>
-              <StatusBadge status={pick.status} />
-            </td>
-          </tr>
-          <tr>
-            <td class="pick-detail" colspan="9">
-              {pick.note ? <p class="record pick-note">{pick.note}</p> : null}
-              <p class="meta pick-times">
-                Picked <time datetime={pick.picked_at}>{formatMst(pick.picked_at)}</time>. Locked (GitHub push time){' '}
-                {pick.first_pushed_at ? (
-                  <time datetime={pick.first_pushed_at}>{formatMst(pick.first_pushed_at)}</time>
+      picks.map((pick) => {
+        const word = resultWord(pick.result);
+        const linked = gameIds.has(pick.game_id);
+        return (
+          <tbody
+            id={`pick-${pick.pick_id}`}
+            class:list={{ 'is-rejected': pick.status === 'rejected_late' }}
+            data-pick-id={pick.pick_id}
+            data-status={pick.status}
+            data-close-source={pick.close_source ?? 'null'}
+            data-close={dataValue(pick.closing_line)}
+            data-units-pl={dataValue(pick.units_pl)}
+            data-clv={dataValue(pick.clv_pts)}
+          >
+            <tr>
+              <td class="num record" data-label="Week">
+                {pick.week}
+              </td>
+              <td class="record" data-label="Game">
+                {linked ? (
+                  <a href={`/games/${pick.game_id}/`}>{matchupLabel(pick.game_id)}</a>
                 ) : (
-                  formatMst(null)
-                )}.
-              </p>
-            </td>
-          </tr>
-        </tbody>
-      ))
+                  matchupLabel(pick.game_id)
+                )}
+              </td>
+              <td class="record" data-label="Pick">
+                {formatSideLine(pick.market, pick.side, pick.line_at_pick)}
+              </td>
+              <td class="num record" data-label="Line taken">
+                {formatPickLine(pick.market, pick.line_at_pick)}
+              </td>
+              <td class="num record" data-label="Closing line">
+                {formatPickLine(pick.market, pick.closing_line)} <CloseMarker source={pick.close_source} />
+              </td>
+              <td class="record" data-label="Result">
+                {word ? <span class:list={['badge', resultClass(pick.result)]}>{word}</span> : EM_DASH}
+              </td>
+              <td class:list={['num', 'record', unitsClass(pick.result)]} data-label="Units">
+                {formatUnits(pick.units_pl)}
+              </td>
+            </tr>
+            <tr>
+              <td class="pick-detail" colspan="7">
+                {pick.note ? <p class="record pick-note">{pick.note}</p> : null}
+                <p class="pick-times">
+                  Market {pick.market}. Final {formatFinal(pick.game_id, pick.final_away, pick.final_home)}. CLV{' '}
+                  {formatClv(pick.clv_pts)}. <StatusBadge status={pick.status} />
+                </p>
+                <p class="meta pick-times">
+                  Picked <time datetime={pick.picked_at}>{formatMst(pick.picked_at)}</time>. Locked at{' '}
+                  {pick.first_pushed_at ? (
+                    <time datetime={pick.first_pushed_at}>{formatMst(pick.first_pushed_at)}</time>
+                  ) : (
+                    formatMst(null)
+                  )}
+                  .
+                </p>
+              </td>
+            </tr>
+          </tbody>
+        );
+      })
     }
   </table>
 </div>

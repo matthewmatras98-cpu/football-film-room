@@ -2,9 +2,12 @@
 import SeasonSummary from '../components/SeasonSummary.astro';
 import PicksTable from '../components/PicksTable.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { getAllGames } from '../lib/games';
 import { byWeek, picks, summary } from '../lib/picks';
 
 const weeks = byWeek(picks);
+const gameIds = new Set((await getAllGames()).map((game) => game.game_id));
+const severalSeasons = new Set(weeks.map((group) => group.season)).size > 1;
 ---
 
 <BaseLayout
@@ -12,23 +15,43 @@ const weeks = byWeek(picks);
   description="Every published pick, graded against the closing line and kept in units."
   wide
 >
-  <h1>Picks</h1>
-  {summary ? <SeasonSummary summary={summary} /> : null}
+  <p class="kicker">Public record</p>
+  <h1>Official picks ledger</h1>
+  <p class="lede">Every published pick, graded against the closing line and kept in units.</p>
+  {summary ? <SeasonSummary summary={summary} variant="ledger" /> : null}
   {
     picks.length === 0 ? (
-      <p>No picks yet this season.</p>
+      <>
+        <p>No picks yet this season.</p>
+        <p>
+          <a href="/methodology/#grading">Grading rules</a>
+        </p>
+      </>
     ) : (
-      weeks.map((group) => (
-        <section>
-          <h2>
-            Season {group.season}, week {group.week}
-          </h2>
-          <PicksTable picks={group.picks} />
-        </section>
-      ))
+      <>
+        <div class="filter-row">
+          <a class="chip" href="#content" aria-current="true">
+            All weeks
+          </a>
+          {weeks.map((group) => (
+            <a class="chip" href={`#week-${group.season}-${group.week}`}>
+              {severalSeasons ? `Season ${group.season}, week ${group.week}` : `Week ${group.week}`}
+            </a>
+          ))}
+          <a class="chip" href="/methodology/">Grading rules</a>
+        </div>
+        {weeks.map((group) => (
+          <section class="week-block" id={`week-${group.season}-${group.week}`}>
+            <h2>
+              Season {group.season}, week {group.week}
+            </h2>
+            <PicksTable picks={group.picks} gameIds={gameIds} />
+          </section>
+        ))}
+        <p>
+          <a href="/methodology/">Methodology</a>
+        </p>
+      </>
     )
   }
-  <p>
-    <a href="/methodology/">Methodology</a>
-  </p>
 </BaseLayout>

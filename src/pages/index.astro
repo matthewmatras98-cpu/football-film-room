@@ -1,5 +1,5 @@
 ---
-import GameCardLink from '../components/GameCardLink.astro';
+import ProgramCard from '../components/ProgramCard.astro';
 import SeasonSummary from '../components/SeasonSummary.astro';
 import PicksTable from '../components/PicksTable.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
@@ -9,85 +9,104 @@ import { currentWeekPicks, picks, summary } from '../lib/picks';
 import { formatPublishedAt, getPublishedWeeks } from '../lib/posts';
 
 const posts = await getPublishedWeeks();
-const latest = posts[0];
+const games = await getAllGames();
+const gameIds = new Set(games.map((game) => game.game_id));
 const thisWeek = currentWeekPicks(picks);
-const thisWeekCards = currentWeekGames(await getAllGames());
+const thisWeekCards = currentWeekGames(games);
+const currentCard = thisWeekCards[0];
 ---
 
-<BaseLayout title={siteName} description={siteDescription}>
-  <h1>{siteName}</h1>
-  <p class="lede">{siteDescription}</p>
-
-  {summary ? <SeasonSummary summary={summary} /> : null}
-
+<BaseLayout title={siteName} description={siteDescription} wide>
   {
-    thisWeekCards.length > 0 && (
-      <section data-week-cards>
-        <h2>This week's cards</h2>
-        <ul class="card-list">
-          {thisWeekCards.map((card) => {
-            const badges = picksForGame(card.game_id, picks);
-            return (
-              <li data-game-id={card.game_id}>
-                <GameCardLink gameId={card.game_id} away={card.away} home={card.home} />
-                {badges.map((row) => (
-                  <a class="pick-badge" href={`/picks/#pick-${row.pick_id}`}>
-                    Pick
-                  </a>
-                ))}
-              </li>
-            );
-          })}
-        </ul>
-      </section>
-    )
-  }
-
-  {
-    thisWeek.length === 0 ? (
-      <p>No picks yet this season.</p>
+    summary ? (
+      <>
+        <p class="kicker">Season performance</p>
+        <h1>Season record</h1>
+        <p class="lede">A public pick record graded against the closing line, kept in units.</p>
+        <SeasonSummary summary={summary} />
+      </>
     ) : (
-      <section>
-        <h2>This week</h2>
-        <PicksTable picks={thisWeek} />
-      </section>
+      <>
+        <h1>{siteName}</h1>
+        <p class="lede">{siteDescription}</p>
+      </>
     )
   }
 
-  <section>
-    <h2>Latest</h2>
-    {
-      latest ? (
-        <article>
-          <h3>
-            <a href={`/weeks/${latest.id}/`}>{latest.data.title}</a>
-          </h3>
-          <p class="meta">
-            <time datetime={latest.data.published_at}>{formatPublishedAt(latest.data.published_at)}</time>
-          </p>
-          <p class="summary">{latest.data.summary}</p>
-        </article>
-      ) : (
-        <p>No published week yet.</p>
-      )
-    }
-  </section>
+  <div class="week-layout">
+    <div>
+      {
+        thisWeek.length === 0 ? (
+          <p>No picks yet this season.</p>
+        ) : (
+          <section class="section">
+            <div class="section-head">
+              <h2>This week</h2>
+            </div>
+            <PicksTable picks={thisWeek} gameIds={gameIds} />
+          </section>
+        )
+      }
 
-  <section>
-    <h2>Weeks</h2>
-    {
-      posts.length === 0 ? (
-        <p>No published weeks yet.</p>
-      ) : (
-        <ul class="post-list">
-          {posts.map((post) => (
+      {
+        thisWeekCards.length > 0 && (
+          <section data-week-cards>
+            <div class="section-head">
+              <div>
+                {currentCard ? (
+                  <p class="kicker">
+                    Season {currentCard.season}, week {currentCard.week}
+                  </p>
+                ) : null}
+                <h2>This week's cards</h2>
+              </div>
+              <a class="section-link" href="/games/">View the full slate</a>
+            </div>
+            <ul class="card-list">
+              {thisWeekCards.map((card) => (
+                <li class="game-card" data-game-id={card.game_id}>
+                  <ProgramCard card={card} picks={picksForGame(card.game_id, picks)} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        )
+      }
+    </div>
+
+    <aside class="rail" data-dispatches aria-labelledby="latest-notes">
+      <p class="kicker">Latest notes</p>
+      <h2 class="h2" id="latest-notes">Dispatches</h2>
+      {
+        posts.length === 0 ? (
+          <ul class="note-list">
             <li>
-              <a href={`/weeks/${post.id}/`}>{post.data.title}</a>
-              <p class="summary">{post.data.summary}</p>
+              <p>No published weeks yet.</p>
             </li>
-          ))}
-        </ul>
-      )
-    }
-  </section>
+          </ul>
+        ) : (
+          <ul class="note-list">
+            {posts.map((post) => (
+              <li>
+                <p class="meta">
+                  <time datetime={post.data.published_at}>{formatPublishedAt(post.data.published_at)}</time>
+                </p>
+                <h3>
+                  <a href={`/weeks/${post.id}/`}>{post.data.title}</a>
+                </h3>
+                <p>{post.data.summary}</p>
+              </li>
+            ))}
+          </ul>
+        )
+      }
+      <div class="callout">
+        <p class="kicker">From the methodology</p>
+        <blockquote>
+          <p>Each pick is a flat 1 unit. Results are in units, never dollars.</p>
+        </blockquote>
+        <a class="btn" href="/methodology/">Read the methodology</a>
+      </div>
+    </aside>
+  </div>
 </BaseLayout>

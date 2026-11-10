@@ -11,7 +11,9 @@ await getPublishedWeeks();
   title="Methodology"
   description="How this site grades a pick record, credits its sources, and states its limits."
 >
+  <p class="kicker">How the ledger is kept</p>
   <h1>Methodology</h1>
+  <div class="prose">
   <p>
     {siteName} publishes matchup notes and a public pick record. The rules on this page are the whole
     standard.
@@ -45,7 +47,7 @@ await getPublishedWeeks();
     no book links.
   </p>
 
-  <h2>Grading</h2>
+  <h2 id="grading">Grading</h2>
   <p>
     Each pick is a flat 1 unit. Grading assumes standard −110 odds. A win is +0.909 units, a loss is
     −1.000 units, and a push is 0 units. Win percentage excludes pushes. CLV is shown for reference
@@ -64,4 +66,5 @@ await getPublishedWeeks();
     Film is link-out only. This site does not rehost, download, or frame film. There is no fantasy
     content.
   </p>
+  </div>
 </BaseLayout>

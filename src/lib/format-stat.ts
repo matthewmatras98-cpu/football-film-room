@@ -60,6 +60,24 @@ export function formatStat(stat: { value: number | null } | null | undefined): s
   return assertReal(text);
 }
 
+/** Signed EPA to three decimals. Negatives use a real minus, the same as a line. */
+export function formatEpaValue(value: number): string {
+  return formatStatKind({ value }, 'epa');
+}
+
+const EPA_DECIMAL = /-?\d+\.\d+/g;
+
+/**
+ * Rounds EPA figures inside a story sentence. Other prompts stay as written.
+ * The stored card is not changed.
+ */
+export function formatEpaStory(title: string, body: string): string {
+  if (!/epa/i.test(title)) {
+    return body;
+  }
+  return body.replace(EPA_DECIMAL, (token) => formatEpaValue(Number(token)));
+}
+
 export function formatStatKind(stat: { value: number | null } | null | undefined, kind: StatKind): string {
   if (stat == null || stat.value === null) {
     return SOURCE_UNAVAILABLE;

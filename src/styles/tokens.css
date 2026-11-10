@@ -1,0 +1,94 @@
+/* Matchup Notes — Game Program tokens
+   Source of truth for hex and ratios: tokens.json */
+
+:root {
+  --color-background: #F3EEE4;
+  --color-surface: #FAF7F0;
+  --color-surface-muted: #EAE4D6;
+  --color-text: #122033;
+  --color-text-muted: #5A5348;
+  --color-primary: #122033;
+  --color-accent: #9C3124;
+  --color-border: #D5CCBC;
+  --color-border-strong: #122033;
+  --color-focus-ring: #9C3124;
+  --color-win: #1A4E32;
+  --color-loss: #9C3124;
+  --color-push: #5C564C;
+  --color-inverse: #122033;
+  --color-inverse-text: #F3EEE4;
+  --color-inverse-muted: #C7C0B2;
+
+  --font-display: Fraunces, Georgia, "Times New Roman", serif;
+  --font-sans: "Source Sans 3", system-ui, "Segoe UI", sans-serif;
+
+  --text-kicker: 0.6875rem;
+  --text-caption: 0.75rem;
+  --text-small: 0.875rem;
+  --text-ui: 0.9375rem;
+  --text-table: 0.9375rem;
+  --text-body: 1.0625rem;
+  --text-lede: 1.1875rem;
+  --text-h3: 1.375rem;
+  --text-h2: 1.75rem;
+  --text-h1: 2.5rem;
+  --text-display: 4rem;
+  --text-scoreboard: 2.25rem;
+  --text-scoreboard-sm: 1.375rem;
+
+  --leading-kicker: 1.3;
+  --leading-caption: 1.45;
+  --leading-small: 1.5;
+  --leading-ui: 1.4;
+  --leading-table: 1.4;
+  --leading-body: 1.6;
+  --leading-lede: 1.5;
+  --leading-h3: 1.25;
+  --leading-h2: 1.2;
+  --leading-h1: 1.15;
+  --leading-display: 0.95;
+
+  --tracking-kicker: 0.14em;
+  --tracking-display: -0.03em;
+  --tracking-h1: -0.02em;
+  --tracking-h2: -0.015em;
+  --tracking-h3: -0.01em;
+  --tracking-scoreboard: 0.02em;
+
+  --space-0: 0px;
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-48: 48px;
+  --space-64: 64px;
+  --space-96: 96px;
+
+  --radius-none: 0px;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+
+  --rule-hairline: 1px;
+  --rule-medium: 2px;
+  --rule-heavy: 3px;
+  --rule-double-gap: 5px;
+
+  --layout-content: 70rem; /* 1120px */
+  --layout-reading: 42.5rem; /* 680px */
+  --layout-gutter: var(--space-32);
+
+  --focus-ring: 0 0 0 2px var(--color-background), 0 0 0 4px var(--color-focus-ring);
+}
+
+@media (max-width: 48rem) {
+  :root {
+    --text-display: 2.5rem;
+    --text-h1: 2rem;
+    --text-h2: 1.5rem;
+    --text-scoreboard: 1.75rem;
+    --layout-gutter: var(--space-16);
+  }
+}
