@@ -7,6 +7,7 @@ import StatCompare from '../../components/StatCompare.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { formatMst } from '../../lib/format-picks';
 import type { GameCard, LinePoint } from '../../lib/game-schema';
+import { formatEpaStory } from '../../lib/format-stat';
 import {
   SOURCE_UNAVAILABLE,
   formatHomeLine,
@@ -334,7 +335,7 @@ const injurySides = [
         sections.story_prompts.map((prompt) => (
           <li>
             <h3>{prompt.title}</h3>
-            <p>{prompt.body}</p>
+            <p>{formatEpaStory(prompt.title, prompt.body)}</p>
           </li>
         ))
       }

@@ -694,6 +694,7 @@ main {
   flex-direction: column;
   background: var(--color-surface);
   border: var(--rule-hairline) solid var(--color-border);
+  border-top: var(--rule-medium) solid var(--color-border-strong);
   padding: var(--space-16) var(--space-16) var(--space-20);
   min-height: 100%;
 }

@@ -21,7 +21,12 @@ const severalSeasons = new Set(weeks.map((group) => group.season)).size > 1;
   {summary ? <SeasonSummary summary={summary} variant="ledger" /> : null}
   {
     picks.length === 0 ? (
-      <p>No picks yet this season.</p>
+      <>
+        <p>No picks yet this season.</p>
+        <p>
+          <a href="/methodology/#grading">Grading rules</a>
+        </p>
+      </>
     ) : (
       <>
         <div class="filter-row">
@@ -43,10 +48,10 @@ const severalSeasons = new Set(weeks.map((group) => group.season)).size > 1;
             <PicksTable picks={group.picks} gameIds={gameIds} />
           </section>
         ))}
+        <p>
+          <a href="/methodology/">Methodology</a>
+        </p>
       </>
     )
   }
-  <p>
-    <a href="/methodology/">Methodology</a>
-  </p>
 </BaseLayout>

@@ -1,4 +1,5 @@
 ---
+import { formatEpaStory } from '../lib/format-stat';
 import { formatSideLine, formatMst } from '../lib/picks';
 import { slateLine } from '../lib/program';
 import type { GameCard } from '../lib/game-schema';
@@ -25,7 +26,7 @@ const prompt = card.sections.story_prompts[0];
   <a class="game-card-link" href={`/games/${card.game_id}/`}>{card.away} @ {card.home}</a>
 </Title>
 {prompt ? <p class="game-angle">{prompt.title}</p> : null}
-{prompt ? <p class="game-story">{prompt.body}</p> : null}
+{prompt ? <p class="game-story">{formatEpaStory(prompt.title, prompt.body)}</p> : null}
 <div class="game-card-foot">
   <div class="program-pick">
     Program pick

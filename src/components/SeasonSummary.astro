@@ -16,6 +16,7 @@ interface Props {
 const { summary, variant = 'home' } = Astro.props;
 const record = `${summary.w}-${summary.l}-${summary.p}`;
 const graded = summary.w + summary.l + summary.p;
+const stamp = graded === 0 ? 'Last updated' : 'Last graded';
 ---
 
 <section
@@ -38,7 +39,7 @@ const graded = summary.w + summary.l + summary.p;
       {
         variant === 'home' ? (
           <>
-            W-L-P · Win % {formatWinPct(summary)} <span>pushes excluded</span>
+            W-L-P · Win %: {formatWinPct(summary)} · <span>pushes excluded</span>
           </>
         ) : (
           'W-L-P'
@@ -57,7 +58,7 @@ const graded = summary.w + summary.l + summary.p;
       <div class="stat-well">
         <p class="kicker kicker--ink">Net units</p>
         <span class="stat-figure nums">{formatUnits(summary.units)}</span>
-        <p class="stat-note">Average CLV {formatClv(summary.avg_clv)}</p>
+        <p class="stat-note">Average CLV: {formatClv(summary.avg_clv)}</p>
       </div>
     )
   }
@@ -73,13 +74,13 @@ const graded = summary.w + summary.l + summary.p;
       <div class="stat-well stat-well--ink">
         <p class="kicker">Closing standard</p>
         <span class="stat-figure stat-figure--phrase">Graded vs. the close</span>
-        <p class="stat-note">Beating the close {formatPct(summary.pct_clv_pos)}.</p>
+        <p class="stat-note">Beating the close: {formatPct(summary.pct_clv_pos)}</p>
       </div>
     ) : (
       <div class="stat-well">
         <p class="kicker kicker--ink">Net units</p>
         <span class="stat-figure nums">{formatUnits(summary.units)}</span>
-        <p class="stat-note">Average CLV {formatClv(summary.avg_clv)}</p>
+        <p class="stat-note">Average CLV: {formatClv(summary.avg_clv)}</p>
       </div>
     )
   }
@@ -87,8 +88,11 @@ const graded = summary.w + summary.l + summary.p;
 <p class="summary-note">
   {
     variant === 'ledger' ? (
-      <span>Beating the close {formatPct(summary.pct_clv_pos)}. </span>
+      <>
+        Beating the close: {formatPct(summary.pct_clv_pos)}
+        <br />
+      </>
     ) : null
   }
-  Last graded <time datetime={summary.generated_at}>{formatMst(summary.generated_at)}</time>
+  {stamp} <time datetime={summary.generated_at}>{formatMst(summary.generated_at)}</time>
 </p>

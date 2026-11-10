@@ -110,7 +110,7 @@ function unitsClass(result: PickView['result']): string | undefined {
                   {formatClv(pick.clv_pts)}. <StatusBadge status={pick.status} />
                 </p>
                 <p class="meta pick-times">
-                  Picked <time datetime={pick.picked_at}>{formatMst(pick.picked_at)}</time>. Locked (GitHub push time){' '}
+                  Picked <time datetime={pick.picked_at}>{formatMst(pick.picked_at)}</time>. Locked at{' '}
                   {pick.first_pushed_at ? (
                     <time datetime={pick.first_pushed_at}>{formatMst(pick.first_pushed_at)}</time>
                   ) : (

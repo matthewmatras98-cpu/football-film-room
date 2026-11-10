@@ -74,14 +74,13 @@ const currentCard = thisWeekCards[0];
       }
     </div>
 
-    <aside class="rail" aria-labelledby="latest-notes">
+    <aside class="rail" data-dispatches aria-labelledby="latest-notes">
       <p class="kicker">Latest notes</p>
       <h2 class="h2" id="latest-notes">Dispatches</h2>
       {
         posts.length === 0 ? (
           <ul class="note-list">
             <li>
-              <p>No published week yet.</p>
               <p>No published weeks yet.</p>
             </li>
           </ul>
