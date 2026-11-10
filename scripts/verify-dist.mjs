@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
-import { copyFile, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { register } from 'node:module';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { siteUrl } from '../src/data/site-url.mjs';
@@ -23,6 +24,7 @@ register(new URL('./ts-resolver.mjs', import.meta.url));
 const { formatStatKind } = await import('../src/lib/format-stat.ts');
 const { gameCardSchema } = await import('../src/lib/game-schema.ts');
 const { currentSeasonWeek } = await import('../src/lib/current-week.ts');
+const { picksViewSchema, summarySchema } = await import('../src/lib/picks-schema.ts');
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const weeksDir = path.join(root, 'src/content/weeks');
@@ -32,6 +34,7 @@ const publishedSlug = 'published-post';
 const deployDist = path.join(root, 'dist');
 const tempDist = path.join(root, 'dist-published-check');
 const picksDist = path.join(root, 'dist-picks-check');
+const emptyDist = path.join(root, 'dist-empty-check');
 const summaryFixture = path.join(root, 'tests/fixtures/summary.json');
 const viewFixture = path.join(root, 'tests/fixtures/picks_view.json');
 const summaryDest = path.join(root, 'src/data/summary.json');
@@ -343,11 +346,11 @@ async function readHtml(distDir, ...parts) {
   return readFile(filePath, 'utf8');
 }
 
-function rowBlock(html, pickId) {
+function rowBlock(html, pickId, label = 'picks page') {
   const marker = `id="pick-${pickId}"`;
   const start = html.indexOf(marker);
   if (start < 0) {
-    fail(`picks page is missing #pick-${pickId}`);
+    fail(`${label} is missing #pick-${pickId}`);
   }
   const next = html.indexOf('id="pick-', start + marker.length);
   const footer = html.indexOf('<footer', start);
@@ -659,18 +662,7 @@ async function assertFixtureCards(distDir, fixtures, picks, knownGameId) {
       }
     }
 
-    const lines = section(page, 'lines');
-    const drawable = card.line_history.some((point) => point.home_spread !== null || point.total !== null);
-    if (!drawable) {
-      if (lines.includes('<svg') || lines.includes('data-chart="sparkline"')) {
-        fail(`${relative} drew a sparkline for an empty line history`);
-      }
-      if (!lines.includes('n/a (source unavailable)')) {
-        fail(`${relative} empty line history is missing the unavailable note`);
-      }
-    } else if (!lines.includes('<svg') || !lines.includes('data-chart="sparkline"')) {
-      fail(`${relative} is missing the line sparkline`);
-    }
+    assertSparkline(section(page, 'lines'), card, relative);
 
     const epa = section(page, 'epa');
     if (!epa.includes('data-chart="epa-bars"') || !epa.includes('<svg')) {
@@ -748,13 +740,7 @@ async function assertFixtureCards(distDir, fixtures, picks, knownGameId) {
       fail(`${relative} is missing roof ${card.roof}`);
     }
 
-    const onHome = home.includes(`/games/${card.game_id}/`);
-    if (sameSeasonWeek(card, current) && !onHome) {
-      fail(`home is missing current-week card ${card.game_id}`);
-    }
-    if (!sameSeasonWeek(card, current) && onHome) {
-      fail(`home fell back to older card ${card.game_id}`);
-    }
+    assertCardOnHome(home, card, current);
     if (sameSeasonWeek(card, current)) {
       const item = gameItem(home, card.game_id);
       const matches = picks.filter((row) => row.game_id === card.game_id);
@@ -823,6 +809,251 @@ async function assertNoFixtureContent(distDir) {
         fail(`${path.relative(root, filePath)} contains test fixture content: ${needle}`);
       }
     }
+  }
+}
+
+function schemaIssues(error) {
+  const issues = error && Array.isArray(error.issues) ? error.issues : [];
+  if (issues.length === 0) {
+    return 'invalid';
+  }
+  return issues.map((issue) => `${issue.path.join('.') || '(root)'}: ${issue.message}`).join('; ');
+}
+
+function assertSparkline(lines, card, relative) {
+  const drawable = card.line_history.some((point) => point.home_spread !== null || point.total !== null);
+  if (!drawable) {
+    if (lines.includes('<svg') || lines.includes('data-chart="sparkline"')) {
+      fail(`${relative} drew a sparkline for an empty line history`);
+    }
+    if (!lines.includes('n/a (source unavailable)')) {
+      fail(`${relative} empty line history is missing the unavailable note`);
+    }
+    return;
+  }
+  if (!lines.includes('<svg') || !lines.includes('data-chart="sparkline"')) {
+    fail(`${relative} is missing the line sparkline`);
+  }
+}
+
+function assertCardOnHome(home, card, current) {
+  const onHome = home.includes(`/games/${card.game_id}/`);
+  if (sameSeasonWeek(card, current) && !onHome) {
+    fail(`home is missing current-week card ${card.game_id}`);
+  }
+  if (!sameSeasonWeek(card, current) && onHome) {
+    fail(`home fell back to older card ${card.game_id}`);
+  }
+}
+
+async function readJsonIfPresent(filePath) {
+  if (!(await exists(filePath))) {
+    return null;
+  }
+  return JSON.parse(await readFile(filePath, 'utf8'));
+}
+
+function parseSummaryFile(data) {
+  const parsed = summarySchema.safeParse(data);
+  if (!parsed.success) {
+    fail(`src/data/summary.json does not match the grader contract: ${schemaIssues(parsed.error)}`);
+  }
+  return parsed.data;
+}
+
+function parseViewFile(data) {
+  const parsed = picksViewSchema.safeParse(data);
+  if (!parsed.success) {
+    fail(`src/data/picks_view.json does not match the grader contract: ${schemaIssues(parsed.error)}`);
+  }
+  return parsed.data;
+}
+
+async function loadContentCards() {
+  const names = (await readdir(gamesContentDir)).filter((name) => name.endsWith('.json')).sort();
+  const cards = [];
+  for (const name of names) {
+    const data = JSON.parse(await readFile(path.join(gamesContentDir, name), 'utf8'));
+    const parsed = gameCardSchema.safeParse(data);
+    if (!parsed.success) {
+      fail(`src/content/games/${name} does not match the card schema: ${schemaIssues(parsed.error)}`);
+    }
+    const expectedId = name.replace(/\.json$/i, '');
+    if (parsed.data.game_id !== expectedId) {
+      fail(`src/content/games/${name} declares game_id "${parsed.data.game_id}"`);
+    }
+    cards.push(parsed.data);
+  }
+  return cards;
+}
+
+function gamePageId(distDir, filePath) {
+  const relative = path.relative(path.join(distDir, 'games'), filePath);
+  const parsed = path.parse(relative);
+  if (parsed.base === 'index.html') {
+    return parsed.dir.split(path.sep)[0];
+  }
+  return parsed.name;
+}
+
+async function assertPresentCards(distDir, cards) {
+  const home = await readHtml(distDir, 'index.html');
+  const current = currentSeasonWeek(cards);
+  if (!home.includes('data-week-cards') || !weekCardsHeading(home)) {
+    fail("home is missing This week's cards");
+  }
+  const pages = await listHtml(path.join(distDir, 'games'));
+  const pageIds = pages.map((filePath) => gamePageId(distDir, filePath));
+  if (pages.length !== cards.length) {
+    fail(
+      `${path.relative(root, distDir)} has ${pages.length} game page(s), source has ${cards.length} card(s)`,
+    );
+  }
+  for (const card of cards) {
+    if (!pageIds.includes(card.game_id)) {
+      fail(`missing /games/${card.game_id}/`);
+    }
+    const relative = `games/${card.game_id}/index.html`;
+    const page = await readHtml(distDir, 'games', card.game_id, 'index.html');
+    assertSparkline(section(page, 'lines'), card, relative);
+    assertCardOnHome(home, card, current);
+  }
+}
+
+function assertRenderedPick(html, row, where) {
+  const block = rowBlock(html, row.pick_id, where);
+  assertPickRow(block, row);
+  const units = formatUnits(row.units_pl);
+  if (!block.includes(units)) {
+    fail(`${where} ${row.pick_id} is missing units ${units}`);
+  }
+  if (units.includes('$') || block.includes('$') || block.includes('&#36;') || block.includes('&dollar;')) {
+    fail(`${where} ${row.pick_id} renders units as dollars`);
+  }
+}
+
+async function assertPresentPicks(distDir, summary, view) {
+  const home = await readHtml(distDir, 'index.html');
+  const picksPage = await readHtml(distDir, 'picks', 'index.html');
+  if (!picksPage.includes('href="/methodology/"')) {
+    fail('/picks/ is missing the methodology link');
+  }
+  if (summary === null) {
+    for (const [label, html] of [
+      ['/', home],
+      ['/picks/', picksPage],
+    ]) {
+      if (html.includes('data-season-summary')) {
+        fail(`${label} renders a season summary without summary.json`);
+      }
+    }
+  } else {
+    assertSummary(picksPage, summary, '/picks/');
+    assertSummary(home, summary, '/');
+    if (!picksPage.includes('Last graded') || !picksPage.includes(formatMst(summary.generated_at))) {
+      fail('/picks/ is missing the last-graded timestamp');
+    }
+    const units = formatUnits(summary.units);
+    if (!home.includes(units) || !picksPage.includes(units)) {
+      fail(`season units ${units} are missing`);
+    }
+  }
+
+  if (view.length === 0) {
+    for (const [label, html] of [
+      ['/', home],
+      ['/picks/', picksPage],
+    ]) {
+      if (!html.includes('No picks yet this season.')) {
+        fail(`${label} is missing the empty-list text`);
+      }
+      if (html.includes('id="pick-')) {
+        fail(`${label} renders a pick row when picks_view.json has no rows`);
+      }
+    }
+    return;
+  }
+
+  if (home.includes('No picks yet this season.') || picksPage.includes('No picks yet this season.')) {
+    fail('pick pages show the empty state while picks_view.json has rows');
+  }
+  for (const row of view) {
+    assertRenderedPick(picksPage, row, '/picks/');
+  }
+  const current = currentSeasonWeek(view);
+  for (const row of view) {
+    const anchor = `id="pick-${row.pick_id}"`;
+    if (sameSeasonWeek(row, current)) {
+      if (!home.includes(anchor)) {
+        fail(`home is missing current-week pick ${row.pick_id}`);
+      }
+      assertRenderedPick(home, row, '/');
+    } else if (home.includes(row.pick_id)) {
+      fail(`home fell back to older pick ${row.pick_id}`);
+    }
+  }
+}
+
+/**
+ * The site reads summary.json and picks_view.json with import.meta.glob, and
+ * game cards from src/content/games. Missing grader files are the empty state.
+ * A present picks file with zero rows still renders the summary and the
+ * empty-list line. Cards follow the same split.
+ */
+async function assertSourceState(distDir) {
+  const summaryData = await readJsonIfPresent(summaryDest);
+  const viewData = await readJsonIfPresent(viewDest);
+  if (summaryData === null && viewData === null) {
+    await assertEmptyPicks(distDir);
+  } else {
+    await assertPresentPicks(
+      distDir,
+      summaryData === null ? null : parseSummaryFile(summaryData),
+      viewData === null ? [] : parseViewFile(viewData),
+    );
+  }
+  const cards = await loadContentCards();
+  if (cards.length === 0) {
+    await assertEmptyCards(distDir);
+  } else {
+    await assertPresentCards(distDir, cards);
+  }
+}
+
+async function parkLiveData(parked) {
+  const files = [];
+  if (await exists(summaryDest)) {
+    files.push(summaryDest);
+  }
+  if (await exists(viewDest)) {
+    files.push(viewDest);
+  }
+  const gameNames = (await readdir(gamesContentDir)).filter((name) => name.endsWith('.json')).sort();
+  for (const name of gameNames) {
+    files.push(path.join(gamesContentDir, name));
+  }
+  if (files.length === 0) {
+    return;
+  }
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'verify-dist-'));
+  for (const filePath of files) {
+    const dest = path.join(dir, `${parked.length}-${path.basename(filePath)}`);
+    await rename(filePath, dest);
+    parked.push({ from: dest, to: filePath });
+  }
+  console.log(`parked ${parked.length} live grader file(s) and game card(s) in ${dir}`);
+}
+
+async function restoreParked(parked) {
+  for (const entry of [...parked].reverse()) {
+    await mkdir(path.dirname(entry.to), { recursive: true });
+    if (await exists(entry.to)) {
+      await rm(entry.to, { force: true });
+    }
+    await rename(entry.from, entry.to);
+  }
+  if (parked.length > 0) {
+    console.log(`restored ${parked.length} live grader file(s) and game card(s)`);
   }
 }
 
@@ -1063,8 +1294,7 @@ async function main() {
   }
 
   await assertPages(deployDist, committed, { requirePublished: false });
-  await assertEmptyPicks(deployDist);
-  await assertEmptyCards(deployDist);
+  await assertSourceState(deployDist);
   await assertNoTemplate(deployDist);
   await assertNoFixtureContent(deployDist);
   await assertNoPublishedFixture(deployDist);
@@ -1087,7 +1317,7 @@ async function main() {
     }
     await assertPages(tempDist, withFixture, { requirePublished: true });
     await assertPublishedPickLink(tempDist);
-    await assertEmptyCards(tempDist);
+    await assertSourceState(tempDist);
     await assertNoTemplate(tempDist);
     await assertNoFixtureContent(tempDist);
     await assertNoDollar(tempDist);
@@ -1098,56 +1328,79 @@ async function main() {
     await rm(tempDist, { recursive: true, force: true });
   }
 
-  if ((await exists(summaryDest)) || (await exists(viewDest))) {
-    fail('refusing to overwrite src/data/summary.json or src/data/picks_view.json');
-  }
-  if (await exists(cardLinkCopy)) {
-    fail(`refusing to overwrite ${path.relative(root, cardLinkCopy)}`);
-  }
-  const preexistingGames = (await readdir(gamesContentDir)).filter((name) => name.endsWith('.json'));
-  if (preexistingGames.length > 0) {
-    fail(`refusing to overwrite src/content/games/${preexistingGames[0]}`);
-  }
-  const gameFixtures = await loadGameFixtures();
-  const picksForCards = JSON.parse(await readFile(viewFixture, 'utf8'));
-  const currentCardWeek = currentSeasonWeek(gameFixtures.map((entry) => entry.card));
-  const knownCard =
-    gameFixtures.find(
-      (entry) =>
-        sameSeasonWeek(entry.card, currentCardWeek) &&
-        picksForCards.some((row) => row.game_id === entry.card.game_id),
-    ) ?? gameFixtures.find((entry) => sameSeasonWeek(entry.card, currentCardWeek));
-  if (!knownCard) {
-    fail('card fixtures have no current-week game');
-  }
-  const copiedGames = [];
-  await copyFile(summaryFixture, summaryDest);
-  await copyFile(viewFixture, viewDest);
+  const parked = [];
   try {
-    for (const entry of gameFixtures) {
-      const dest = path.join(gamesContentDir, entry.name);
-      await copyFile(path.join(gamesFixtureDir, entry.name), dest);
-      copiedGames.push(dest);
+    await parkLiveData(parked);
+    if (parked.length > 0) {
+      await rm(emptyDist, { recursive: true, force: true });
+      try {
+        await runAstroBuild(emptyDist);
+        await assertPages(emptyDist, committed, { requirePublished: false });
+        await assertSourceState(emptyDist);
+        await assertNoTemplate(emptyDist);
+        await assertNoFixtureContent(emptyDist);
+        await assertNoPublishedFixture(emptyDist);
+        await assertNoDollar(emptyDist);
+        await assertNoSportsbooks(emptyDist);
+        console.log('empty build: grader files and game cards were moved aside');
+      } finally {
+        await rm(emptyDist, { recursive: true, force: true });
+      }
     }
-    await writeFile(cardLinkCopy, cardLinkSource(knownCard.card));
-    await rm(picksDist, { recursive: true, force: true });
-    await runAstroBuild(picksDist);
-    await assertPages(picksDist, committed, { requirePublished: false });
-    await assertFixturePicks(picksDist);
-    await assertFixtureCards(picksDist, gameFixtures, picksForCards, knownCard.card.game_id);
-    await assertNoTemplate(picksDist);
-    await assertNoDollar(picksDist);
-    await assertNoSportsbooks(picksDist);
-    console.log('fixture build: /picks/ matches the grader summary and shows every row');
-    console.log('fixture build: game cards render every section and stay out of the empty dist');
+
+    if ((await exists(summaryDest)) || (await exists(viewDest))) {
+      fail('refusing to overwrite src/data/summary.json or src/data/picks_view.json');
+    }
+    if (await exists(cardLinkCopy)) {
+      fail(`refusing to overwrite ${path.relative(root, cardLinkCopy)}`);
+    }
+    const preexistingGames = (await readdir(gamesContentDir)).filter((name) => name.endsWith('.json'));
+    if (preexistingGames.length > 0) {
+      fail(`refusing to overwrite src/content/games/${preexistingGames[0]}`);
+    }
+    const gameFixtures = await loadGameFixtures();
+    const picksForCards = JSON.parse(await readFile(viewFixture, 'utf8'));
+    const currentCardWeek = currentSeasonWeek(gameFixtures.map((entry) => entry.card));
+    const knownCard =
+      gameFixtures.find(
+        (entry) =>
+          sameSeasonWeek(entry.card, currentCardWeek) &&
+          picksForCards.some((row) => row.game_id === entry.card.game_id),
+      ) ?? gameFixtures.find((entry) => sameSeasonWeek(entry.card, currentCardWeek));
+    if (!knownCard) {
+      fail('card fixtures have no current-week game');
+    }
+    const copiedGames = [];
+    await copyFile(summaryFixture, summaryDest);
+    await copyFile(viewFixture, viewDest);
+    try {
+      for (const entry of gameFixtures) {
+        const dest = path.join(gamesContentDir, entry.name);
+        await copyFile(path.join(gamesFixtureDir, entry.name), dest);
+        copiedGames.push(dest);
+      }
+      await writeFile(cardLinkCopy, cardLinkSource(knownCard.card));
+      await rm(picksDist, { recursive: true, force: true });
+      await runAstroBuild(picksDist);
+      await assertPages(picksDist, committed, { requirePublished: false });
+      await assertFixturePicks(picksDist);
+      await assertFixtureCards(picksDist, gameFixtures, picksForCards, knownCard.card.game_id);
+      await assertNoTemplate(picksDist);
+      await assertNoDollar(picksDist);
+      await assertNoSportsbooks(picksDist);
+      console.log('fixture build: /picks/ matches the grader summary and shows every row');
+      console.log('fixture build: game cards render every section and stay out of the empty dist');
+    } finally {
+      await rm(summaryDest, { force: true });
+      await rm(viewDest, { force: true });
+      await rm(cardLinkCopy, { force: true });
+      for (const dest of copiedGames) {
+        await rm(dest, { force: true });
+      }
+      await rm(picksDist, { recursive: true, force: true });
+    }
   } finally {
-    await rm(summaryDest, { force: true });
-    await rm(viewDest, { force: true });
-    await rm(cardLinkCopy, { force: true });
-    for (const dest of copiedGames) {
-      await rm(dest, { force: true });
-    }
-    await rm(picksDist, { recursive: true, force: true });
+    await restoreParked(parked);
   }
 }
 
