@@ -87,4 +87,4 @@ When the Pages project exists, use these settings and nothing else from this rep
 - Output directory: `dist`
 - Node.js version: 22
 
-`SITE_URL` is optional. Set it to the `pages.dev` origin once that hostname exists. The build does not call the network and does not read any secrets.
+`SITE_URL` is optional. When it is unset, the canonical origin is `https://football-film-room.pages.dev`. A trailing slash on `SITE_URL` is removed. The build does not call the network and does not read any secrets.

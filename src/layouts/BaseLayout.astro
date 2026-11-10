@@ -7,10 +7,12 @@ interface Props {
   title: string;
   description: string;
   wide?: boolean;
+  noindex?: boolean;
 }
 
-const { title, description, wide = false } = Astro.props;
+const { title, description, wide = false, noindex = false } = Astro.props;
 const documentTitle = title === siteName ? siteName : `${title} · ${siteName}`;
+const canonical = new URL(Astro.url.pathname, Astro.site);
 ---
 
 <!doctype html>
@@ -20,6 +22,9 @@ const documentTitle = title === siteName ? siteName : `${title} · ${siteName}`;
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{documentTitle}</title>
     <meta name="description" content={description} />
+    <link rel="canonical" href={canonical.href} />
+    <meta property="og:url" content={canonical.href} />
+    {noindex ? <meta name="robots" content="noindex" /> : null}
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   </head>
   <body class:list={{ 'layout-wide': wide }}>

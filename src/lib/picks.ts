@@ -1,3 +1,4 @@
+import { compareSeasonWeek, currentWeekRows } from './current-week';
 import { matchupLabel } from './format-picks';
 import { picksViewSchema, summarySchema, type PickView, type Summary } from './picks-schema';
 
@@ -78,7 +79,7 @@ export interface WeekGroup<T> {
   picks: T[];
 }
 
-/** Groups by season and week, newest season and week first. Order inside a week is kept. */
+/** Groups by season and week, latest season and week first. Order inside a week is kept. */
 export function byWeek<T extends { season: number; week: number }>(rows: readonly T[]): WeekGroup<T>[] {
   const groups = new Map<string, WeekGroup<T>>();
   for (const row of rows) {
@@ -90,7 +91,7 @@ export function byWeek<T extends { season: number; week: number }>(rows: readonl
       groups.set(key, { season: row.season, week: row.week, picks: [row] });
     }
   }
-  return [...groups.values()].sort((a, b) => b.season - a.season || b.week - a.week);
+  return [...groups.values()].sort((a, b) => compareSeasonWeek(b, a));
 }
 
 /** Rows for one week. An unknown week is empty. This does not substitute an older week. */
@@ -99,15 +100,11 @@ export function picksForWeek<T extends { week: number }>(rows: readonly T[], wee
 }
 
 /**
- * "This week" is the highest week number present. It is not the calendar week.
- * If that week has no rows, the result is empty. Older weeks are not used.
+ * "This week" is the latest (season, week), season first. It is not the calendar week.
+ * Week 1 of a new season beats week 18 of the previous one. Older pairs are not used.
  */
-export function currentWeekPicks<T extends { week: number }>(rows: readonly T[]): T[] {
-  if (rows.length === 0) {
-    return [];
-  }
-  const week = Math.max(...rows.map((row) => row.week));
-  return picksForWeek(rows, week);
+export function currentWeekPicks<T extends { season: number; week: number }>(rows: readonly T[]): T[] {
+  return currentWeekRows(rows);
 }
 
 export interface WeekPickEntry {

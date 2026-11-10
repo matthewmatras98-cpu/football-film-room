@@ -90,7 +90,7 @@ describe('this week', () => {
     { season: 2099, week: 1, id: 'also-early' },
   ];
 
-  it('uses the highest week and does not fall back', () => {
+  it('uses the latest season, then week, and does not fall back', () => {
     expect(currentWeekPicks(rows).map((row) => row.id)).toEqual(['current']);
     expect(picksForWeek(rows, 3)).toEqual([]);
     expect(currentWeekPicks([])).toEqual([]);
