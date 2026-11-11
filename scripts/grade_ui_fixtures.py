@@ -3,9 +3,10 @@
 
 `tests/fixtures/summary.json` and `tests/fixtures/picks_view.json` are the
 grader's own bytes. The inputs are `pipeline/tests/fixtures/` (the 12-pick
-fixture) plus one B2 row under `tests/fixtures/b2/` so `odds_api_stale`
-appears in the view. That extra row is rejected late, and this script fails
-if adding it changes the graded totals.
+fixture), the void-and-replacement rows in `tests/fixtures/repick/`, plus one
+B2 row under `tests/fixtures/b2/` so `odds_api_stale` appears in the view.
+That extra row is rejected late, and this script fails if adding it changes
+the graded totals.
 
 Nothing under `pipeline/` or `data/` is modified. Grading runs in a temp
 repo via `python -m football_pipeline`.
@@ -30,6 +31,7 @@ REPO = Path(__file__).resolve().parents[1]
 PIPELINE = REPO / "pipeline"
 T1 = PIPELINE / "tests" / "fixtures"
 B2 = REPO / "tests" / "fixtures" / "b2"
+REPICK = REPO / "tests" / "fixtures" / "repick"
 OUT_SUMMARY = REPO / "tests" / "fixtures" / "summary.json"
 OUT_VIEW = REPO / "tests" / "fixtures" / "picks_view.json"
 
@@ -126,7 +128,9 @@ def _materialize(root: Path, include_b2: bool) -> tuple[Path, str]:
     data = root / "data"
     (root / "src" / "data").mkdir(parents=True)
     data.mkdir(parents=True)
-    picks = _concat(T1 / "picks.csv", B2 / "picks.csv" if include_b2 else None)
+    picks = _concat(T1 / "picks.csv", REPICK / "picks.csv")
+    if include_b2:
+        picks = _append_data_rows(picks, B2 / "picks.csv")
     schedules = _concat(T1 / "schedules.csv", B2 / "schedules.csv" if include_b2 else None)
     snapshots = _concat(
         T1 / "snapshot_closes.csv",
@@ -139,7 +143,10 @@ def _materialize(root: Path, include_b2: bool) -> tuple[Path, str]:
 
 
 def _concat(base: Path, extra: Path | None) -> str:
-    text = base.read_text(encoding="utf-8")
+    return _append_data_rows(base.read_text(encoding="utf-8"), extra)
+
+
+def _append_data_rows(text: str, extra: Path | None) -> str:
     if not text.endswith("\n"):
         text += "\n"
     if extra is None:

@@ -11,6 +11,15 @@ export const MARKETS = ['spread', 'total'] as const;
 
 export const RESULTS = ['W', 'L', 'P'] as const;
 
+/** `{game_id}-{market}`, or the same id with `-r2` through `-r9`. */
+export function isPickId(pickId: string, gameId: string, market: string): boolean {
+  const base = `${gameId}-${market}`;
+  if (pickId === base) {
+    return true;
+  }
+  return pickId.startsWith(base) && /^-r[2-9]$/.test(pickId.slice(base.length));
+}
+
 const utcTimestamp = z
   .string()
   .refine((value) => value.endsWith('Z') && isIsoWithOffset(value), 'must be a UTC timestamp ending in Z');
@@ -68,7 +77,10 @@ export const pickViewSchema = z
     voided_at: utcTimestamp.nullable(),
   })
   .strict()
-  .refine((row) => row.pick_id === `${row.game_id}-${row.market}`, 'pick_id must be {game_id}-{market}')
+  .refine(
+    (row) => isPickId(row.pick_id, row.game_id, row.market),
+    'pick_id must be {game_id}-{market} or {game_id}-{market}-r2 through -r9',
+  )
   .refine(
     (row) => row.market !== 'total' || row.side === 'over' || row.side === 'under',
     'total side must be over or under',
