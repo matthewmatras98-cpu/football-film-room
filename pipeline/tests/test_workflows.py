@@ -156,8 +156,14 @@ def _git_add_pathspecs(text: str) -> list[str]:
         if tokens and tokens[0] == "--":
             tokens = tokens[1:]
         assert tokens
-        specs.extend(tokens)
+        specs.extend(_unquote(token) for token in tokens)
     return specs
+
+
+def _unquote(token: str) -> str:
+    if len(token) >= 2 and token[0] == token[-1] and token[0] in "\"'":
+        return token[1:-1]
+    return token
 
 
 def _matches_picks(spec: str) -> bool:
@@ -252,8 +258,17 @@ def test_pick_intake_is_dispatch_only_and_read_only():
         "data/picks.csv",
         "src/content/picks/${pick_id}.md",
     }
+    assert 'git add -- data/picks.csv "src/content/picks/${pick_id}.md"' in text
     assert 'git add -- data/picks.csv\n' in text or "git add -- data/picks.csv\n" in text
-    void_branch = text.split('if [ "$ACTION" = "void" ]; then', 1)[1].split("\n          else\n", 1)[0]
+    assert 'if [ "$ACTION"' not in text
+    assert "git fetch origin main && git checkout -B main origin/main" in text
+    record = next(block for block in _run_blocks(text) if "football_pipeline intake" in block)
+    assert record.index("git fetch origin main && git checkout -B main origin/main") < record.index(
+        "football_pipeline intake"
+    )
+    void_branch = text.split('if [ "$validated_action" = "void" ]; then', 1)[1].split(
+        'elif [ "$validated_action" = "pick" ]; then', 1
+    )[0]
     assert "data/picks.csv" in void_branch
     assert "src/content/picks" not in void_branch
     ledger = (WORKFLOWS / "pick-ledger.yml").read_text(encoding="utf-8")

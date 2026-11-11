@@ -354,6 +354,7 @@ def _read_picks(path: Path) -> tuple[list[PickRow], bytes]:
 
 
 def _append_row(path: Path, existing: bytes, cells: Mapping[str, str]) -> None:
+    """Append one row. Existing bytes, including a blank action cell, are not rewritten."""
     buffer = io.StringIO()
     writer = csv.writer(buffer, lineterminator="\n")
     writer.writerow([cells[column] for column in PICK_COLUMNS])

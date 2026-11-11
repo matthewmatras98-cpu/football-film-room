@@ -9,7 +9,7 @@ from pathlib import Path
 
 from football_pipeline.intake import IntakeError, IntakeFields, apply_intake, clean_writeup
 from football_pipeline.nflv import load_games
-from football_pipeline.schema import format_ts
+from football_pipeline.schema import PICK_COLUMNS, format_ts, parse_pick_file, row_sha
 from tests.conftest import run_cli
 
 REQUEST = "123e4567-e89b-42d3-a456-426614174000"
@@ -226,7 +226,7 @@ def test_cli_prints_the_pick_id_and_a_failure_writes_nothing(tmp_path: Path):
         env=_env(server=now),
     )
     assert ok.returncode == 0, ok.stderr
-    assert ok.stdout.strip() == f"{OPEN}-spread"
+    assert ok.stdout == f"pick\n{OPEN}-spread\n"
     assert "::error::" not in ok.stderr
 
     bad = run_cli(
@@ -237,6 +237,86 @@ def test_cli_prints_the_pick_id_and_a_failure_writes_nothing(tmp_path: Path):
     assert bad.stdout == ""
     assert "::error::market must be spread or total" in bad.stderr
     assert len(_rows(root)) == 1
+
+
+def test_padded_void_emits_the_validated_action(tmp_path: Path):
+    root, schedules, kick = _repo(tmp_path)
+    now = kick[OPEN] - timedelta(hours=5)
+    args = ["intake", "--root", str(root), "--schedules", str(schedules), "--now", format_ts(now)]
+    made = run_cli(args, env=_env(server=now, action="pick "))
+    assert made.returncode == 0, made.stderr
+    assert made.stdout == f"pick\n{OPEN}-spread\n"
+    voided = run_cli(
+        args,
+        env=_env(server=now, action="void ", void_pick_id=f"{OPEN}-spread"),
+    )
+    assert voided.returncode == 0, voided.stderr
+    assert voided.stdout == f"void\n{OPEN}-spread\n"
+    assert [row["action"] for row in _rows(root)] == ["pick", "void"]
+
+
+def test_non_uuid_request_id_fails_before_any_write(tmp_path: Path):
+    root, schedules, kick = _repo(tmp_path)
+    now = kick[OPEN] - timedelta(hours=5)
+    picks = root / "data" / "picks.csv"
+    picks.write_text(",".join(PICK_COLUMNS) + "\n", encoding="utf-8")
+    before = picks.read_bytes()
+    samples = (
+        "",
+        REQUEST.upper(),
+        "123e4567-e89b-12d3-a456-426614174000",
+        "../x",
+        "$(rm -rf /)",
+    )
+    for request_id in samples:
+        failed = _fail(root, schedules, now, request_id=request_id)
+        assert "lowercase uuid v4" in str(failed)
+        if request_id:
+            assert request_id not in str(failed)
+        assert picks.read_bytes() == before
+        assert not (root / "src" / "content" / "picks").exists()
+
+
+def test_append_leaves_blank_action_rows_byte_identical(tmp_path: Path):
+    root, schedules, kick = _repo(tmp_path)
+    now = kick[OPEN] - timedelta(hours=5)
+    header = ",".join(PICK_COLUMNS)
+    legacy = "\n".join(
+        [
+            header,
+            f"{FAR}-spread,{FAR},2099,8,spread,DAL,-3.0,2099-11-02T12:00:00Z,1.0,1,,legacy blank,",
+            f"{OTHER}-total,{OTHER},2099,3,total,over,45.0,2099-09-21T12:00:00Z,1.0,2,pace,also blank,",
+            "",
+        ]
+    )
+    picks = root / "data" / "picks.csv"
+    picks.write_bytes(legacy.encode("utf-8"))
+    before_rows, issues = parse_pick_file(picks)
+    assert issues == []
+    assert [row.cells["action"] for row in before_rows] == ["", ""]
+    before_shas = [row.row_sha for row in before_rows]
+    filled = dict(before_rows[0].cells)
+    filled["action"] = "pick"
+    assert before_shas[0] == row_sha(before_rows[0].cells)
+    assert before_shas[0] != row_sha(filled)
+
+    _apply(root, schedules, now, market="spread", side="GB", line="-2.5")
+    _apply(
+        root,
+        schedules,
+        now,
+        action="void",
+        void_pick_id=f"{FAR}-spread",
+    )
+    after = picks.read_bytes()
+    original = legacy.encode("utf-8")
+    assert after.startswith(original)
+    assert after.splitlines()[:3] == original.splitlines()
+    after_rows, after_issues = parse_pick_file(picks)
+    assert after_issues == []
+    assert [row.row_sha for row in after_rows[:2]] == before_shas
+    assert [row.cells["action"] for row in after_rows[:2]] == ["", ""]
+    assert [row.cells["action"] for row in after_rows[2:]] == ["pick", "void"]
 
 
 def _repo(tmp_path: Path) -> tuple[Path, Path, dict]:
