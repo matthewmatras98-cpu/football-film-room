@@ -1,10 +1,12 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { AdminData } from '../src/lib/admin/admin-data';
 import { signToken } from '../src/lib/admin/cookie';
 import { csrfForSession, issueState } from '../src/lib/admin/csrf';
 import { DISPATCH_KEYS, DISPATCH_URL, isUuidV4 } from '../src/lib/admin/dispatch';
 import type { HandlerDeps } from '../src/lib/admin/handlers';
-import { handleCallback, handleLogin, handlePick, handleVoid, OAUTH_REDIRECT_URI } from '../src/lib/admin/handlers';
+import { handleCallback, handleLogin, handlePick, handleSlate, handleVoid, OAUTH_REDIRECT_URI } from '../src/lib/admin/handlers';
+import { CONTENT_SECURITY_POLICY } from '../src/lib/admin/http';
 import { prefillLine } from '../src/lib/admin/line';
 import { gameMenuLabel } from '../src/lib/admin/label';
 import { handleMiddleware } from '../src/lib/admin/middleware';
@@ -37,6 +39,7 @@ function schedule(picks: AdminData['picks'] = []): AdminData {
         home_spread: -3.5,
         away_spread: null,
         total: 45.5,
+        final: false,
       },
       {
         game_id: '2026_11_OLD_NEW',
@@ -48,6 +51,7 @@ function schedule(picks: AdminData['picks'] = []): AdminData {
         home_spread: 1,
         away_spread: null,
         total: 41,
+        final: true,
       },
     ],
     picks,
@@ -154,10 +158,12 @@ describe('owner gate', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('location')).toBeNull();
     const body = await response.text();
-    expect(body).toContain('<meta http-equiv="refresh" content="0;url=/admin/pick">');
-    expect(body).toContain('<a href="/admin/pick">');
+    expect(body).toContain('<meta http-equiv="refresh" content="1;url=/admin/pick">');
+    expect(body).toContain('>Continue to pick page</a>');
+    expect(body).toContain('<script src="/auth-continue.js"></script>');
+    expect(body).not.toMatch(/<script(?![^>]*\bsrc=)/);
     expect(body).toContain('noindex');
-    expect(body).not.toContain('<script');
+    expect(response.headers.get('content-security-policy')).toBe(CONTENT_SECURITY_POLICY);
     expect(response.headers.get('x-content-type-options')).toBe('nosniff');
     expect(response.headers.get('referrer-policy')).toBe('same-origin');
     expect(response.headers.get('x-frame-options')).toBe('DENY');
@@ -288,30 +294,37 @@ describe('lock and dispatch', () => {
     expect(lateCalls.calls).toHaveLength(0);
   });
 
-  it('rejects a game and market that already has a pick, including a void', async () => {
+  it('allows a voided history and 409s only for the active pick id', async () => {
     const now = KICKOFF_MS - 11 * 60 * 1000;
     const auth = await authed(new Date(now));
+    const base = {
+      pick_id: '2026_12_AWY_HOM-spread',
+      game_id: '2026_12_AWY_HOM',
+      market: 'spread',
+      side: 'HOM',
+      status: 'void' as const,
+      kickoff_utc: KICKOFF,
+    };
     const { calls, fetchImpl } = capture();
-    const response = await handlePick(
+    const allowed = await handlePick(post('/api/pick', pickBody, auth), env, deps(now, schedule([base]), fetchImpl));
+    expect(allowed.status).toBe(202);
+    expect(calls).toHaveLength(1);
+
+    const activeBase = await handlePick(
       post('/api/pick', pickBody, auth),
       env,
-      deps(
-        now,
-        schedule([
-          {
-            pick_id: '2026_12_AWY_HOM-spread',
-            game_id: '2026_12_AWY_HOM',
-            market: 'spread',
-            side: 'HOM',
-            status: 'void',
-            kickoff_utc: KICKOFF,
-          },
-        ]),
-        fetchImpl,
-      ),
+      deps(now, schedule([{ ...base, status: 'pending' }]), fetch),
     );
-    expect(response.status).toBe(409);
-    expect(calls).toHaveLength(0);
+    expect(activeBase.status).toBe(409);
+    expect(await activeBase.json()).toEqual({ error: 'active pick exists: 2026_12_AWY_HOM-spread' });
+
+    const named = await handlePick(
+      post('/api/pick', pickBody, auth),
+      env,
+      deps(now, schedule([base, { ...base, pick_id: '2026_12_AWY_HOM-spread-r2', status: 'pending' }]), fetch),
+    );
+    expect(named.status).toBe(409);
+    expect(await named.json()).toEqual({ error: 'active pick exists: 2026_12_AWY_HOM-spread-r2' });
   });
 
   it('dispatches a void with the same ten string keys', async () => {
@@ -360,6 +373,123 @@ describe('lock and dispatch', () => {
     expect(payload.inputs.confidence).toBe('');
     expect(payload.inputs.writeup).toBe('');
   });
+
+  it('rejects a void of a superseded id and dispatches the active -r2 id', async () => {
+    const now = KICKOFF_MS - 11 * 60 * 1000;
+    const auth = await authed(new Date(now));
+    const base = {
+      pick_id: '2026_12_AWY_HOM-spread',
+      game_id: '2026_12_AWY_HOM',
+      market: 'spread',
+      side: 'HOM',
+      status: 'void' as const,
+      kickoff_utc: KICKOFF,
+    };
+    const replacement = { ...base, pick_id: '2026_12_AWY_HOM-spread-r2', status: 'pending' as const };
+    const data = schedule([base, replacement]);
+    const superseded = await handleVoid(post('/api/void', { pick_id: base.pick_id }, auth), env, deps(now, data, fetch));
+    expect(superseded.status).toBe(409);
+    const already = await handleVoid(
+      post('/api/void', { pick_id: base.pick_id }, auth),
+      env,
+      deps(now, schedule([base]), fetch),
+    );
+    expect(already.status).toBe(409);
+
+    const { calls, fetchImpl } = capture();
+    const response = await handleVoid(
+      post('/api/void', { pick_id: replacement.pick_id }, auth),
+      env,
+      deps(now, data, fetchImpl),
+    );
+    expect(response.status).toBe(202);
+    const call = calls[0];
+    if (!call) {
+      throw new Error('missing dispatch');
+    }
+    const payload = JSON.parse(String(call.init.body)) as { inputs: Record<string, string> };
+    expect(payload.inputs.void_pick_id).toBe('2026_12_AWY_HOM-spread-r2');
+  });
+
+  it('filters the slate with the server clock, not the baked open week', async () => {
+    const now = Date.parse('2026-11-11T18:00:00.000Z');
+    const auth = await authed(new Date(now));
+    const data: AdminData = {
+      open_week: { season: 2026, week: 99 },
+      games: [
+        {
+          game_id: '2026_09_OLD_NEW',
+          season: 2026,
+          week: 9,
+          away: 'OLD',
+          home: 'NEW',
+          kickoff_utc: new Date(now - 3 * 24 * 60 * 60 * 1000).toISOString(),
+          home_spread: null,
+          away_spread: null,
+          total: null,
+          final: true,
+        },
+        {
+          game_id: '2026_10_OPN_GAM',
+          season: 2026,
+          week: 10,
+          away: 'OPN',
+          home: 'GAM',
+          kickoff_utc: new Date(now + 11 * 60 * 1000).toISOString(),
+          home_spread: -3,
+          away_spread: 3,
+          total: 44,
+          final: false,
+        },
+        {
+          game_id: '2026_10_LOC_KED',
+          season: 2026,
+          week: 10,
+          away: 'LOC',
+          home: 'KED',
+          kickoff_utc: new Date(now + 10 * 60 * 1000).toISOString(),
+          home_spread: null,
+          away_spread: null,
+          total: null,
+          final: false,
+        },
+        {
+          game_id: '2026_12_FAR_OUT',
+          season: 2026,
+          week: 12,
+          away: 'FAR',
+          home: 'OUT',
+          kickoff_utc: new Date(now + 8 * 24 * 60 * 60 * 1000).toISOString(),
+          home_spread: null,
+          away_spread: null,
+          total: null,
+          final: false,
+        },
+      ],
+      picks: [],
+    };
+    const response = await handleSlate(
+      new Request('https://film.example/api/slate', { headers: { cookie: auth.cookie } }),
+      env,
+      deps(now, data, fetch),
+    );
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { games: Array<{ game_id: string }> };
+    expect(body.games.map((game) => game.game_id)).toEqual(['2026_10_OPN_GAM']);
+
+    const far = await handlePick(
+      post('/api/pick', { game_id: '2026_12_FAR_OUT', market: 'spread', side: 'FAR', line: '', confidence: '', writeup: '' }, auth),
+      env,
+      deps(now, data, fetch),
+    );
+    expect(far.status).toBe(422);
+    const late = await handlePick(
+      post('/api/pick', { game_id: '2026_10_LOC_KED', market: 'spread', side: 'LOC', line: '', confidence: '', writeup: '' }, auth),
+      env,
+      deps(now, data, fetch),
+    );
+    expect(late.status).toBe(409);
+  });
 });
 
 describe('routes without secrets', () => {
@@ -369,6 +499,7 @@ describe('routes without secrets', () => {
     const loginHtml = await login.text();
     expect(loginHtml).toContain('not configured');
     expect(loginHtml).toContain('noindex');
+    expect(login.headers.get('content-security-policy')).toBe(CONTENT_SECURITY_POLICY);
 
     const pick = await handlePick(new Request('https://film.example/api/pick', { method: 'POST' }), {});
     expect(pick.status).toBe(503);
@@ -401,6 +532,29 @@ describe('spread prefill', () => {
     expect(prefillLine({ ...shared, market: 'total', side: 'over' })).toBe('50.5');
     expect(prefillLine({ ...shared, market: 'spread', side: 'BUF', awaySpread: -7 })).toBe('-7');
     expect(prefillLine({ ...shared, market: 'spread', side: 'BUF', homeSpread: 0 })).toBe('0');
+  });
+});
+
+describe('content security policy', () => {
+  it('is well formed on function HTML and the static admin header', () => {
+    const directives = CONTENT_SECURITY_POLICY.split(';').map((part) => part.trim());
+    expect(directives).toEqual([
+      "default-src 'self'",
+      "script-src 'self'",
+      "style-src 'self'",
+      "img-src 'self' data:",
+      "connect-src 'self'",
+      "form-action 'self' https://github.com",
+      "frame-ancestors 'none'",
+      "base-uri 'none'",
+      "object-src 'none'",
+    ]);
+    const headers = readFileSync(new URL('../public/_headers', import.meta.url), 'utf8');
+    expect(headers).toContain('/admin/*');
+    expect(headers).toContain(`Content-Security-Policy: ${CONTENT_SECURITY_POLICY}`);
+    const script = readFileSync(new URL('../public/auth-continue.js', import.meta.url), 'utf8');
+    expect(script).toContain("location.replace('/admin/pick')");
+    expect(script).not.toContain('<script');
   });
 });
 
