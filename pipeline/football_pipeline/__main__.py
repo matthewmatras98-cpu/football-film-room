@@ -197,16 +197,19 @@ def _build_db(args: argparse.Namespace) -> int:
 
 def _intake(args: argparse.Namespace) -> int:
     now = parse_ts(args.now) if args.now else datetime.now(timezone.utc)
+    fields = fields_from_env(os.environ)
     try:
         pick_id = apply_intake(
             root=find_root(args.root),
             schedules=args.schedules,
             now=now,
-            fields=fields_from_env(os.environ),
+            fields=fields,
         )
     except IntakeError as exc:
         print(f"::error::{exc}", file=sys.stderr)
         return 1
+    # stdout is the validated action, then the pick id. The workflow branches on that.
+    print(fields.action)
     print(pick_id)
     return 0
 

@@ -93,15 +93,23 @@ jobs:
           NFLREADPY_CACHE_DURATION: "0"
         run: |
           set -euo pipefail
-          pick_id="$(cd pipeline && uv run --frozen python -m football_pipeline intake)"
+          git fetch origin main && git checkout -B main origin/main
+          intake_out="$(cd pipeline && uv run --frozen python -m football_pipeline intake)" || exit 1
+          {
+            IFS= read -r validated_action
+            IFS= read -r pick_id
+          } <<< "$intake_out"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # A void stages only the csv. A pick also stages its markdown file.
-          if [ "$ACTION" = "void" ]; then
+          # Branch on the action the CLI validated. A void stages only the csv.
+          if [ "$validated_action" = "void" ]; then
             git add -- data/picks.csv
             git commit -m "void: ${pick_id}" -m "${REQUEST_ID}"
-          else
-            git add -- data/picks.csv src/content/picks/${pick_id}.md
+          elif [ "$validated_action" = "pick" ]; then
+            git add -- data/picks.csv "src/content/picks/${pick_id}.md"
             git commit -m "pick: ${pick_id}" -m "${REQUEST_ID}"
+          else
+            echo "::error::intake did not return a validated action" >&2
+            exit 1
           fi
           bash scripts/push_with_retry.sh
