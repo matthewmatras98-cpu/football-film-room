@@ -1,6 +1,7 @@
 ---
 import CloseMarker from './CloseMarker.astro';
 import StatusBadge from './StatusBadge.astro';
+import Writeup from './Writeup.astro';
 import {
   EM_DASH,
   formatClv,
@@ -12,6 +13,7 @@ import {
   matchupLabel,
 } from '../lib/picks';
 import type { PickView } from '../lib/picks-schema';
+import { getWriteups, writeupForPick } from '../lib/writeups';
 
 interface Props {
   picks: PickView[];
@@ -20,6 +22,7 @@ interface Props {
 
 const { picks } = Astro.props;
 const gameIds = Astro.props.gameIds ?? new Set<string>();
+const writeups = await getWriteups();
 
 function dataValue(value: number | null): string {
   return value === null ? 'null' : String(value);
@@ -118,6 +121,7 @@ function unitsClass(result: PickView['result']): string | undefined {
                   )}
                   .
                 </p>
+                <Writeup entry={writeupForPick(pick.pick_id, writeups)} />
               </td>
             </tr>
           </tbody>

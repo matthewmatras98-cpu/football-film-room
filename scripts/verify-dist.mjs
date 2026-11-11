@@ -210,6 +210,10 @@ function sitemapListsNotFound(xml) {
   return /<loc>[^<]*\/404(?:\.html)?\/?<\/loc>/i.test(xml);
 }
 
+function sitemapListsAdminPick(xml) {
+  return /<loc>[^<]*\/admin\/pick(?:\.html)?\/?<\/loc>/i.test(xml);
+}
+
 async function assertSeo(distDir) {
   const label = path.relative(root, distDir);
   const site = new URL(siteUrl());
@@ -252,6 +256,27 @@ async function assertSeo(distDir) {
     if (sitemapListsNotFound(xml)) {
       fail(`${path.relative(root, filePath)} includes the 404 page`);
     }
+    if (sitemapListsAdminPick(xml)) {
+      fail(`${path.relative(root, filePath)} includes /admin/pick`);
+    }
+  }
+
+  const adminPickCandidates = [
+    path.join(distDir, 'admin', 'pick', 'index.html'),
+    path.join(distDir, 'admin', 'pick.html'),
+  ];
+  let adminPick = null;
+  for (const candidate of adminPickCandidates) {
+    if (await exists(candidate)) {
+      adminPick = candidate;
+    }
+  }
+  if (!adminPick) {
+    fail(`${label} is missing /admin/pick`);
+  }
+  const adminHtml = await readFile(adminPick, 'utf8');
+  if (!adminHtml.includes('noindex')) {
+    fail(`${label}/admin/pick is missing noindex`);
   }
 
   const htmlFiles = await listHtml(distDir);

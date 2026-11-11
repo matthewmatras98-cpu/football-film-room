@@ -1,0 +1,124 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { buildAdminData, openWeekGames } from '../../lib/admin/admin-data';
+import { gameMenuLabel } from '../../lib/admin/label';
+import { prefillLine } from '../../lib/admin/line';
+import { getAllGames } from '../../lib/games';
+import { picks } from '../../lib/picks';
+
+const data = buildAdminData(await getAllGames(), picks);
+const games = openWeekGames(data);
+const openPicks = data.picks.filter((pick) => pick.status !== 'void');
+const first = games[0];
+const initialLine = first
+  ? prefillLine({
+      market: 'spread',
+      side: first.away,
+      home: first.home,
+      away: first.away,
+      homeSpread: first.home_spread,
+      awaySpread: first.away_spread,
+      total: first.total,
+    })
+  : '';
+---
+
+<BaseLayout noindex title="Enter a pick" description="Owner pick entry for the open week.">
+  <p class="kicker">Owner</p>
+  <h1>Enter a pick</h1>
+  <p class="lede">One spread and one total per game. The server locks the pick 10 minutes before kickoff.</p>
+  <p class="meta" id="signed-in"></p>
+  <p>
+    <a href="/auth/logout">Sign out</a>
+  </p>
+
+  {
+    games.length === 0 ? (
+      <p>No open-week games are on the schedule.</p>
+    ) : (
+      <form id="pick-form" class="pick-form" action="/api/pick" method="post">
+        <label>
+          Game
+          <select id="game_id" name="game_id" required>
+            {games.map((game) => (
+              <option
+                value={game.game_id}
+                data-away={game.away}
+                data-home={game.home}
+                data-home-spread={game.home_spread === null ? '' : String(game.home_spread)}
+                data-away-spread={game.away_spread === null ? '' : String(game.away_spread)}
+                data-total={game.total === null ? '' : String(game.total)}
+              >
+                {gameMenuLabel(game)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Market
+          <select id="market" name="market">
+            <option value="spread">spread</option>
+            <option value="total">total</option>
+          </select>
+        </label>
+        <label>
+          Side
+          <select id="side" name="side" required>
+            {first ? <option value={first.away}>{first.away}</option> : null}
+            {first ? <option value={first.home}>{first.home}</option> : null}
+          </select>
+        </label>
+        <label>
+          Line
+          <input
+            id="line"
+            name="line"
+            inputmode="decimal"
+            value={initialLine}
+          />
+        </label>
+        <label>
+          Confidence
+          <select id="confidence" name="confidence">
+            <option value="">—</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+          </select>
+        </label>
+        <label>
+          Write-up
+          <textarea id="writeup" name="writeup" maxlength="4000" rows="8"></textarea>
+        </label>
+        <p class="meta">
+          <span id="writeup-count">0</span> / 4000
+        </p>
+        <button class="btn" type="submit">Submit pick</button>
+      </form>
+    )
+  }
+
+  <p id="pick-message" role="status"></p>
+  <p id="pick-poll" class="meta"></p>
+
+  <h2>Your open picks</h2>
+  <p id="open-empty" hidden={openPicks.length > 0}>No open picks.</p>
+  <ul class="open-picks" id="open-picks" hidden={openPicks.length === 0}>
+    {
+      openPicks.map((pick) => (
+        <li data-pick-id={pick.pick_id} data-kickoff={pick.kickoff_utc ?? ''}>
+          <p>
+            {pick.game_id} · {pick.side} · {pick.market}
+          </p>
+          <button class="btn" type="button" data-void={pick.pick_id} disabled>
+            Void
+          </button>
+        </li>
+      ))
+    }
+  </ul>
+</BaseLayout>
+
+<script>
+  import '../../scripts/admin-pick';
+</script>

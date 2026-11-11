@@ -848,7 +848,8 @@ tbody.is-rejected .record {
   font-weight: 700;
 }
 
-.status-rejected_late {
+.status-rejected_late,
+.status-void {
   color: var(--color-text-muted);
   font-weight: 600;
 }
@@ -870,6 +871,63 @@ tbody.is-rejected .record {
 
 .prose li:last-child {
   margin-bottom: 0;
+}
+
+.pick-form {
+  display: grid;
+  gap: var(--space-16);
+  margin: 0 0 var(--space-32);
+}
+
+.pick-form label {
+  display: grid;
+  gap: var(--space-8);
+  font-weight: 600;
+}
+
+.pick-form input,
+.pick-form select,
+.pick-form textarea {
+  width: 100%;
+  padding: var(--space-8) var(--space-12);
+  border: var(--rule-hairline) solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  border-radius: var(--radius-none);
+}
+
+.pick-form textarea {
+  min-height: 10rem;
+  resize: vertical;
+}
+
+.pick-form button,
+.open-picks .btn {
+  justify-self: start;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+}
+
+.open-picks {
+  list-style: none;
+  margin: 0 0 var(--space-32);
+  padding: 0;
+}
+
+.open-picks li {
+  padding: var(--space-12) 0;
+  border-top: var(--rule-hairline) solid var(--color-border);
+}
+
+.writeup {
+  margin-top: var(--space-12);
+}
+
+.writeup .meta {
+  display: block;
 }
 
 .not-found {

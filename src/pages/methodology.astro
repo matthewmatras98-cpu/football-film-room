@@ -54,11 +54,16 @@ await getPublishedWeeks();
     only and does not change the grade. Results are in units, never dollars.
   </p>
 
+  <h2 id="entering">Entering a pick</h2>
+  <p>
+    Picks are entered on <a href="/admin/pick">/admin/pick</a> (owner-only sign-in).
+  </p>
+
   <h2>Lock rule</h2>
   <p>
-    A pick is rejected when picked_at is at or after kickoff, or when the server push time is at or
-    after kickoff. Rejected picks are marked rejected – late and left out of the record. A client-set
-    commit time does not lock a pick.
+    The server records the submission time and rejects anything at or after 10 minutes before
+    kickoff. The pick is then committed to the public git history and graded against the closing
+    line as before.
   </p>
 
   <h2>Film</h2>

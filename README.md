@@ -32,34 +32,13 @@ The two files already in `src/content/weeks/` are drafts. Do not publish anythin
 
 ## Add a pick
 
-Edit `data/picks.csv` on `main`. One row per pick. Agents do not edit that file.
+Picks are entered on `/admin/pick` (owner-only sign-in). The server records the submission time and rejects anything at or after 10 minutes before kickoff. The pick is then committed to the public git history and graded against the closing line as before.
 
-| Column | What to enter |
-|---|---|
-| `pick_id` | `{game_id}-{market}`, for example `2026_11_DET_PHI-spread` |
-| `game_id` | nflverse id, `YYYY_WW_AWAY_HOME` |
-| `season`, `week` | The game's season and week |
-| `market` | `spread` or `total` |
-| `side` | Team abbreviation, or `over` / `under` |
-| `line_at_pick` | The number from the picked side. A negative spread means that side is laying points |
-| `picked_at` | ISO-8601 timestamp with a timezone offset, before kickoff |
-| `units` | `1.0` |
-| `confidence` | `1`, `2`, or `3`. Display only |
-| `tags` | Optional, separated with `;` |
-| `note` | One line of reasoning |
-
-Quote nothing in the CSV except a note that contains a comma. `picked_at` still needs the offset, as in `2026-11-14T18:00:00-07:00`.
+Do not hand-edit `data/picks.csv`. Agents do not edit that file. Do not hand-edit `src/data/summary.json` or `src/data/picks_view.json`. The grader writes them. Until those files exist, `/` and `/picks/` build with an empty state.
 
 ### Lock rule
 
-A pick counts only if it was locked before kickoff. Both of these have to be earlier than kickoff:
-
-- `picked_at`, the time on the row
-- `first_pushed_at`, GitHub's server push time for that exact row
-
-A commit timestamp does not lock a pick. Pushing the row, or editing it, at or after kickoff marks it `Rejected – late`. Rejected rows stay on `/picks/` and are left out of the W-L-P, units, and CLV.
-
-Do not hand-edit `src/data/summary.json` or `src/data/picks_view.json`. The grader writes them. Until those files exist, `/` and `/picks/` build with an empty state.
+The server records the submission time and rejects anything at or after 10 minutes before kickoff. A client-set commit time does not lock a pick. The pick is then committed to the public git history and graded against the closing line as before. Rejected rows stay on `/picks/` and are left out of the W-L-P, units, and CLV.
 
 ## Local checks
 
@@ -94,3 +73,5 @@ When the Pages project exists, use these settings and nothing else from this rep
 - Node.js version: 22
 
 `SITE_URL` is optional. When it is unset, the canonical origin is `https://football-film-room.pages.dev`. A trailing slash on `SITE_URL` is removed. The build does not call the network and does not read any secrets.
+
+Pages Functions in `functions/` serve `/auth/*`, `/admin/*`, and `/api/*`. Set `GITHUB_OAUTH_CLIENT_ID`, `GITHUB_OAUTH_CLIENT_SECRET`, `GH_DISPATCH_TOKEN`, and `SESSION_SECRET` on the Pages project. The GitHub OAuth callback URL is `https://<site>/auth/callback`. The static build does not read those values. If any of them is missing, those routes respond with 503 and the text `not configured`.

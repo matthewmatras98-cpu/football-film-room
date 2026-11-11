@@ -15,6 +15,6 @@ b2-post-template-sentinel
 
 Copy this file to src/content/weeks only when the post is ready to publish. Leave published_at quoted so the timestamp stays a string.
 
-Add the matching pick to data/picks.csv before kickoff. The lock is GitHub's server push time, not the commit timestamp. A pick at or after kickoff is shown as Rejected – late and stays out of the record.
+Do not add a picks.csv row for this post. Entry is the signed-in pick page, and the server lock is 10 minutes before kickoff.
 
 This file lives in docs on purpose. It is not a page, and the build does not ship it.

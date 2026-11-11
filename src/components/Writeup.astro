@@ -1,0 +1,12 @@
+---
+import { formatMst } from '../lib/format-picks';
+import { writeupMarkup, type Writeup } from '../lib/writeup';
+
+interface Props {
+  entry: Writeup | null;
+}
+
+const html = writeupMarkup(Astro.props.entry, formatMst);
+---
+
+{html ? <Fragment set:html={html} /> : null}

@@ -12,8 +12,13 @@ export default defineConfig({
     mdx(),
     sitemap({
       filter(page) {
-        const pathname = new URL(page).pathname.replace(/\/+$/, '');
-        return pathname !== '/404' && pathname !== '/404.html';
+        const pathname = new URL(page).pathname.replace(/\/+$/, '') || '/';
+        return (
+          pathname !== '/404' &&
+          pathname !== '/404.html' &&
+          pathname !== '/admin/pick' &&
+          pathname !== '/admin-data.json'
+        );
       },
     }),
   ],

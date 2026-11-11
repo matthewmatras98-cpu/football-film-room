@@ -1,12 +1,13 @@
 ---
 import { STATUS_LABEL } from '../lib/picks';
-import type { PickStatus } from '../lib/picks-schema';
 
 interface Props {
-  status: PickStatus;
+  status: string;
 }
 
 const { status } = Astro.props;
+const known = STATUS_LABEL[status as keyof typeof STATUS_LABEL];
+const label = status === 'void' ? 'Void' : (known ?? status);
 ---
 
-<span class:list={['status', `status-${status}`]}>{STATUS_LABEL[status]}</span>
+<span class:list={['status', `status-${status}`]}>{label}</span>

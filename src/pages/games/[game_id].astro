@@ -2,6 +2,7 @@
 import CardSourceFooter from '../../components/CardSourceFooter.astro';
 import EpaBars from '../../components/EpaBars.astro';
 import LineSparkline from '../../components/LineSparkline.astro';
+import PicksTable from '../../components/PicksTable.astro';
 import StatCell from '../../components/StatCell.astro';
 import StatCompare from '../../components/StatCompare.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
@@ -16,7 +17,9 @@ import {
   formatText,
   formatTotalLine,
   getAllGames,
+  picksForGame,
 } from '../../lib/games';
+import { picks } from '../../lib/picks';
 
 export async function getStaticPaths() {
   const games = await getAllGames();
@@ -189,6 +192,8 @@ const downRows = [
   },
 ];
 
+const gamePicks = picksForGame(game.game_id, picks);
+
 const injurySides = [
   { team: away, rows: sections.injuries.away },
   { team: home, rows: sections.injuries.home },
@@ -218,6 +223,15 @@ const injurySides = [
       <a href="/games/">All games</a>
     </p>
   </header>
+
+  {
+    gamePicks.length > 0 ? (
+      <section class="game-picks">
+        <h2>Official pick</h2>
+        <PicksTable picks={gamePicks} gameIds={new Set([game.game_id])} />
+      </section>
+    ) : null
+  }
 
   <section data-section="lines">
     <h2>Lines and movement</h2>
