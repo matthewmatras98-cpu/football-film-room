@@ -1,5 +1,40 @@
+import { gameMenuLabel } from '../lib/admin/label';
 import { prefillLine } from '../lib/admin/line';
 import { isBeforeLock } from '../lib/admin/lock';
+
+interface SlateGame {
+  game_id: string;
+  away: string;
+  home: string;
+  kickoff_utc: string;
+  home_spread: number | null;
+  away_spread: number | null;
+  total: number | null;
+}
+
+function asSlateGame(value: unknown): SlateGame | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+  const row = value as Record<string, unknown>;
+  if (
+    typeof row.game_id !== 'string' ||
+    typeof row.away !== 'string' ||
+    typeof row.home !== 'string' ||
+    typeof row.kickoff_utc !== 'string'
+  ) {
+    return null;
+  }
+  return {
+    game_id: row.game_id,
+    away: row.away,
+    home: row.home,
+    kickoff_utc: row.kickoff_utc,
+    home_spread: typeof row.home_spread === 'number' ? row.home_spread : null,
+    away_spread: typeof row.away_spread === 'number' ? row.away_spread : null,
+    total: typeof row.total === 'number' ? row.total : null,
+  };
+}
 
 function selectedOption(select: HTMLSelectElement): HTMLOptionElement | null {
   return select.selectedOptions[0] ?? null;
@@ -124,13 +159,67 @@ export function bootAdminPick(): void {
     syncLine(marketSelect.value, option, sideSelect, lineInput);
   };
 
+  const loadOpenGames = async () => {
+    const loading = document.querySelector<HTMLElement>('#games-loading');
+    const empty = document.querySelector<HTMLElement>('#games-empty');
+    try {
+      const response = await fetch('/api/slate', { headers: { accept: 'application/json' } });
+      if (!response.ok) {
+        if (loading) {
+          loading.hidden = true;
+        }
+        message.textContent = 'Open games are unavailable.';
+        return;
+      }
+      const body = (await response.json()) as { games?: unknown };
+      const games: SlateGame[] = [];
+      if (Array.isArray(body.games)) {
+        for (const row of body.games) {
+          const parsed = asSlateGame(row);
+          if (parsed) {
+            games.push(parsed);
+          }
+        }
+      }
+      if (loading) {
+        loading.hidden = true;
+      }
+      if (!gameSelect || !form) {
+        return;
+      }
+      if (games.length === 0) {
+        if (empty) {
+          empty.hidden = false;
+        }
+        return;
+      }
+      for (const game of games) {
+        const option = document.createElement('option');
+        option.value = game.game_id;
+        option.dataset.away = game.away;
+        option.dataset.home = game.home;
+        option.dataset.homeSpread = game.home_spread === null ? '' : String(game.home_spread);
+        option.dataset.awaySpread = game.away_spread === null ? '' : String(game.away_spread);
+        option.dataset.total = game.total === null ? '' : String(game.total);
+        option.textContent = gameMenuLabel(game);
+        gameSelect.append(option);
+      }
+      form.hidden = false;
+      refreshSides(false);
+    } catch {
+      if (loading) {
+        loading.hidden = true;
+      }
+      message.textContent = 'Open games are unavailable.';
+    }
+  };
+
   if (formReady && gameSelect && marketSelect && sideSelect && lineInput && writeup) {
     gameSelect.addEventListener('change', () => refreshSides(false));
     marketSelect.addEventListener('change', () => refreshSides(false));
     sideSelect.addEventListener('change', () => {
       syncLine(marketSelect.value, selectedOption(gameSelect), sideSelect, lineInput);
     });
-    refreshSides(true);
     const updateCount = () => {
       if (counter) {
         counter.textContent = String(writeup.value.length);
@@ -138,6 +227,7 @@ export function bootAdminPick(): void {
     };
     writeup.addEventListener('input', updateCount);
     updateCount();
+    void loadOpenGames();
   }
 
   let csrf = '';

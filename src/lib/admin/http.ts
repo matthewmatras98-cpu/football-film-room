@@ -1,3 +1,11 @@
+/**
+ * Linked stylesheets only: the built CSS is one same-origin file (well over the
+ * inline threshold) and there are no style attributes. Fonts are same-origin woff2,
+ * so style-src stays 'self' without 'unsafe-inline'.
+ */
+export const CONTENT_SECURITY_POLICY =
+  "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; form-action 'self' https://github.com; frame-ancestors 'none'; base-uri 'none'; object-src 'none'";
+
 export function securityHeaders(headers?: Headers): Headers {
   const next = headers ?? new Headers();
   next.set('x-content-type-options', 'nosniff');
@@ -29,6 +37,7 @@ export function notConfigured(kind: 'json' | 'html'): Response {
 export function html(body: string, status: number, headers?: Headers): Response {
   const next = securityHeaders(headers);
   next.set('content-type', 'text/html; charset=utf-8');
+  next.set('content-security-policy', CONTENT_SECURITY_POLICY);
   next.set('cache-control', 'no-store');
   return new Response(body, { status, headers: next });
 }

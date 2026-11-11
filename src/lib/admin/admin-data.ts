@@ -10,6 +10,8 @@ export interface AdminGame {
   home_spread: number | null;
   away_spread: number | null;
   total: number | null;
+  /** True when this game has a final score. Cards do not carry scores, so the bake leaves this false. */
+  final: boolean;
 }
 
 export interface AdminPick {
@@ -53,7 +55,7 @@ function nullableNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
-/** Open week is the latest (season, week) on the built schedule. */
+/** Schedule and ledger snapshot. Request handlers choose open weeks from `games`. */
 export function buildAdminData(games: readonly ScheduleGameInput[], picks: readonly LedgerPickInput[]): AdminData {
   const openWeek = currentSeasonWeek(games);
   const kickoffs = new Map(games.map((game) => [game.game_id, game.kickoff_utc]));
@@ -69,6 +71,7 @@ export function buildAdminData(games: readonly ScheduleGameInput[], picks: reado
       home_spread: game.line_latest?.home_spread ?? null,
       away_spread: game.line_latest?.away_spread ?? null,
       total: game.line_latest?.total ?? null,
+      final: false,
     })),
     picks: picks.map((pick) => ({
       pick_id: pick.pick_id,
@@ -79,14 +82,6 @@ export function buildAdminData(games: readonly ScheduleGameInput[], picks: reado
       kickoff_utc: kickoffs.get(pick.game_id) ?? null,
     })),
   };
-}
-
-export function openWeekGames(data: AdminData): AdminGame[] {
-  if (!data.open_week) {
-    return [];
-  }
-  const { season, week } = data.open_week;
-  return data.games.filter((game) => game.season === season && game.week === week);
 }
 
 function asGame(value: unknown): AdminGame | null {
@@ -114,6 +109,7 @@ function asGame(value: unknown): AdminGame | null {
     home_spread: nullableNumber(row.home_spread),
     away_spread: nullableNumber(row.away_spread),
     total: nullableNumber(row.total),
+    final: row.final === true,
   };
 }
 

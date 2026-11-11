@@ -15,6 +15,7 @@ import { readConfig, type PagesEnv } from './env';
 import { forbiddenHtml, html, json, notConfigured, securityHeaders } from './http';
 import { isOwner } from './owner';
 import { issueSession, sessionFromRequest, SESSION_COOKIE, SESSION_TTL_SEC } from './session';
+import { selectableGames } from './open-week';
 import { validatePick, validateVoid } from './validate';
 
 export interface HandlerDeps {
@@ -52,7 +53,7 @@ export async function loadAdminDataFromAssets(request: Request, env: PagesEnv): 
 export const OAUTH_REDIRECT_URI = 'https://football-film-room.pages.dev/auth/callback';
 
 const SIGNED_IN_HTML =
-  '<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex"><meta http-equiv="refresh" content="0;url=/admin/pick"><title>Signed in</title><p><a href="/admin/pick">/admin/pick</a></p>';
+  '<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex"><meta http-equiv="refresh" content="1;url=/admin/pick"><title>Signed in</title><p><a href="/admin/pick">Continue to pick page</a></p><script src="/auth-continue.js"></script>';
 
 function redirect(location: string, cookies: string[] = []): Response {
   const headers = securityHeaders(new Headers({ location, 'cache-control': 'no-store' }));
@@ -230,6 +231,27 @@ async function readJsonBody(request: Request): Promise<{ ok: true; body: unknown
     return { ok: true, body: JSON.parse(text) };
   } catch {
     return { ok: false, response: json({ error: 'Invalid JSON.' }, 422) };
+  }
+}
+
+export async function handleSlate(
+  request: Request,
+  env: PagesEnv,
+  deps: HandlerDeps = defaultDeps(env),
+): Promise<Response> {
+  try {
+    const now = deps.now();
+    const guard = await guardApi(request, env, now, false);
+    if (guard instanceof Response) {
+      return guard;
+    }
+    const data = await deps.loadAdminData(request, env);
+    if (!data) {
+      return json({ error: 'Schedule unavailable.' }, 500);
+    }
+    return json({ games: selectableGames(data.games, now) }, 200);
+  } catch {
+    return json({ error: 'internal error' }, 500);
   }
 }
 

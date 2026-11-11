@@ -1,6 +1,8 @@
 import { WRITEUP_MAX, sanitizeWriteup } from '../writeup';
-import { openWeekGames, type AdminData, type AdminGame } from './admin-data';
+import { activePickId } from './active-pick';
+import { type AdminData, type AdminGame } from './admin-data';
 import { isBeforeLock } from './lock';
+import { selectOpenWeeks } from './open-week';
 
 const GAME_TEAMS = /^(\d{4})_(\d{2})_([A-Z]{2,3})_([A-Z]{2,3})$/;
 const LINE_RE = /^[+-]?\d+(?:\.\d+)?$/;
@@ -100,7 +102,8 @@ export function validatePick(body: unknown, data: AdminData, now: Date): Validat
     return reject(422, 'Market must be spread or total.');
   }
   const market = record.market;
-  const game = openWeekGames(data).find((row) => row.game_id === record.game_id);
+  const openWeeks = new Set(selectOpenWeeks(data.games, now).map((week) => `${week.season}:${week.week}`));
+  const game = data.games.find((row) => row.game_id === record.game_id && openWeeks.has(`${row.season}:${row.week}`));
   if (!game) {
     return reject(422, 'That game is not on the open week.');
   }
@@ -136,8 +139,9 @@ export function validatePick(body: unknown, data: AdminData, now: Date): Validat
   if (writeup.length > WRITEUP_MAX) {
     return reject(422, 'Write-up must be 4000 characters or fewer.');
   }
-  if (data.picks.some((pick) => pick.game_id === game.game_id && pick.market === market)) {
-    return reject(409, 'A pick already exists for this game and market.');
+  const active = activePickId(data.picks, game.game_id, market);
+  if (active) {
+    return reject(409, `active pick exists: ${active}`);
   }
   if (!isBeforeLock(now.getTime(), game.kickoff_utc)) {
     return reject(409, 'Too late. Picks close 10 minutes before kickoff.');
@@ -160,8 +164,11 @@ export function validateVoid(body: unknown, data: AdminData, now: Date): Validat
   if (!pick) {
     return reject(422, 'That pick is not on the ledger.');
   }
-  if (pick.status === 'void') {
-    return reject(409, 'That pick is already void.');
+  if (activePickId(data.picks, pick.game_id, pick.market) !== pickId) {
+    if (pick.status === 'void') {
+      return reject(409, 'That pick is already void.');
+    }
+    return reject(409, 'That pick is not the active pick.');
   }
   if (!pick.kickoff_utc || !Number.isFinite(Date.parse(pick.kickoff_utc))) {
     return reject(422, 'Kickoff time is unknown for that pick.');
