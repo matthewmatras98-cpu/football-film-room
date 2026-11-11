@@ -1,2 +1,4 @@
-pick_id,game_id,season,week,market,side,line_at_pick,picked_at,units,confidence,tags,note
-2099_01_TB_ATL-spread,2099_01_TB_ATL,2099,1,spread,ATL,-3.0,2099-09-13T17:00:00Z,1.0,1,marker,B2 stale close marker
+pick_id,game_id,season,week,market,side,line_at_pick,picked_at,units,confidence,tags,note,action
+2099_01_TB_ATL-spread,2099_01_TB_ATL,2099,1,spread,ATL,-3.0,2099-09-13T17:00:00Z,1.0,1,marker,B2 stale close marker,
+2099_01_ARI_LAR-spread,2099_01_ARI_LAR,2099,1,spread,LAR,-3.0,2099-09-13T15:00:00Z,1.0,2,,void marker,pick
+2099_01_ARI_LAR-spread,2099_01_ARI_LAR,2099,1,spread,LAR,-3.0,2099-09-13T16:00:00Z,1.0,2,,void marker,void

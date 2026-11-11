@@ -7,6 +7,7 @@ export const STATUS_LABEL = {
   pending: 'Pending',
   ungraded: 'Ungraded',
   rejected_late: 'Rejected \u2013 late',
+  void: 'Void',
 } as const;
 
 export type StatusLabel = keyof typeof STATUS_LABEL;

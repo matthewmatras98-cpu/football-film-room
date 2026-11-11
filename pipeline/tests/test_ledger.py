@@ -25,6 +25,7 @@ HEADER = [
     "confidence",
     "tags",
     "note",
+    "action",
 ]
 
 
@@ -168,6 +169,73 @@ def test_picked_at_equal_to_kickoff_is_rejected_even_with_an_early_push(tmp_path
     assert row["status"] == "rejected_late"
 
 
+def test_ledger_records_a_void_separately_from_its_pick(tmp_path: Path):
+    root = _repo(tmp_path)
+    pick = _pick(line="-3.0")
+    pick["action"] = "pick"
+    void = _pick(line="-3.0", picked_at="2099-09-13T16:00:00Z")
+    void["action"] = "void"
+    _write(root, [pick, void])
+    _ledger(root, "sha-early", "2099-09-13T12:00:00Z")
+    rows = load_ledger(root / "data" / "pick_ledger.csv")
+    assert [(row.pick_id, row.action) for row in rows] == [
+        ("2099_01_DET_PHI-spread", "pick"),
+        ("2099_01_DET_PHI-spread", "void"),
+    ]
+    assert rows[0].row_sha != rows[1].row_sha
+
+
+def test_void_before_kickoff_is_excluded_and_a_late_void_is_ignored(tmp_path: Path):
+    timely = _repo(tmp_path / "timely")
+    pick = _pick(line="2.5", picked_at="2099-09-13T15:00:00Z")
+    pick["action"] = "pick"
+    void = _pick(line="2.5", picked_at="2099-09-13T16:00:00Z")
+    void["action"] = "void"
+    _write(timely, [pick, void])
+    _ledger(timely, "sha-early", "2099-09-13T12:00:00Z")
+    _grade(timely, "2099-09-20T00:00:00Z")
+    graded = _graded_by_id(timely)
+    assert list(graded) == ["2099_01_DET_PHI-spread"]
+    assert graded["2099_01_DET_PHI-spread"]["status"] == "void"
+    assert graded["2099_01_DET_PHI-spread"]["result"] == ""
+    assert graded["2099_01_DET_PHI-spread"]["units_pl"] == ""
+    assert graded["2099_01_DET_PHI-spread"]["clv_pts"] == ""
+    summary = json.loads((timely / "src" / "data" / "summary.json").read_text(encoding="utf-8"))
+    assert summary["void_count"] == 1
+    assert summary["w"] == 0
+    assert summary["rejected_count"] == 0
+    view = json.loads((timely / "src" / "data" / "picks_view.json").read_text(encoding="utf-8"))
+    assert view[0]["voided_at"] == "2099-09-13T16:00:00Z"
+    assert view[0]["result"] is None
+    assert view[0]["units_pl"] is None
+    assert view[0]["clv_pts"] is None
+
+    late_stamp = _repo(tmp_path / "late-stamp")
+    _write(late_stamp, [pick, {**void, "picked_at": "2099-09-13T17:00:00Z"}])
+    _ledger(late_stamp, "sha-early", "2099-09-13T12:00:00Z")
+    _grade(late_stamp, "2099-09-20T00:00:00Z")
+    stood = _graded_by_id(late_stamp)["2099_01_DET_PHI-spread"]
+    assert stood["status"] == "graded"
+    assert stood["result"] == "W"
+    late_summary = json.loads((late_stamp / "src" / "data" / "summary.json").read_text(encoding="utf-8"))
+    assert late_summary["void_count"] == 0
+    assert late_summary["w"] == 1
+    late_view = json.loads((late_stamp / "src" / "data" / "picks_view.json").read_text(encoding="utf-8"))
+    assert late_view[0]["voided_at"] is None
+
+    late_push = _repo(tmp_path / "late-push")
+    _write(late_push, [pick])
+    _ledger(late_push, "sha-early", "2099-09-13T12:00:00Z")
+    _write(late_push, [pick, void])
+    _ledger(late_push, "sha-late", "2099-09-13T17:03:00Z")
+    _grade(late_push, "2099-09-20T00:00:00Z")
+    pushed_late = _graded_by_id(late_push)["2099_01_DET_PHI-spread"]
+    assert pushed_late["status"] == "graded"
+    assert pushed_late["result"] == "W"
+    push_summary = json.loads((late_push / "src" / "data" / "summary.json").read_text(encoding="utf-8"))
+    assert push_summary["void_count"] == 0
+
+
 def test_canonical_row_quotes_commas_and_changes_when_edited():
     base = _pick(line="-3.0")
     base["note"] = 'say "hi", pal'
@@ -201,6 +269,7 @@ def _pick(line: str, picked_at: str = "2099-09-13T15:00:00Z") -> dict[str, str]:
         "confidence": "2",
         "tags": "",
         "note": "lock",
+        "action": "",
     }
 
 

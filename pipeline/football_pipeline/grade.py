@@ -7,16 +7,20 @@ Statuses:
   pending        no final score
   ungraded       final score but no closing line
   graded         a final and a close, and the pick was locked in time
+  void           a void row whose picked_at and first_pushed_at are both
+                 before kickoff. A later void is ignored and the pick stands.
 
 Only graded picks count toward W-L-P, units, and CLV. Pushes count in CLV.
-generated_at is the --as-of instant. Nothing here reads the wall clock.
+Voided picks are excluded from those figures and from rejected_count and
+ungraded_count. generated_at is the --as-of instant. Nothing here reads the
+wall clock.
 """
 
 from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
@@ -24,7 +28,14 @@ from pathlib import Path
 from football_pipeline.close import BookLine, Close, Game, select_close
 from football_pipeline.ledger import LedgerRow, lookup_push
 from football_pipeline.lines import cover_result, picked_side_line
-from football_pipeline.schema import GRADED_COLUMNS, PickRow, format_ts, parse_ts, write_csv
+from football_pipeline.schema import (
+    GRADED_COLUMNS,
+    PickRow,
+    format_ts,
+    normalize_action,
+    parse_ts,
+    write_csv,
+)
 
 UNIT_WIN = Decimal("0.909")
 UNIT_LOSS = Decimal("-1.000")
@@ -48,6 +59,7 @@ class GradedPick:
     units_pl: Decimal | None
     clv_pts: Decimal | None
     first_pushed_at: datetime | None
+    voided_at: datetime | None = None
 
 
 def grade_picks(
@@ -57,12 +69,48 @@ def grade_picks(
     snapshot_closes: list[BookLine] | None,
     as_of: datetime,
 ) -> list[GradedPick]:
-    graded = [
-        _grade_one(pick, games[pick.cells["game_id"]], ledger, snapshot_closes or [], as_of)
-        for pick in picks
-    ]
+    voids: dict[str, list[PickRow]] = {}
+    for pick in picks:
+        if normalize_action(pick.cells["action"]) == "void":
+            voids.setdefault(pick.pick_id, []).append(pick)
+    graded: list[GradedPick] = []
+    for pick in picks:
+        if normalize_action(pick.cells["action"]) == "void":
+            continue
+        game = games[pick.cells["game_id"]]
+        item = _grade_one(pick, game, ledger, snapshot_closes or [], as_of)
+        void_row = _counting_void(voids.get(pick.pick_id, []), game, ledger)
+        if void_row is not None:
+            item = replace(
+                item,
+                status="void",
+                result=None,
+                units_pl=None,
+                clv_pts=None,
+                voided_at=parse_ts(void_row.cells["picked_at"]),
+            )
+        graded.append(item)
     graded.sort(key=lambda item: item.pick.pick_id)
     return graded
+
+
+def _counting_void(voids: list[PickRow], game: Game, ledger: list[LedgerRow]) -> PickRow | None:
+    """A void counts only when its own picked_at and push time are before kickoff."""
+    if game.kickoff_utc is None:
+        return None
+    chosen: PickRow | None = None
+    chosen_at: datetime | None = None
+    for void in voids:
+        picked_at = parse_ts(void.cells["picked_at"])
+        pushed = lookup_push(ledger, void.pick_id, void.row_sha)
+        if picked_at >= game.kickoff_utc:
+            continue
+        if pushed is None or pushed >= game.kickoff_utc:
+            continue
+        if chosen_at is None or picked_at < chosen_at:
+            chosen = void
+            chosen_at = picked_at
+    return chosen
 
 
 def summary_document(graded: list[GradedPick], as_of: datetime) -> dict:
@@ -95,6 +143,7 @@ def summary_document(graded: list[GradedPick], as_of: datetime) -> dict:
         "pct_clv_pos": _q3(pct_positive),
         "rejected_count": sum(1 for item in graded if item.status == "rejected_late"),
         "ungraded_count": sum(1 for item in graded if item.status == "ungraded"),
+        "void_count": sum(1 for item in graded if item.status == "void"),
         "generated_at": format_ts(as_of),
     }
 
@@ -269,7 +318,7 @@ def _view_row(item: GradedPick) -> dict:
         "line_at_pick": Decimal(cells["line_at_pick"]),
         "picked_at": cells["picked_at"],
         "units": Decimal(cells["units"]),
-        "confidence": int(cells["confidence"]),
+        "confidence": int(cells["confidence"]) if cells["confidence"] else None,
         "tags": cells["tags"],
         "note": cells["note"],
         "closing_line": item.closing_line,
@@ -284,6 +333,7 @@ def _view_row(item: GradedPick) -> dict:
         "clv_pts": item.clv_pts,
         "status": item.status,
         "first_pushed_at": format_ts(item.first_pushed_at) if item.first_pushed_at else None,
+        "voided_at": format_ts(item.voided_at) if item.voided_at else None,
     }
 
 

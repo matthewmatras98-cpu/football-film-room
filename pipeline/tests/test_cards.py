@@ -154,6 +154,7 @@ def test_2026_venue_names_do_not_trip_the_card_scan():
     assert tottenham.stadium_id == "LON02"
     assert tottenham.country == "GB"
     assert tottenham.roof_class == "outdoors"
+    assert lookup_venue("JAX00", "  TOTTENHAM  Hotspur (neutral) ").stadium_id == "LON02"
     assert lookup_venue("JAX00", "EverBank Stadium").country == "US"
     assert lookup_venue("NOPE", "Not a stadium") is None
     assert format_coord(lookup_venue("DEN00", "Empower Field at Mile High").lon) == "-105.02"

@@ -80,6 +80,7 @@ describe('status label', () => {
     expect(STATUS_LABEL.graded).toBe('Final');
     expect(STATUS_LABEL.pending).toBe('Pending');
     expect(STATUS_LABEL.ungraded).toBe('Ungraded');
+    expect(STATUS_LABEL.void).toBe('Void');
   });
 });
 

@@ -23,6 +23,11 @@ P10_PREFIX = "2099_01_CIN_CLE-spread,"
 def block_network(monkeypatch):
     import urllib.request
 
+    block_dir = str(Path(__file__).resolve().parent)
+    prior = os.environ.get("PYTHONPATH", "")
+    monkeypatch.setenv("PYTHONPATH", block_dir + (os.pathsep + prior if prior else ""))
+    monkeypatch.setenv("FOOTBALL_BLOCK_NETWORK", "1")
+
     def blocked(*args, **kwargs):
         raise AssertionError(f"unexpected network call: {args!r}")
 
@@ -41,6 +46,10 @@ def block_network(monkeypatch):
 def run_cli(args: list[str], *, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
     merged = os.environ.copy()
     merged["NFLREADPY_CACHE"] = "off"
+    block_dir = str(Path(__file__).resolve().parent)
+    prior = merged.get("PYTHONPATH", "")
+    merged["PYTHONPATH"] = block_dir + (os.pathsep + prior if prior else "")
+    merged["FOOTBALL_BLOCK_NETWORK"] = "1"
     merged.pop("GITHUB_TOKEN", None)
     merged.pop("GITHUB_SHA", None)
     merged.pop("GITHUB_REPOSITORY", None)
