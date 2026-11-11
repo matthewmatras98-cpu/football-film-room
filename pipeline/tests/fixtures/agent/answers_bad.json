@@ -1,0 +1,213 @@
+[
+  {
+    "id": "s9-pass-rush",
+    "text": "CHI's pass rush sack rate is 0.333333 on 6 opponent dropbacks, and DET's sack rate allowed is 0.333333 on 6 dropbacks, over 2099 wk1–2. This is a lock.",
+    "claims": [
+      {
+        "value": 0.333333,
+        "view": "v_pass_rush",
+        "filter": "team = 'CHI' AND scope = 'season' AND side = 'for' AND metric = 'sack_rate'",
+        "column": "value",
+        "source": "nflverse_pbp",
+        "sample": 6,
+        "range": "2099 wk1–2"
+      },
+      {
+        "value": 0.333333,
+        "view": "v_pass_rush",
+        "filter": "team = 'DET' AND scope = 'season' AND side = 'allowed' AND metric = 'sack_rate'",
+        "column": "value",
+        "source": "nflverse_pbp",
+        "sample": 6,
+        "range": "2099 wk1–2"
+      }
+    ]
+  },
+  {
+    "id": "epa-l4-season",
+    "text": "CHI offensive EPA per play is 0.56 over the season (n=10, 2099 wk1–2) and 0.56 over the last four games (n=10, 2099 wk1–2). Note 99.",
+    "claims": [
+      {
+        "value": 0.56,
+        "view": "v_team_epa",
+        "filter": "team = 'CHI' AND scope = 'season' AND side = 'for' AND metric = 'epa_per_play'",
+        "column": "value",
+        "source": "nflverse_pbp",
+        "sample": 10,
+        "range": "2099 wk1–2"
+      },
+      {
+        "value": 0.56,
+        "view": "v_team_epa",
+        "filter": "team = 'CHI' AND scope = 'l4' AND side = 'for' AND metric = 'epa_per_play'",
+        "column": "value",
+        "source": "nflverse_pbp",
+        "sample": 10,
+        "range": "2099 wk1–2"
+      }
+    ]
+  },
+  {
+    "id": "neutral-explosive",
+    "text": "Start DET in fantasy. The neutral pass rate is 0.666667 on 6 plays and the explosive rate is 0.5 on 8 plays.",
+    "claims": [
+      {
+        "value": 0.666667,
+        "view": "v_pass_rate_pace",
+        "filter": "team = 'DET' AND scope = 'season' AND metric = 'neutral_ed_pass_rate'",
+        "column": "value",
+        "source": "nflverse_pbp",
+        "sample": 6,
+        "range": "2099 wk1–2"
+      },
+      {
+        "value": 0.5,
+        "view": "v_explosives",
+        "filter": "team = 'DET' AND scope = 'season' AND side = 'for' AND metric = 'explosive_rate'",
+        "column": "value",
+        "source": "nflverse_pbp",
+        "sample": 8,
+        "range": "2099 wk1–2"
+      }
+    ]
+  },
+  {
+    "id": "qb-cpoe-ttt",
+    "text": "CHI CPOE is 9 on 4 dropbacks and time to throw is 2.566667 seconds on 45 attempts.",
+    "claims": [
+      {
+        "value": 9,
+        "view": "v_qb",
+        "filter": "team = 'CHI' AND scope = 'season' AND metric = 'cpoe'",
+        "column": "value",
+        "source": "nflverse_pbp",
+        "sample": 4,
+        "range": "2099 wk1–2"
+      },
+      {
+        "value": 2.566667,
+        "view": "v_qb",
+        "filter": "team = 'CHI' AND scope = 'season' AND metric = 'time_to_throw'",
+        "column": "value",
+        "source": "ngs_via_nflverse",
+        "sample": 45,
+        "range": "2099 wk1–2"
+      }
+    ]
+  },
+  {
+    "id": "rz-third",
+    "text": "DET red zone TD rate is 1 on 2 trips and the third down rate is 1 on 2 tries, over 2099 wk1–2.",
+    "claims": [
+      {
+        "value": 1,
+        "view": "v_red_zone_downs",
+        "filter": "team = 'DET' AND scope = 'season' AND side = 'for' AND metric = 'rz_td_rate'",
+        "column": "value",
+        "source": "nflverse_pbp",
+        "sample": 2,
+        "range": "2099 wk1–2"
+      },
+      {
+        "value": 1,
+        "view": "v_red_zone_downs",
+        "filter": "team = 'DET' AND scope = 'season' AND side = 'for' AND metric = 'third_down_rate'",
+        "column": "value",
+        "source": "nflverse_pbp",
+        "sample": 2,
+        "range": "2099 wk1–2"
+      }
+    ]
+  },
+  {
+    "id": "line-history",
+    "text": "The latest median home spread is -2.5 (n=5).",
+    "claims": [
+      {
+        "value": -2.5,
+        "view": "v_lines",
+        "filter": "game_id = '2099_03_CHI_DET' AND market = 'spread' AND snapshot_ts = '2099-09-18T12:00:00Z'",
+        "column": "line",
+        "source": "median of 5 US books (data/lines)",
+        "sample": 5,
+        "range": "2099-09-18T12:00:00Z"
+      }
+    ]
+  },
+  {
+    "id": "record",
+    "text": "The graded record is 2-1-1, result +0.818, average CLV +0.5.",
+    "claims": [
+      {
+        "value": 2,
+        "view": "v_record",
+        "filter": "season = 2099",
+        "column": "w",
+        "source": "graded.csv",
+        "sample": 4,
+        "range": "2099"
+      },
+      {
+        "value": 1,
+        "view": "v_record",
+        "filter": "season = 2099",
+        "column": "l",
+        "source": "graded.csv",
+        "sample": 4,
+        "range": "2099"
+      },
+      {
+        "value": 1,
+        "view": "v_record",
+        "filter": "season = 2099",
+        "column": "p",
+        "source": "graded.csv",
+        "sample": 4,
+        "range": "2099"
+      },
+      {
+        "value": 0.818,
+        "view": "v_record",
+        "filter": "season = 2099",
+        "column": "units",
+        "source": "graded.csv",
+        "sample": 4,
+        "range": "2099"
+      },
+      {
+        "value": 0.5,
+        "view": "v_record",
+        "filter": "season = 2099",
+        "column": "avg_clv",
+        "source": "graded.csv",
+        "sample": 4,
+        "range": "2099"
+      }
+    ]
+  },
+  {
+    "id": "missing-buf",
+    "text": "BUF sack rate is 0.25.",
+    "claims": []
+  },
+  {
+    "id": "fantasy-flex",
+    "text": "Pick a player you like.",
+    "claims": []
+  },
+  {
+    "id": "fantasy-dfs",
+    "text": "I can't help with fantasy.",
+    "claims": [
+      {
+        "value": 0.56,
+        "view": "v_team_epa",
+        "filter": "team = 'CHI' AND scope = 'season' AND side = 'for' AND metric = 'epa_per_play'",
+        "column": "value",
+        "source": "nflverse_pbp",
+        "sample": 10,
+        "range": "2099 wk1–2"
+      }
+    ]
+  }
+]

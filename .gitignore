@@ -17,4 +17,6 @@ data/.cache/
 data/raw/
 *.odds.json
 *.d1dump*
+*.duckdb
+*.duckdb.wal
 pipeline/.venv/
