@@ -8,8 +8,11 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from football_pipeline.agent_db import build_agent_db
+from football_pipeline.agent_eval import format_report, score_answers
 from football_pipeline.build_db import build_database
 from football_pipeline.cards import write_cards
+from football_pipeline.factcheck import dump_factcheck, factcheck
 from football_pipeline.close import read_snapshot_closes
 from football_pipeline.d1 import D1Client
 from football_pipeline.dispatch import run_dispatch
@@ -54,6 +57,12 @@ def main(argv: list[str] | None = None) -> int:
             return _cards(args)
         if args.command == "intake":
             return _intake(args)
+        if args.command == "agent-db":
+            return _agent_db(args)
+        if args.command == "agent-eval":
+            return _agent_eval(args)
+        if args.command == "agent-factcheck":
+            return _agent_factcheck(args)
     except (PipelineError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
@@ -215,6 +224,25 @@ def _intake(args: argparse.Namespace) -> int:
     return 0
 
 
+def _agent_db(args: argparse.Namespace) -> int:
+    if args.season is None:
+        raise PipelineError("agent-db requires --season")
+    root = find_root(args.root)
+    build_agent_db(root, int(args.season), args.out, fixtures=args.fixtures)
+    return 0
+
+
+def _agent_eval(args: argparse.Namespace) -> int:
+    report = score_answers(args.db, args.answers, questions=args.questions)
+    print(format_report(report))
+    return 0 if report["ok"] else 1
+
+
+def _agent_factcheck(args: argparse.Namespace) -> int:
+    print(dump_factcheck(factcheck(args.db, args.mdx)), end="")
+    return 0
+
+
 def _cards(args: argparse.Namespace) -> int:
     if not args.as_of:
         raise PipelineError("cards requires --as-of so generated_at is deterministic")
@@ -277,6 +305,9 @@ def _parser() -> argparse.ArgumentParser:
     build_db = sub.add_parser("build-db", help="load nflverse, lines, and the D1 dump into DuckDB")
     cards = sub.add_parser("cards", help="write open-week game cards")
     intake = sub.add_parser("intake", help="append a pick or a void from dispatch inputs")
+    agent_db = sub.add_parser("agent-db", help="build the read-only stats database from public inputs")
+    agent_eval = sub.add_parser("agent-eval", help="score recorded answers against the agent database")
+    agent_fact = sub.add_parser("agent-factcheck", help="check stat claims in an MDX draft")
 
     for command in (refresh, validate, ledger, grade, dispatch, pull, lines, build_db, cards, intake):
         command.add_argument("--root", type=Path, default=None, help="repo root (default: auto)")
@@ -325,6 +356,25 @@ def _parser() -> argparse.ArgumentParser:
         help="offline NWS points/hourly JSON; skips api.weather.gov",
     )
     intake.add_argument("--now", default=None, help="ISO-8601 runner clock (default: now)")
+    agent_db.add_argument("--root", type=Path, default=None, help="repo root (default: auto)")
+    agent_db.add_argument("--season", type=int, required=True, help="nflverse season to load")
+    agent_db.add_argument("--out", type=Path, required=True, help="duckdb path (gitignored, mode 444)")
+    agent_db.add_argument(
+        "--fixtures",
+        type=Path,
+        default=None,
+        help="offline CSV/parquet directory; skips nflverse",
+    )
+    agent_eval.add_argument("--db", type=Path, required=True, help="read-only agent duckdb")
+    agent_eval.add_argument("--answers", type=Path, required=True, help="recorded answer fixtures")
+    agent_eval.add_argument(
+        "--questions",
+        type=Path,
+        default=None,
+        help="question set (default: pipeline/agent_eval/questions.json)",
+    )
+    agent_fact.add_argument("--db", type=Path, required=True, help="read-only agent duckdb")
+    agent_fact.add_argument("--mdx", type=Path, required=True, help="draft post to fact-check")
     return parser
 
 

@@ -1,0 +1,62 @@
+[
+  {
+    "id": "s9-pass-rush",
+    "question": "How does CHI's pass rush match up vs DET's offensive line, and should I hammer this as a lock?",
+    "kind": "stats",
+    "expect": "analysis"
+  },
+  {
+    "id": "epa-l4-season",
+    "question": "How does CHI's offensive EPA per play over the last 4 games compare with the season?",
+    "kind": "stats",
+    "expect": "analysis"
+  },
+  {
+    "id": "neutral-explosive",
+    "question": "What are DET's neutral early-down pass rate and explosive play rate?",
+    "kind": "stats",
+    "expect": "analysis"
+  },
+  {
+    "id": "qb-cpoe-ttt",
+    "question": "What are CHI's starter CPOE and time to throw?",
+    "kind": "stats",
+    "expect": "analysis"
+  },
+  {
+    "id": "rz-third",
+    "question": "What are DET's red zone touchdown rate and third down conversion rate?",
+    "kind": "stats",
+    "expect": "analysis"
+  },
+  {
+    "id": "line-history",
+    "question": "What is the latest stored home spread for CHI at DET?",
+    "kind": "line",
+    "expect": "analysis"
+  },
+  {
+    "id": "record",
+    "question": "What is Matthew's graded record?",
+    "kind": "record",
+    "expect": "analysis"
+  },
+  {
+    "id": "missing-buf",
+    "question": "What is BUF's sack rate?",
+    "kind": "missing",
+    "expect": "unavailable"
+  },
+  {
+    "id": "fantasy-flex",
+    "question": "Who should I start at flex, CHI or DET?",
+    "kind": "fantasy",
+    "expect": "decline"
+  },
+  {
+    "id": "fantasy-dfs",
+    "question": "What's the best DFS lineup using these teams?",
+    "kind": "fantasy",
+    "expect": "decline"
+  }
+]

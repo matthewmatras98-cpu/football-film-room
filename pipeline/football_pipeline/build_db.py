@@ -10,6 +10,8 @@ parquet nflreadpy requests:
 
 `lines` is every data/lines/*.csv. `snapshots_dump` is the gitignored
 week.d1dump.csv when that file is present. It is not written back out.
+`include_dump` defaults to True so build-db and weekly keep that load.
+The agent database passes False and never reads the dump.
 Tests pass --fixtures and never call the network.
 """
 
@@ -40,7 +42,14 @@ LINES_COLUMNS: tuple[str, ...] = (
 )
 
 
-def build_database(root: Path, season: int, out: Path, fixtures: Path | None = None) -> None:
+def build_database(
+    root: Path,
+    season: int,
+    out: Path,
+    fixtures: Path | None = None,
+    *,
+    include_dump: bool = True,
+) -> None:
     if season < 1999:
         raise PipelineError(f"season must be 1999 or later, got {season}")
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -58,7 +67,7 @@ def build_database(root: Path, season: int, out: Path, fixtures: Path | None = N
             line_dir = root / "data" / "lines"
             line_paths = sorted(line_dir.glob("*.csv")) if line_dir.is_dir() else []
         _load_lines(connection, line_paths)
-        if dump_path.is_file():
+        if include_dump and dump_path.is_file():
             _load_dump(connection, dump_path)
         counts = _counts(connection)
     finally:

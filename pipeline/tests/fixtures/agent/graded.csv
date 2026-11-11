@@ -1,0 +1,6 @@
+pick_id,closing_line,close_source,close_ts,close_books,close_age_min,final_home,final_away,result,units_pl,clv_pts,status
+2099_01_DET_CHI-spread,-3.0,nflverse,2099-09-07T16:55:00Z,0,,24,17,W,0.909,1.0,graded
+2099_01_HOU_TEN-spread,-3.0,nflverse,2099-09-07T16:55:00Z,0,,21,14,W,0.909,0.5,graded
+2099_01_MIN_GB-total,44.0,nflverse,2099-09-07T19:55:00Z,0,,27,10,L,-1.000,-0.5,graded
+2099_01_DEN_KC-spread,-7.0,nflverse,2099-09-08T00:15:00Z,0,,31,13,P,0.000,1.0,graded
+2099_02_CHI_DET-spread,-3.0,nflverse,2099-09-14T16:55:00Z,0,,17,20,,,rejected_late
