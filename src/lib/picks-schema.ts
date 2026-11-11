@@ -2,7 +2,7 @@ import { z } from 'astro/zod';
 import { GAME_ID_PATTERN, isIsoWithOffset } from './schemas';
 
 /** Statuses written by `grade.py`. */
-export const PICK_STATUSES = ['graded', 'pending', 'ungraded', 'rejected_late'] as const;
+export const PICK_STATUSES = ['graded', 'pending', 'ungraded', 'rejected_late', 'void'] as const;
 
 /** Close sources written by `grade.py`. Null means neither books nor nflverse had a line. */
 export const CLOSE_SOURCES = ['odds_api', 'odds_api_thin', 'odds_api_stale', 'nflverse'] as const;
@@ -34,6 +34,7 @@ export const summarySchema = z
     pct_clv_pos: nullableNumber,
     rejected_count: z.number().int(),
     ungraded_count: z.number().int(),
+    void_count: z.number().int(),
     generated_at: utcTimestamp,
   })
   .strict();
@@ -49,7 +50,7 @@ export const pickViewSchema = z
     line_at_pick: z.number(),
     picked_at: pickedAt,
     units: z.number(),
-    confidence: z.number().int().min(1).max(3),
+    confidence: z.number().int().min(1).max(3).nullable(),
     tags: z.string(),
     note: z.string(),
     closing_line: nullableNumber,
@@ -64,6 +65,7 @@ export const pickViewSchema = z
     clv_pts: nullableNumber,
     status: z.enum(PICK_STATUSES),
     first_pushed_at: utcTimestamp.nullable(),
+    voided_at: utcTimestamp.nullable(),
   })
   .strict()
   .refine((row) => row.pick_id === `${row.game_id}-${row.market}`, 'pick_id must be {game_id}-{market}')

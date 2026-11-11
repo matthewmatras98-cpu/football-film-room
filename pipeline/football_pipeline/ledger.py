@@ -1,5 +1,9 @@
 """Append-only pick ledger keyed by GitHub's server push time.
 
+Each row is (pick_id, action, row_sha). Action separates a void from its
+pick. row_sha stays so an edited pick is a new lock and cannot inherit the
+original push time.
+
 GET /repos/{owner}/{repo}/activity?activity_type=push is polled until a row
 with after == GITHUB_SHA shows up, or about two minutes pass. The timestamp
 on that activity is first_pushed_at. Git author and committer dates are
@@ -22,6 +26,7 @@ from football_pipeline.schema import (
     PipelineError,
     format_ts,
     load_pick_rows,
+    normalize_action,
     parse_ts,
 )
 
@@ -39,6 +44,7 @@ class TemporaryError(PipelineError):
 @dataclass(frozen=True)
 class LedgerRow:
     pick_id: str
+    action: str
     row_sha: str
     first_pushed_at: datetime
 
@@ -62,14 +68,16 @@ def load_ledger(path: Path) -> list[LedgerRow]:
         for line_no, raw in enumerate(reader, start=2):
             if not any(cell.strip() for cell in raw):
                 continue
-            if len(raw) != 3:
-                raise PipelineError(f"{path}:{line_no}: expected 3 columns, found {len(raw)}")
-            pick_id, row_sha, pushed = (cell.strip() for cell in raw)
+            if len(raw) != len(LEDGER_COLUMNS):
+                raise PipelineError(
+                    f"{path}:{line_no}: expected {len(LEDGER_COLUMNS)} columns, found {len(raw)}"
+                )
+            pick_id, action, row_sha, pushed = (cell.strip() for cell in raw)
             try:
                 pushed_at = parse_ts(pushed)
             except ValueError as exc:
                 raise PipelineError(f"{path}:{line_no}: {exc}") from exc
-            rows.append(LedgerRow(pick_id, row_sha, pushed_at))
+            rows.append(LedgerRow(pick_id, normalize_action(action), row_sha, pushed_at))
     return rows
 
 
@@ -86,16 +94,17 @@ def lookup_push(rows: list[LedgerRow], pick_id: str, row_sha: str) -> datetime |
 
 
 def append_new_rows(path: Path, picks_path: Path, pushed_at: datetime) -> int:
-    """Append one row per new (pick_id, row_sha). Existing bytes are kept."""
+    """Append one row per new (pick_id, action, row_sha). Existing bytes are kept."""
     picks = load_pick_rows(picks_path)
     existing = load_ledger(path)
-    known = {(row.pick_id, row.row_sha) for row in existing}
+    known = {(row.pick_id, row.action, row.row_sha) for row in existing}
     fresh: list[LedgerRow] = []
     for pick in picks:
-        key = (pick.pick_id, pick.row_sha)
+        action = normalize_action(pick.cells["action"])
+        key = (pick.pick_id, action, pick.row_sha)
         if key in known:
             continue
-        fresh.append(LedgerRow(pick.pick_id, pick.row_sha, pushed_at))
+        fresh.append(LedgerRow(pick.pick_id, action, pick.row_sha, pushed_at))
         known.add(key)
     if not fresh:
         if not path.exists():
@@ -272,7 +281,7 @@ def _append_rows(path: Path, rows: list[LedgerRow]) -> None:
     if header:
         writer.writerow(list(LEDGER_COLUMNS))
     for row in rows:
-        writer.writerow([row.pick_id, row.row_sha, format_ts(row.first_pushed_at)])
+        writer.writerow([row.pick_id, row.action, row.row_sha, format_ts(row.first_pushed_at)])
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_bytes(prefix + buffer.getvalue().encode("utf-8"))
     temporary.replace(path)

@@ -54,7 +54,7 @@ TOTAL_KEYS = (
     "generated_at",
 )
 
-STATUSES = {"graded", "pending", "ungraded", "rejected_late"}
+STATUSES = {"graded", "pending", "ungraded", "rejected_late", "void"}
 SOURCES = {"odds_api", "odds_api_thin", "odds_api_stale", "nflverse", None}
 
 
@@ -213,6 +213,10 @@ def _run(args: list[str], github: dict[str, str]) -> None:
         raise SystemExit("uv is required (0.13.7, the version pinned in ci.yml)")
     env = os.environ.copy()
     env["NFLREADPY_CACHE"] = "off"
+    block_dir = str(PIPELINE / "tests")
+    prior = env.get("PYTHONPATH", "")
+    env["PYTHONPATH"] = block_dir + (os.pathsep + prior if prior else "")
+    env["FOOTBALL_BLOCK_NETWORK"] = "1"
     env.pop("GITHUB_TOKEN", None)
     env.pop("GITHUB_SHA", None)
     env.pop("GITHUB_REPOSITORY", None)
@@ -239,6 +243,11 @@ def assert_totals_unchanged(pure: dict, extended: dict) -> None:
         raise SystemExit(
             "B2 stale row should add exactly one rejected pick: "
             f"{pure['rejected_count']} -> {extended['rejected_count']}"
+        )
+    if extended["void_count"] != pure["void_count"] + 1:
+        raise SystemExit(
+            "B2 void row should add exactly one void: "
+            f"{pure['void_count']} -> {extended['void_count']}"
         )
 
 

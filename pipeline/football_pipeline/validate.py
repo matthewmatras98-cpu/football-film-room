@@ -13,7 +13,14 @@ from decimal import Decimal
 from pathlib import Path
 
 from football_pipeline.close import Game
-from football_pipeline.schema import PICK_COLUMNS, PickRow, parse_pick_file, parse_ts
+from football_pipeline.schema import (
+    ACTIONS,
+    PICK_COLUMNS,
+    PickRow,
+    normalize_action,
+    parse_pick_file,
+    parse_ts,
+)
 
 MARKETS = {"spread", "total"}
 TOTAL_SIDES = {"over", "under"}
@@ -27,16 +34,18 @@ class Issue:
 
 def validate_rows(rows: list[PickRow], games: dict[str, Game]) -> list[Issue]:
     issues: list[Issue] = []
-    seen: dict[str, int] = {}
+    seen: dict[tuple[str, str], int] = {}
     for row in rows:
         issues.extend(_row_issues(row, games))
-        previous = seen.get(row.pick_id)
+        # A void shares pick_id with its pick. The pair is (pick_id, action).
+        key = (row.pick_id, normalize_action(row.cells["action"]))
+        previous = seen.get(key)
         if previous is not None:
             issues.append(
                 Issue(row.line_no, f"duplicate pick_id {row.pick_id} (first seen on line {previous})")
             )
         else:
-            seen[row.pick_id] = row.line_no
+            seen[key] = row.line_no
     return issues
 
 
@@ -98,9 +107,15 @@ def _row_issues(row: PickRow, games: dict[str, Game]) -> list[Issue]:
         issues.append(Issue(line, "line_at_pick must be a number"))
     if not _units_are_one(cells["units"]):
         issues.append(Issue(line, "units must be 1.0"))
-    confidence = _require_int(cells["confidence"], "confidence", line, issues)
-    if confidence is not None and confidence not in {1, 2, 3}:
-        issues.append(Issue(line, "confidence must be an integer from 1 to 3"))
+    if cells["confidence"] == "":
+        confidence = None
+    else:
+        confidence = _require_int(cells["confidence"], "confidence", line, issues)
+        if confidence is not None and confidence not in {1, 2, 3}:
+            issues.append(Issue(line, "confidence must be an integer from 1 to 3"))
+    action = cells["action"]
+    if action not in ACTIONS and action != "":
+        issues.append(Issue(line, "action must be pick or void"))
     try:
         parse_ts(cells["picked_at"])
     except ValueError as exc:

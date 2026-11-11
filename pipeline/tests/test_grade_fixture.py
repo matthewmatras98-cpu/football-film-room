@@ -86,6 +86,7 @@ def test_fixture_grades_and_summary(tmp_path: Path):
         "season": 2099,
         "ungraded_count": 1,
         "units": -1.273,
+        "void_count": 0,
         "w": 3,
         "win_pct": 0.429,
     }

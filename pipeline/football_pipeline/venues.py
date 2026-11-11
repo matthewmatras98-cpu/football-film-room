@@ -5,8 +5,9 @@ or a fixed canopy is dome. The open or closed state of a moving roof is
 never stored. Coordinates are the Wikipedia stadium pin, rounded to 5
 decimal degrees. Country is an ISO code; only US is covered by NWS.
 
-2026 schedules stamp JAX00 on one Tottenham game. When the schedule's
-stadium name is a different row in this table, that row wins.
+2026 schedules stamp JAX00 on one Tottenham game. A stadium name whose
+normalized form contains "tottenham" uses the Tottenham row. Any other
+exact stadium-name match still beats a reused id.
 """
 
 from __future__ import annotations
@@ -69,9 +70,19 @@ def load_venues() -> VenueTable:
 
 
 def lookup_venue(stadium_id: str | None, stadium_name: str | None) -> Venue | None:
-    """Resolve a schedule row. An exact stadium-name match beats a reused id."""
+    """Resolve a schedule row.
+
+    A normalized stadium name containing "tottenham" selects the Tottenham
+    row even when the schedule reuses another stadium_id. Otherwise an exact
+    stadium-name match beats a reused id.
+    """
     table = load_venues()
     by_id = table.by_id.get(stadium_id) if stadium_id else None
+    normalized = " ".join((stadium_name or "").casefold().split())
+    if "tottenham" in normalized:
+        for venue in table.by_id.values():
+            if "tottenham" in venue.stadium.casefold():
+                return venue
     named = table.by_name.get(stadium_name) if stadium_name else None
     if named is not None and named is not by_id:
         return named
