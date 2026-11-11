@@ -87,6 +87,23 @@ def test_pick_and_void_may_share_a_pick_id(tmp_path: Path):
     assert "action must be pick or void" in rejected.stdout
 
 
+def test_replacement_suffix_r2_through_r9_is_valid(tmp_path: Path):
+    root = _root(tmp_path)
+    for suffix in ("-r2", "-r9"):
+        row = _valid_spread()
+        row["pick_id"] = f"2099_01_DET_PHI-spread{suffix}"
+        _write_rows(root, [row])
+        result = _validate(root)
+        assert result.returncode == 0, suffix + result.stdout + result.stderr
+    for suffix in ("-r1", "-r10", "-r02"):
+        row = _valid_spread()
+        row["pick_id"] = f"2099_01_DET_PHI-spread{suffix}"
+        _write_rows(root, [row])
+        result = _validate(root)
+        assert result.returncode != 0, suffix
+        assert "pick_id must be" in result.stdout
+
+
 def test_duplicate_pick_id(tmp_path: Path):
     root = _root(tmp_path)
     _write_rows(root, [_valid_spread(), _valid_spread()])

@@ -20,6 +20,7 @@ from football_pipeline.schema import (
     normalize_action,
     parse_pick_file,
     parse_ts,
+    pick_version,
 )
 
 MARKETS = {"spread", "total"}
@@ -73,9 +74,8 @@ def _row_issues(row: PickRow, games: dict[str, Game]) -> list[Issue]:
 
     game_id = cells["game_id"]
     market = cells["market"]
-    expected_id = f"{game_id}-{market}"
-    if cells["pick_id"] != expected_id:
-        issues.append(Issue(line, f"pick_id must be {expected_id}"))
+    if pick_version(cells["pick_id"], game_id, market) is None:
+        issues.append(Issue(line, f"pick_id must be {game_id}-{market}"))
     if market not in MARKETS:
         issues.append(Issue(line, "market must be spread or total"))
 

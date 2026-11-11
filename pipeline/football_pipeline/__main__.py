@@ -208,9 +208,10 @@ def _intake(args: argparse.Namespace) -> int:
     except IntakeError as exc:
         print(f"::error::{exc}", file=sys.stderr)
         return 1
-    # stdout is the validated action, then the pick id. The workflow branches on that.
+    # stdout is the validated action, the pick id, then the request id.
     print(fields.action)
     print(pick_id)
+    print(fields.request_id)
     return 0
 
 

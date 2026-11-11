@@ -3,7 +3,14 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { CLOSE_SOURCES, PICK_STATUSES, pickViewSchema, picksViewSchema, summarySchema } from '../src/lib/picks-schema';
+import {
+  CLOSE_SOURCES,
+  PICK_STATUSES,
+  isPickId,
+  pickViewSchema,
+  picksViewSchema,
+  summarySchema,
+} from '../src/lib/picks-schema';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const summaryText = readFileSync(path.join(root, 'tests/fixtures/summary.json'), 'utf8');
@@ -47,6 +54,34 @@ describe('grader fixtures', () => {
     expect(pickViewSchema.safeParse({ ...row, status: 'Rejected – late' }).success).toBe(false);
     expect(pickViewSchema.safeParse({ ...row, close_source: 'manual' }).success).toBe(false);
     expect(pickViewSchema.safeParse({ ...row, close_source: '' }).success).toBe(false);
+  });
+
+  it('accepts the original id and -r2 through -r9', () => {
+    const row = view[0];
+    expect(row).toBeDefined();
+    const base = `${row?.game_id}-${row?.market}`;
+    expect(isPickId(base, String(row?.game_id), String(row?.market))).toBe(true);
+    expect(pickViewSchema.safeParse({ ...row, pick_id: base }).success).toBe(true);
+    for (const digit of ['2', '3', '4', '5', '6', '7', '8', '9']) {
+      const pickId = `${base}-r${digit}`;
+      expect(isPickId(pickId, String(row?.game_id), String(row?.market))).toBe(true);
+      expect(pickViewSchema.safeParse({ ...row, pick_id: pickId }).success).toBe(true);
+    }
+  });
+
+  it('rejects -r1, -r10, and -r02', () => {
+    const row = view[0];
+    expect(row).toBeDefined();
+    const base = `${row?.game_id}-${row?.market}`;
+    for (const suffix of ['-r1', '-r10', '-r02']) {
+      const pickId = `${base}${suffix}`;
+      expect(isPickId(pickId, String(row?.game_id), String(row?.market))).toBe(false);
+      expect(pickViewSchema.safeParse({ ...row, pick_id: pickId }).success).toBe(false);
+    }
+    expect(pickViewSchema.safeParse({ ...row, pick_id: `${base}-r2-extra` }).success).toBe(false);
+    expect(
+      pickViewSchema.safeParse({ ...row, pick_id: `2099_01_OTHER_TEAM-${row?.market}-r2` }).success,
+    ).toBe(false);
   });
 
   it('rejects an extra field', () => {

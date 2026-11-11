@@ -50,7 +50,7 @@ npm run lint:assets
 npm run build
 ```
 
-`npm test` checks `tests/fixtures/summary.json` and `tests/fixtures/picks_view.json` against a fresh grader run. That step needs [uv](https://docs.astral.sh/uv/) 0.13.7, the version pinned in `.github/workflows/ci.yml`. The numbers come from `python -m football_pipeline grade` on `pipeline/tests/fixtures/`, plus one rejected row in `tests/fixtures/b2/` so a stale close is on the page. After a grader change, regenerate the two JSON files and commit them:
+`npm test` checks `tests/fixtures/summary.json` and `tests/fixtures/picks_view.json` against a fresh grader run. That step needs [uv](https://docs.astral.sh/uv/) 0.13.7, the version pinned in `.github/workflows/ci.yml`. The numbers come from `python -m football_pipeline grade` on `pipeline/tests/fixtures/`, the void and `-r2` replacement in `tests/fixtures/repick/`, plus one rejected row in `tests/fixtures/b2/` so a stale close is on the page. After a grader change, regenerate the two JSON files and commit them:
 
 ```sh
 python3 scripts/grade_ui_fixtures.py --write

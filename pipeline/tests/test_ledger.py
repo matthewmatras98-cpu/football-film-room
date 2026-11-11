@@ -236,6 +236,142 @@ def test_void_before_kickoff_is_excluded_and_a_late_void_is_ignored(tmp_path: Pa
     assert push_summary["void_count"] == 0
 
 
+_SUMMARY_KEYS = {
+    "avg_clv",
+    "generated_at",
+    "l",
+    "p",
+    "pct_clv_pos",
+    "rejected_count",
+    "season",
+    "ungraded_count",
+    "units",
+    "void_count",
+    "w",
+    "win_pct",
+}
+_VIEW_KEYS = {
+    "clv_pts",
+    "close_age_min",
+    "closing_line",
+    "close_books",
+    "close_source",
+    "close_ts",
+    "confidence",
+    "final_away",
+    "final_home",
+    "first_pushed_at",
+    "game_id",
+    "line_at_pick",
+    "market",
+    "note",
+    "pick_id",
+    "picked_at",
+    "result",
+    "season",
+    "side",
+    "status",
+    "tags",
+    "units",
+    "units_pl",
+    "voided_at",
+    "week",
+}
+
+
+def test_grader_counts_the_replacement_and_the_void_only(tmp_path: Path):
+    root = _repo(tmp_path)
+    pick = _pick(line="2.5", picked_at="2099-09-13T15:00:00Z")
+    pick["action"] = "pick"
+    void = _pick(line="2.5", picked_at="2099-09-13T16:00:00Z")
+    void["action"] = "void"
+    replacement = _pick(line="2.5", picked_at="2099-09-13T15:30:00Z")
+    replacement["action"] = "pick"
+    replacement["pick_id"] = "2099_01_DET_PHI-spread-r2"
+    _write(root, [pick, void, replacement])
+    _ledger(root, "sha-early", "2099-09-13T12:00:00Z")
+    _grade(root, "2099-09-20T00:00:00Z")
+    graded = _graded_by_id(root)
+    assert graded["2099_01_DET_PHI-spread"]["status"] == "void"
+    assert graded["2099_01_DET_PHI-spread"]["result"] == ""
+    assert graded["2099_01_DET_PHI-spread-r2"]["status"] == "graded"
+    assert graded["2099_01_DET_PHI-spread-r2"]["result"] == "W"
+    summary = json.loads((root / "src" / "data" / "summary.json").read_text(encoding="utf-8"))
+    view = json.loads((root / "src" / "data" / "picks_view.json").read_text(encoding="utf-8"))
+    assert summary["w"] == 1
+    assert summary["l"] == 0
+    assert summary["void_count"] == 1
+    assert summary["rejected_count"] == 0
+    assert set(summary) == _SUMMARY_KEYS
+    assert [row["pick_id"] for row in view] == [
+        "2099_01_DET_PHI-spread",
+        "2099_01_DET_PHI-spread-r2",
+    ]
+    assert view[0]["voided_at"] == "2099-09-13T16:00:00Z"
+    assert view[1]["voided_at"] is None
+    assert view[1]["status"] == "graded"
+    assert set(view[0]) == _VIEW_KEYS
+
+
+def test_late_void_rejects_the_replacement(tmp_path: Path):
+    root = _repo(tmp_path)
+    pick = _pick(line="2.5", picked_at="2099-09-13T15:00:00Z")
+    pick["action"] = "pick"
+    void = _pick(line="2.5", picked_at="2099-09-13T17:00:00Z")
+    void["action"] = "void"
+    replacement = _pick(line="2.5", picked_at="2099-09-13T15:30:00Z")
+    replacement["action"] = "pick"
+    replacement["pick_id"] = "2099_01_DET_PHI-spread-r2"
+    _write(root, [pick, void, replacement])
+    _ledger(root, "sha-early", "2099-09-13T12:00:00Z")
+    _grade(root, "2099-09-20T00:00:00Z")
+    graded = _graded_by_id(root)
+    assert graded["2099_01_DET_PHI-spread"]["status"] == "graded"
+    assert graded["2099_01_DET_PHI-spread"]["result"] == "W"
+    assert graded["2099_01_DET_PHI-spread-r2"]["status"] == "rejected_late"
+    assert graded["2099_01_DET_PHI-spread-r2"]["result"] == ""
+    summary = json.loads((root / "src" / "data" / "summary.json").read_text(encoding="utf-8"))
+    view = json.loads((root / "src" / "data" / "picks_view.json").read_text(encoding="utf-8"))
+    assert summary["w"] == 1
+    assert summary["void_count"] == 0
+    assert summary["rejected_count"] == 1
+    assert set(summary) == _SUMMARY_KEYS
+    assert view[1]["status"] == "rejected_late"
+    assert view[1]["voided_at"] is None
+    assert set(view[1]) == _VIEW_KEYS
+
+
+def test_replacement_requires_the_immediate_previous_void(tmp_path: Path):
+    root = _repo(tmp_path)
+    pick = _pick(line="2.5", picked_at="2099-09-13T15:00:00Z")
+    pick["action"] = "pick"
+    void = _pick(line="2.5", picked_at="2099-09-13T16:00:00Z")
+    void["action"] = "void"
+    second = _pick(line="2.5", picked_at="2099-09-13T15:10:00Z")
+    second["action"] = "pick"
+    second["pick_id"] = "2099_01_DET_PHI-spread-r2"
+    late_void = _pick(line="2.5", picked_at="2099-09-13T17:00:00Z")
+    late_void["action"] = "void"
+    late_void["pick_id"] = "2099_01_DET_PHI-spread-r2"
+    third = _pick(line="2.5", picked_at="2099-09-13T15:20:00Z")
+    third["action"] = "pick"
+    third["pick_id"] = "2099_01_DET_PHI-spread-r3"
+    _write(root, [pick, void, second, late_void, third])
+    _ledger(root, "sha-early", "2099-09-13T12:00:00Z")
+    _grade(root, "2099-09-20T00:00:00Z")
+    graded = _graded_by_id(root)
+    assert graded["2099_01_DET_PHI-spread"]["status"] == "void"
+    assert graded["2099_01_DET_PHI-spread-r2"]["status"] == "graded"
+    assert graded["2099_01_DET_PHI-spread-r2"]["result"] == "W"
+    assert graded["2099_01_DET_PHI-spread-r3"]["status"] == "rejected_late"
+    assert graded["2099_01_DET_PHI-spread-r3"]["result"] == ""
+    summary = json.loads((root / "src" / "data" / "summary.json").read_text(encoding="utf-8"))
+    assert summary["w"] == 1
+    assert summary["void_count"] == 1
+    assert summary["rejected_count"] == 1
+    assert set(summary) == _SUMMARY_KEYS
+
+
 def test_canonical_row_quotes_commas_and_changes_when_edited():
     base = _pick(line="-3.0")
     base["note"] = 'say "hi", pal'

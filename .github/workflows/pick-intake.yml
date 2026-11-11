@@ -73,10 +73,6 @@ jobs:
         with:
           version: "0.13.7"
 
-      - name: Sync
-        working-directory: pipeline
-        run: uv sync --frozen
-
       - name: Record the pick and push
         env:
           ACTION: ${{ inputs.action }}
@@ -94,20 +90,22 @@ jobs:
         run: |
           set -euo pipefail
           git fetch origin main && git checkout -B main origin/main
+          (cd pipeline && uv sync --frozen)
           intake_out="$(cd pipeline && uv run --frozen python -m football_pipeline intake)" || exit 1
           {
             IFS= read -r validated_action
             IFS= read -r pick_id
+            IFS= read -r validated_request_id
           } <<< "$intake_out"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # Branch on the action the CLI validated. A void stages only the csv.
+          # Branch on the action the CLI validated. The commit body is its request id.
           if [ "$validated_action" = "void" ]; then
             git add -- data/picks.csv
-            git commit -m "void: ${pick_id}" -m "${REQUEST_ID}"
+            git commit -m "void: ${pick_id}" -m "${validated_request_id}"
           elif [ "$validated_action" = "pick" ]; then
             git add -- data/picks.csv "src/content/picks/${pick_id}.md"
-            git commit -m "pick: ${pick_id}" -m "${REQUEST_ID}"
+            git commit -m "pick: ${pick_id}" -m "${validated_request_id}"
           else
             echo "::error::intake did not return a validated action" >&2
             exit 1

@@ -3,12 +3,14 @@
 Statuses:
   rejected_late  picked_at >= kickoff, or the ledger time for the current
                  row_sha >= kickoff, or there is no ledger row and kickoff
-                 has passed relative to --as-of
+                 has passed relative to --as-of, or this is a replacement
+                 (-rN) and the previous pick_id's void did not count
   pending        no final score
   ungraded       final score but no closing line
   graded         a final and a close, and the pick was locked in time
   void           a void row whose picked_at and first_pushed_at are both
                  before kickoff. A later void is ignored and the pick stands.
+                 Each pick_id is graded on its own.
 
 Only graded picks count toward W-L-P, units, and CLV. Pushes count in CLV.
 Voided picks are excluded from those figures and from rejected_count and
@@ -34,6 +36,7 @@ from football_pipeline.schema import (
     format_ts,
     normalize_action,
     parse_ts,
+    previous_pick_id,
     write_csv,
 )
 
@@ -88,6 +91,17 @@ def grade_picks(
                 units_pl=None,
                 clv_pts=None,
                 voided_at=parse_ts(void_row.cells["picked_at"]),
+            )
+        # A hand edit can append -rN without a void that itself locked in time.
+        previous = previous_pick_id(pick.pick_id, pick.cells["game_id"], pick.cells["market"])
+        if previous is not None and _counting_void(voids.get(previous, []), game, ledger) is None:
+            item = replace(
+                item,
+                status="rejected_late",
+                result=None,
+                units_pl=None,
+                clv_pts=None,
+                voided_at=None,
             )
         graded.append(item)
     graded.sort(key=lambda item: item.pick.pick_id)
