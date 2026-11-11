@@ -1,14 +1,14 @@
-pick_id,game_id,season,week,market,side,line_at_pick,picked_at,units,confidence,tags,note
-2099_01_DET_PHI-spread,2099_01_DET_PHI,2099,1,spread,DET,2.5,2099-09-13T15:00:00Z,1.0,2,pass-rush,DET plus the points
-2099_01_DET_PHI-total,2099_01_DET_PHI,2099,1,total,over,46.5,2099-09-13T15:00:00Z,1.0,1,pace,Over G1
-2099_01_KC_BUF-spread,2099_01_KC_BUF,2099,1,spread,KC,-2.5,2099-09-13T15:00:00Z,1.0,3,rest,KC lay
-2099_01_KC_BUF-total,2099_01_KC_BUF,2099,1,total,under,47.0,2099-09-13T15:00:00Z,1.0,2,pace,Under G2
-2099_01_SF_DAL-spread,2099_01_SF_DAL,2099,1,spread,DAL,-7.0,2099-09-13T15:00:00Z,1.0,2,,DAL at home
-2099_01_MIA_NYJ-spread,2099_01_MIA_NYJ,2099,1,spread,NYJ,2.5,2099-09-13T15:00:00Z,1.0,1,,NYJ plus
-2099_01_GB_CHI-spread,2099_01_GB_CHI,2099,1,spread,GB,3.5,2099-09-13T15:00:00Z,1.0,2,snapshot,GB plus
-2099_01_LAR_SEA-spread,2099_01_LAR_SEA,2099,1,spread,SEA,-2.5,2099-09-13T15:00:00Z,1.0,1,,SEA
-2099_01_BAL_PIT-spread,2099_01_BAL_PIT,2099,1,spread,BAL,-3.0,2099-09-14T00:20:00Z,1.0,1,,exactly kickoff
-2099_01_CIN_CLE-spread,2099_01_CIN_CLE,2099,1,spread,CIN,-2.5,2099-09-13T16:30:00Z,1.0,1,,pushed late
-2099_01_LV_DEN-spread,2099_01_LV_DEN,2099,1,spread,LV,3.0,2099-09-13T15:00:00Z,1.0,1,,no close
-2099_02_NE_MIA-spread,2099_02_NE_MIA,2099,2,spread,NE,3.0,2099-09-18T15:00:00Z,1.0,2,,not final
-2099_01_HOU_IND-spread,2099_01_HOU_IND,2099,1,spread,IND,-2.5,2099-09-13T15:00:00Z,1.0,3,snapshot,IND push
+pick_id,game_id,season,week,market,side,line_at_pick,picked_at,units,confidence,tags,note,action
+2099_01_DET_PHI-spread,2099_01_DET_PHI,2099,1,spread,DET,2.5,2099-09-13T15:00:00Z,1.0,2,pass-rush,DET plus the points,
+2099_01_DET_PHI-total,2099_01_DET_PHI,2099,1,total,over,46.5,2099-09-13T15:00:00Z,1.0,1,pace,Over G1,
+2099_01_KC_BUF-spread,2099_01_KC_BUF,2099,1,spread,KC,-2.5,2099-09-13T15:00:00Z,1.0,3,rest,KC lay,
+2099_01_KC_BUF-total,2099_01_KC_BUF,2099,1,total,under,47.0,2099-09-13T15:00:00Z,1.0,2,pace,Under G2,
+2099_01_SF_DAL-spread,2099_01_SF_DAL,2099,1,spread,DAL,-7.0,2099-09-13T15:00:00Z,1.0,2,,DAL at home,
+2099_01_MIA_NYJ-spread,2099_01_MIA_NYJ,2099,1,spread,NYJ,2.5,2099-09-13T15:00:00Z,1.0,1,,NYJ plus,
+2099_01_GB_CHI-spread,2099_01_GB_CHI,2099,1,spread,GB,3.5,2099-09-13T15:00:00Z,1.0,2,snapshot,GB plus,
+2099_01_LAR_SEA-spread,2099_01_LAR_SEA,2099,1,spread,SEA,-2.5,2099-09-13T15:00:00Z,1.0,1,,SEA,
+2099_01_BAL_PIT-spread,2099_01_BAL_PIT,2099,1,spread,BAL,-3.0,2099-09-14T00:20:00Z,1.0,1,,exactly kickoff,
+2099_01_CIN_CLE-spread,2099_01_CIN_CLE,2099,1,spread,CIN,-2.5,2099-09-13T16:30:00Z,1.0,1,,pushed late,
+2099_01_LV_DEN-spread,2099_01_LV_DEN,2099,1,spread,LV,3.0,2099-09-13T15:00:00Z,1.0,1,,no close,
+2099_02_NE_MIA-spread,2099_02_NE_MIA,2099,2,spread,NE,3.0,2099-09-18T15:00:00Z,1.0,2,,not final,
+2099_01_HOU_IND-spread,2099_01_HOU_IND,2099,1,spread,IND,-2.5,2099-09-13T15:00:00Z,1.0,3,snapshot,IND push,

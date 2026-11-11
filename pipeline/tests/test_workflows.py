@@ -125,6 +125,12 @@ def test_deploy_key_pushes_are_read_only_and_cannot_stage_picks():
         assert spec in allowed
         assert spec not in forbidden
         assert not _matches_picks(spec)
+    staged = [
+        path.name
+        for path in sorted(WORKFLOWS.glob("*.yml"))
+        if any(_matches_picks(spec) for spec in _git_add_pathspecs(path.read_text(encoding="utf-8")))
+    ]
+    assert staged == ["pick-intake.yml"]
 
 
 def _top_block(text: str, key: str) -> str:
@@ -199,3 +205,121 @@ def test_missing_secrets_fail_without_printing_them(tmp_path: Path):
     assert pull.returncode == 1
     assert "CF_API_TOKEN" in pull.stderr
     assert SENTINEL not in pull.stdout + pull.stderr
+
+
+INPUTS = [
+    "action",
+    "request_id",
+    "game_id",
+    "market",
+    "side",
+    "line",
+    "confidence",
+    "writeup",
+    "server_received_at",
+    "void_pick_id",
+]
+
+
+def test_pick_intake_is_dispatch_only_and_read_only():
+    text = (WORKFLOWS / "pick-intake.yml").read_text(encoding="utf-8")
+    assert _on_keys(text) == ["workflow_dispatch"]
+    on_block = _top_block(text, "on")
+    for banned in ("pull_request", "issue_comment", "issues:", "schedule:", "push:"):
+        assert banned not in on_block
+    assert "issues:" not in text
+    assert not (ROOT / ".github" / "ISSUE_TEMPLATE" / "new-pick.yml").exists()
+    weekly = (WORKFLOWS / "weekly.yml").read_text(encoding="utf-8")
+    assert "new-pick.yml" not in weekly
+    assert "ISSUE_TEMPLATE" not in weekly
+    assert _dispatch_inputs(text) == INPUTS
+    for name in INPUTS:
+        block = _input_block(text, name)
+        assert "type: string" in block
+        assert "required: false" in block
+    for block in _run_blocks(text):
+        assert "${{" not in block
+    assert "run-name: pick-intake ${{ inputs.action }} ${{ inputs.request_id }}" in text
+    assert len(re.findall(r"(?m)^permissions:\n  contents: read\n", text)) == 1
+    assert len(re.findall(r"(?m)^    permissions:\n      contents: read\n", text)) == 1
+    assert re.search(r"write(?!up)", text) is None
+    assert "group: pick-intake" in text
+    assert "cancel-in-progress: false" in text
+    assert "fetch-depth: 0" in text
+    assert "bash scripts/push_with_retry.sh" in text
+    assert "git push" not in text
+    assert set(_git_add_pathspecs(text)) == {
+        "data/picks.csv",
+        "src/content/picks/${pick_id}.md",
+    }
+    assert 'git add -- data/picks.csv\n' in text or "git add -- data/picks.csv\n" in text
+    void_branch = text.split('if [ "$ACTION" = "void" ]; then', 1)[1].split("\n          else\n", 1)[0]
+    assert "data/picks.csv" in void_branch
+    assert "src/content/picks" not in void_branch
+    ledger = (WORKFLOWS / "pick-ledger.yml").read_text(encoding="utf-8")
+    ledger_on = _top_block(ledger, "on")
+    assert "branches: [main]" in ledger_on
+    assert "- data/picks.csv" in ledger_on
+    for name in ("ci.yml", "odds-dispatch.yml", "pick-intake.yml"):
+        assert "LEDGER_DEPLOY_KEY" not in (WORKFLOWS / name).read_text(encoding="utf-8")
+    deploy_hits = []
+    for path in sorted(WORKFLOWS.glob("*.yml")):
+        body = path.read_text(encoding="utf-8")
+        count = body.count("PICK_INTAKE_DEPLOY_KEY")
+        if count:
+            deploy_hits.append((path.name, count, "ssh-key: ${{ secrets.PICK_INTAKE_DEPLOY_KEY }}" in body))
+    assert deploy_hits == [("pick-intake.yml", 1, True)]
+
+
+def _on_keys(text: str) -> list[str]:
+    keys = []
+    for line in _top_block(text, "on").splitlines():
+        if re.match(r"^  [A-Za-z0-9_]+:\s*$", line):
+            keys.append(line.strip()[:-1])
+    return keys
+
+
+def _dispatch_inputs(text: str) -> list[str]:
+    names = []
+    for line in text.splitlines():
+        match = re.match(r"^      ([a-z0-9_]+):\s*$", line)
+        if match:
+            names.append(match.group(1))
+    return names
+
+
+def _input_block(text: str, name: str) -> str:
+    lines = text.splitlines()
+    start = lines.index(f"      {name}:")
+    body = [lines[start]]
+    for line in lines[start + 1 :]:
+        if re.match(r"^      [a-z0-9_]+:\s*$", line) or (line and not line.startswith(" ")):
+            break
+        body.append(line)
+    return "\n".join(body)
+
+
+def _run_blocks(text: str) -> list[str]:
+    lines = text.splitlines()
+    blocks: list[str] = []
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        folded = re.search(r"\brun:\s*\|\s*$", line)
+        if folded:
+            indent = len(line) - len(line.lstrip())
+            body: list[str] = []
+            index += 1
+            while index < len(lines):
+                current = lines[index]
+                if current.strip() and (len(current) - len(current.lstrip())) <= indent:
+                    break
+                body.append(current)
+                index += 1
+            blocks.append("\n".join(body))
+            continue
+        inline = re.search(r"\brun:\s*(\S.*)$", line)
+        if inline:
+            blocks.append(inline.group(1))
+        index += 1
+    return blocks

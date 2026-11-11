@@ -25,7 +25,8 @@ from football_pipeline.ledger import (
 from football_pipeline.lines_export import book_lines_from_snapshots, export_lines, write_close_file
 from football_pipeline.nflv import load_games, load_schedule_frame, write_cache
 from football_pipeline.odds import OddsClient
-from football_pipeline.schema import PipelineError, format_ts, parse_pick_file, parse_ts
+from football_pipeline.intake import IntakeError, apply_intake, fields_from_env
+from football_pipeline.schema import LEDGER_COLUMNS, PipelineError, format_ts, parse_pick_file, parse_ts
 from football_pipeline.validate import Issue, emit_annotations, validate_rows
 
 
@@ -51,6 +52,8 @@ def main(argv: list[str] | None = None) -> int:
             return _build_db(args)
         if args.command == "cards":
             return _cards(args)
+        if args.command == "intake":
+            return _intake(args)
     except (PipelineError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
@@ -108,7 +111,7 @@ def _ledger(args: argparse.Namespace) -> int:
     if not rows:
         ledger_path.parent.mkdir(parents=True, exist_ok=True)
         if not ledger_path.exists():
-            ledger_path.write_text("pick_id,row_sha,first_pushed_at\n", encoding="utf-8")
+            ledger_path.write_text(",".join(LEDGER_COLUMNS) + "\n", encoding="utf-8")
         print("ledger unchanged (no picks)")
         return 0
     existing = {(row.pick_id, row.row_sha) for row in load_ledger(ledger_path)}
@@ -192,6 +195,22 @@ def _build_db(args: argparse.Namespace) -> int:
     return 0
 
 
+def _intake(args: argparse.Namespace) -> int:
+    now = parse_ts(args.now) if args.now else datetime.now(timezone.utc)
+    try:
+        pick_id = apply_intake(
+            root=find_root(args.root),
+            schedules=args.schedules,
+            now=now,
+            fields=fields_from_env(os.environ),
+        )
+    except IntakeError as exc:
+        print(f"::error::{exc}", file=sys.stderr)
+        return 1
+    print(pick_id)
+    return 0
+
+
 def _cards(args: argparse.Namespace) -> int:
     if not args.as_of:
         raise PipelineError("cards requires --as-of so generated_at is deterministic")
@@ -253,8 +272,9 @@ def _parser() -> argparse.ArgumentParser:
     lines = sub.add_parser("lines-export", help="write derived data/lines CSVs")
     build_db = sub.add_parser("build-db", help="load nflverse, lines, and the D1 dump into DuckDB")
     cards = sub.add_parser("cards", help="write open-week game cards")
+    intake = sub.add_parser("intake", help="append a pick or a void from dispatch inputs")
 
-    for command in (refresh, validate, ledger, grade, dispatch, pull, lines, build_db, cards):
+    for command in (refresh, validate, ledger, grade, dispatch, pull, lines, build_db, cards, intake):
         command.add_argument("--root", type=Path, default=None, help="repo root (default: auto)")
         command.add_argument(
             "--schedules",
@@ -300,6 +320,7 @@ def _parser() -> argparse.ArgumentParser:
         default=None,
         help="offline NWS points/hourly JSON; skips api.weather.gov",
     )
+    intake.add_argument("--now", default=None, help="ISO-8601 runner clock (default: now)")
     return parser
 
 

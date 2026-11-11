@@ -1,0 +1,107 @@
+name: pick-intake
+
+run-name: pick-intake ${{ inputs.action }} ${{ inputs.request_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: pick or void
+        type: string
+        required: false
+      request_id:
+        description: lowercase uuid v4
+        type: string
+        required: false
+      game_id:
+        description: open-week game id
+        type: string
+        required: false
+      market:
+        description: spread or total
+        type: string
+        required: false
+      side:
+        description: team abbreviation, over, or under
+        type: string
+        required: false
+      line:
+        description: blank uses the latest snapshot
+        type: string
+        required: false
+      confidence:
+        description: blank or 1, 2, or 3
+        type: string
+        required: false
+      writeup:
+        description: markdown body
+        type: string
+        required: false
+      server_received_at:
+        description: ISO-8601 UTC timestamp ending in Z
+        type: string
+        required: false
+      void_pick_id:
+        description: existing pick id when action is void; blank on a pick
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pick-intake
+  cancel-in-progress: false
+
+jobs:
+  intake:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          ssh-key: ${{ secrets.PICK_INTAKE_DEPLOY_KEY }}
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.13.7"
+
+      - name: Sync
+        working-directory: pipeline
+        run: uv sync --frozen
+
+      - name: Record the pick and push
+        env:
+          ACTION: ${{ inputs.action }}
+          REQUEST_ID: ${{ inputs.request_id }}
+          GAME_ID: ${{ inputs.game_id }}
+          MARKET: ${{ inputs.market }}
+          SIDE: ${{ inputs.side }}
+          LINE: ${{ inputs.line }}
+          CONFIDENCE: ${{ inputs.confidence }}
+          WRITEUP: ${{ inputs.writeup }}
+          SERVER_RECEIVED_AT: ${{ inputs.server_received_at }}
+          VOID_PICK_ID: ${{ inputs.void_pick_id }}
+          NFLREADPY_CACHE: "off"
+          NFLREADPY_CACHE_DURATION: "0"
+        run: |
+          set -euo pipefail
+          pick_id="$(cd pipeline && uv run --frozen python -m football_pipeline intake)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # A void stages only the csv. A pick also stages its markdown file.
+          if [ "$ACTION" = "void" ]; then
+            git add -- data/picks.csv
+            git commit -m "void: ${pick_id}" -m "${REQUEST_ID}"
+          else
+            git add -- data/picks.csv src/content/picks/${pick_id}.md
+            git commit -m "pick: ${pick_id}" -m "${REQUEST_ID}"
+          fi
+          bash scripts/push_with_retry.sh

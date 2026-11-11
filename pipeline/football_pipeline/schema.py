@@ -23,9 +23,12 @@ PICK_COLUMNS: tuple[str, ...] = (
     "confidence",
     "tags",
     "note",
+    "action",
 )
 
-LEDGER_COLUMNS: tuple[str, ...] = ("pick_id", "row_sha", "first_pushed_at")
+LEDGER_COLUMNS: tuple[str, ...] = ("pick_id", "action", "row_sha", "first_pushed_at")
+
+ACTIONS = frozenset({"pick", "void"})
 
 GRADED_COLUMNS: tuple[str, ...] = (
     "pick_id",
@@ -78,6 +81,14 @@ def format_ts(value: datetime) -> str:
         raise ValueError("refusing to format a naive timestamp")
     utc = value.astimezone(timezone.utc).replace(microsecond=0)
     return utc.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def normalize_action(value: str) -> str:
+    """Blank action is a pick, so rows written before the column stay valid."""
+    text = value.strip()
+    if not text:
+        return "pick"
+    return text
 
 
 def canonical_row(cells: Mapping[str, str]) -> str:

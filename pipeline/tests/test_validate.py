@@ -20,6 +20,7 @@ HEADER = [
     "confidence",
     "tags",
     "note",
+    "action",
 ]
 
 
@@ -55,6 +56,35 @@ def test_malformed_rows_fail(tmp_path: Path):
         result = _validate(root)
         assert result.returncode != 0, name
         assert "::error file=data/picks.csv,line=2::" in result.stdout, name
+
+
+def test_blank_action_and_blank_confidence_are_valid(tmp_path: Path):
+    root = _root(tmp_path)
+    row = _valid_spread()
+    row["action"] = ""
+    row["confidence"] = ""
+    _write_rows(root, [row])
+    result = _validate(root)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_pick_and_void_may_share_a_pick_id(tmp_path: Path):
+    root = _root(tmp_path)
+    pick = _valid_spread()
+    pick["action"] = "pick"
+    void = dict(pick)
+    void["action"] = "void"
+    void["picked_at"] = "2099-09-13T16:00:00Z"
+    _write_rows(root, [pick, void])
+    result = _validate(root)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+    bad = dict(pick)
+    bad["action"] = "cancel"
+    _write_rows(root, [bad])
+    rejected = _validate(root)
+    assert rejected.returncode != 0
+    assert "action must be pick or void" in rejected.stdout
 
 
 def test_duplicate_pick_id(tmp_path: Path):
