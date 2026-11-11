@@ -1,7 +1,9 @@
 ---
 import GameCardLink from './GameCardLink.astro';
+import Writeup from './Writeup.astro';
 import { getAllGames, picksForGame } from '../lib/games';
 import { matchupLabel, picks } from '../lib/picks';
+import { getWriteups, writeupForPick } from '../lib/writeups';
 
 interface Props {
   gameIds: string[];
@@ -9,6 +11,7 @@ interface Props {
 
 const { gameIds } = Astro.props;
 const cards = new Map((await getAllGames()).map((game) => [game.game_id, game]));
+const writeups = await getWriteups();
 ---
 
 {
@@ -27,9 +30,12 @@ const cards = new Map((await getAllGames()).map((game) => [game.game_id, game]))
                 gameId
               ) : null}
               {matching.map((row) => (
-                <a href={`/picks/#pick-${row.pick_id}`}>
-                  {matchupLabel(row.game_id)} {row.market}
-                </a>
+                <>
+                  <a href={`/picks/#pick-${row.pick_id}`}>
+                    {matchupLabel(row.game_id)} {row.market}
+                  </a>
+                  <Writeup entry={writeupForPick(row.pick_id, writeups)} />
+                </>
               ))}
             </li>
           );
