@@ -1,3 +1,4 @@
+import { prefillLine } from '../lib/admin/line';
 import { isBeforeLock } from '../lib/admin/lock';
 
 function selectedOption(select: HTMLSelectElement): HTMLOptionElement | null {
@@ -17,12 +18,33 @@ function fillSides(sideSelect: HTMLSelectElement, sides: string[], previous: str
   }
 }
 
-function syncLine(market: string, option: HTMLOptionElement | null, lineInput: HTMLInputElement): void {
+function numberOrNull(raw: string | undefined): number | null {
+  if (!raw) {
+    return null;
+  }
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : null;
+}
+
+function syncLine(
+  market: string,
+  option: HTMLOptionElement | null,
+  sideSelect: HTMLSelectElement,
+  lineInput: HTMLInputElement,
+): void {
   if (!option) {
     lineInput.value = '';
     return;
   }
-  lineInput.value = market === 'total' ? (option.dataset.total ?? '') : (option.dataset.spread ?? '');
+  lineInput.value = prefillLine({
+    market,
+    side: sideSelect.value,
+    home: option.dataset.home ?? '',
+    away: option.dataset.away ?? '',
+    homeSpread: numberOrNull(option.dataset.homeSpread),
+    awaySpread: numberOrNull(option.dataset.awaySpread),
+    total: numberOrNull(option.dataset.total),
+  });
 }
 
 async function readSession(): Promise<{ login: string; csrf: string } | null> {
@@ -99,12 +121,15 @@ export function bootAdminPick(): void {
         ? ['over', 'under']
         : [option?.dataset.away ?? '', option?.dataset.home ?? ''].filter((side) => side.length > 0);
     fillSides(sideSelect, sides, keepSide ? previous : '');
-    syncLine(marketSelect.value, option, lineInput);
+    syncLine(marketSelect.value, option, sideSelect, lineInput);
   };
 
-  if (formReady && gameSelect && marketSelect && writeup) {
+  if (formReady && gameSelect && marketSelect && sideSelect && lineInput && writeup) {
     gameSelect.addEventListener('change', () => refreshSides(false));
     marketSelect.addEventListener('change', () => refreshSides(false));
+    sideSelect.addEventListener('change', () => {
+      syncLine(marketSelect.value, selectedOption(gameSelect), sideSelect, lineInput);
+    });
     refreshSides(true);
     const updateCount = () => {
       if (counter) {

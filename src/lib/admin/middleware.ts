@@ -1,6 +1,6 @@
 import { csrfMatches, originAllowed } from './csrf';
 import { readConfig, type PagesEnv } from './env';
-import { json, notConfigured } from './http';
+import { json, notConfigured, securityHeaders } from './http';
 import { sessionFromRequest } from './session';
 
 export interface PagesContext {
@@ -35,10 +35,12 @@ export async function handleMiddleware(context: PagesContext, now: Date = new Da
     if (kind === 'admin') {
       return new Response(null, {
         status: 302,
-        headers: {
-          location: new URL('/auth/login', context.request.url).href,
-          'cache-control': 'no-store',
-        },
+        headers: securityHeaders(
+          new Headers({
+            location: new URL('/auth/login', context.request.url).href,
+            'cache-control': 'no-store',
+          }),
+        ),
       });
     }
     return json({ error: 'Sign in required.' }, 401);

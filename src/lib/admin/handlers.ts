@@ -12,7 +12,7 @@ import {
   type WorkflowRun,
 } from './dispatch';
 import { readConfig, type PagesEnv } from './env';
-import { forbiddenHtml, html, json, notConfigured } from './http';
+import { forbiddenHtml, html, json, notConfigured, securityHeaders } from './http';
 import { isOwner } from './owner';
 import { issueSession, sessionFromRequest, SESSION_COOKIE, SESSION_TTL_SEC } from './session';
 import { validatePick, validateVoid } from './validate';
@@ -49,15 +49,20 @@ export async function loadAdminDataFromAssets(request: Request, env: PagesEnv): 
   }
 }
 
+export const OAUTH_REDIRECT_URI = 'https://football-film-room.pages.dev/auth/callback';
+
+const SIGNED_IN_HTML =
+  '<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex"><meta http-equiv="refresh" content="0;url=/admin/pick"><title>Signed in</title><p><a href="/admin/pick">/admin/pick</a></p>';
+
 function redirect(location: string, cookies: string[] = []): Response {
-  const headers = new Headers({ location, 'cache-control': 'no-store' });
+  const headers = securityHeaders(new Headers({ location, 'cache-control': 'no-store' }));
   for (const cookie of cookies) {
     headers.append('set-cookie', cookie);
   }
   return new Response(null, { status: 302, headers });
 }
 
-export async function handleLogin(request: Request, env: PagesEnv, deps: HandlerDeps = defaultDeps(env)): Promise<Response> {
+export async function handleLogin(_request: Request, env: PagesEnv, deps: HandlerDeps = defaultDeps(env)): Promise<Response> {
   const config = readConfig(env);
   if (!config) {
     return notConfigured('html');
@@ -65,7 +70,7 @@ export async function handleLogin(request: Request, env: PagesEnv, deps: Handler
   const { state, token } = await issueState(config.sessionSecret, deps.now());
   const authorize = new URL('https://github.com/login/oauth/authorize');
   authorize.searchParams.set('client_id', config.clientId);
-  authorize.searchParams.set('redirect_uri', new URL('/auth/callback', request.url).href);
+  authorize.searchParams.set('redirect_uri', OAUTH_REDIRECT_URI);
   authorize.searchParams.set('scope', 'read:user');
   authorize.searchParams.set('state', state);
   return redirect(authorize.href, [setCookie(STATE_COOKIE, token, { maxAge: STATE_TTL_SEC, sameSite: 'Lax' })]);
@@ -133,7 +138,7 @@ export async function handleCallback(
         client_id: config.clientId,
         client_secret: config.clientSecret,
         code,
-        redirect_uri: new URL('/auth/callback', request.url).href,
+        redirect_uri: OAUTH_REDIRECT_URI,
       }),
     });
     if (!tokenResponse.ok) {
@@ -158,10 +163,10 @@ export async function handleCallback(
     return forbiddenHtml();
   }
   const issued = await issueSession(config.sessionSecret, profile.id, profile.login, deps.now());
-  return redirect(new URL('/admin/pick', request.url).href, [
-    setCookie(SESSION_COOKIE, issued.token, { maxAge: SESSION_TTL_SEC, sameSite: 'Strict' }),
-    clearCookie(STATE_COOKIE, 'Lax'),
-  ]);
+  const headers = new Headers();
+  headers.append('set-cookie', setCookie(SESSION_COOKIE, issued.token, { maxAge: SESSION_TTL_SEC, sameSite: 'Strict' }));
+  headers.append('set-cookie', clearCookie(STATE_COOKIE, 'Lax'));
+  return html(SIGNED_IN_HTML, 200, headers);
 }
 
 export function handleLogout(request: Request): Response {

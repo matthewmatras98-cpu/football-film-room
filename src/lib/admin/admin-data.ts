@@ -8,6 +8,7 @@ export interface AdminGame {
   home: string;
   kickoff_utc: string;
   home_spread: number | null;
+  away_spread: number | null;
   total: number | null;
 }
 
@@ -33,7 +34,11 @@ export interface ScheduleGameInput {
   away: string;
   home: string;
   kickoff_utc: string;
-  line_latest: { home_spread: number | null; total: number | null } | null;
+  line_latest: {
+    home_spread: number | null;
+    away_spread?: number | null;
+    total: number | null;
+  } | null;
 }
 
 export interface LedgerPickInput {
@@ -62,6 +67,7 @@ export function buildAdminData(games: readonly ScheduleGameInput[], picks: reado
       home: game.home,
       kickoff_utc: game.kickoff_utc,
       home_spread: game.line_latest?.home_spread ?? null,
+      away_spread: game.line_latest?.away_spread ?? null,
       total: game.line_latest?.total ?? null,
     })),
     picks: picks.map((pick) => ({
@@ -106,6 +112,7 @@ function asGame(value: unknown): AdminGame | null {
     home: row.home,
     kickoff_utc: row.kickoff_utc,
     home_spread: nullableNumber(row.home_spread),
+    away_spread: nullableNumber(row.away_spread),
     total: nullableNumber(row.total),
   };
 }

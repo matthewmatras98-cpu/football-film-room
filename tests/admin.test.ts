@@ -4,7 +4,8 @@ import { signToken } from '../src/lib/admin/cookie';
 import { csrfForSession, issueState } from '../src/lib/admin/csrf';
 import { DISPATCH_KEYS, DISPATCH_URL, isUuidV4 } from '../src/lib/admin/dispatch';
 import type { HandlerDeps } from '../src/lib/admin/handlers';
-import { handleCallback, handleLogin, handlePick, handleVoid } from '../src/lib/admin/handlers';
+import { handleCallback, handleLogin, handlePick, handleVoid, OAUTH_REDIRECT_URI } from '../src/lib/admin/handlers';
+import { prefillLine } from '../src/lib/admin/line';
 import { gameMenuLabel } from '../src/lib/admin/label';
 import { handleMiddleware } from '../src/lib/admin/middleware';
 import { OWNER_GITHUB_ID, OWNER_LOGIN } from '../src/lib/admin/owner';
@@ -34,6 +35,7 @@ function schedule(picks: AdminData['picks'] = []): AdminData {
         home: 'HOM',
         kickoff_utc: KICKOFF,
         home_spread: -3.5,
+        away_spread: null,
         total: 45.5,
       },
       {
@@ -44,6 +46,7 @@ function schedule(picks: AdminData['picks'] = []): AdminData {
         home: 'NEW',
         kickoff_utc: KICKOFF,
         home_spread: 1,
+        away_spread: null,
         total: 41,
       },
     ],
@@ -116,9 +119,13 @@ describe('owner gate', () => {
       `https://film.example/auth/callback?code=abc&state=${encodeURIComponent(issued.state)}`,
       { headers: { cookie: `ffr_oauth_state=${encodeURIComponent(issued.token)}` } },
     );
-    const fetchImpl = (async (input: RequestInfo | URL) => {
+    const fetchImpl = (async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       if (url.includes('access_token')) {
+        const sent = JSON.parse(String(init?.body ?? '{}')) as { redirect_uri?: string };
+        if (sent.redirect_uri !== OAUTH_REDIRECT_URI) {
+          throw new Error('redirect_uri');
+        }
         return new Response(JSON.stringify({ access_token: 'test-access-token' }), { status: 200 });
       }
       return new Response(JSON.stringify({ login, id }), { status: 200 });
@@ -142,15 +149,29 @@ describe('owner gate', () => {
     }
   });
 
-  it('sets a strict session cookie for the owner', async () => {
+  it('returns same-origin HTML after setting the strict session cookie', async () => {
     const response = await callback(OWNER_LOGIN, OWNER_GITHUB_ID);
-    expect(response.status).toBe(302);
-    expect(new URL(response.headers.get('location') ?? '').pathname).toBe('/admin/pick');
+    expect(response.status).toBe(200);
+    expect(response.headers.get('location')).toBeNull();
+    const body = await response.text();
+    expect(body).toContain('<meta http-equiv="refresh" content="0;url=/admin/pick">');
+    expect(body).toContain('<a href="/admin/pick">');
+    expect(body).toContain('noindex');
+    expect(body).not.toContain('<script');
+    expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(response.headers.get('referrer-policy')).toBe('same-origin');
+    expect(response.headers.get('x-frame-options')).toBe('DENY');
     const session = response.headers.getSetCookie().find((cookie) => cookie.startsWith('ffr_session='));
     expect(session).toMatch(/HttpOnly/i);
     expect(session).toMatch(/Secure/i);
     expect(session).toMatch(/SameSite=Strict/i);
     expect(session).toMatch(/Path=\//);
+  });
+
+  it('uses the production OAuth callback on login', async () => {
+    const response = await handleLogin(new Request('https://preview.example/auth/login'), env);
+    const location = new URL(response.headers.get('location') ?? '');
+    expect(location.searchParams.get('redirect_uri')).toBe(OAUTH_REDIRECT_URI);
   });
 });
 
@@ -168,6 +189,16 @@ describe('post guards', () => {
       deps(now.getTime(), schedule(), fetch),
     );
     expect(wrong.status).toBe(403);
+  });
+
+  it('returns 403 when the Origin header is missing', async () => {
+    const auth = await authed(now);
+    const response = await handlePick(
+      post('/api/pick', body, { cookie: auth.cookie, csrf: auth.csrf, origin: null }),
+      env,
+      deps(now.getTime(), schedule(), fetch),
+    );
+    expect(response.status).toBe(403);
   });
 
   it('returns 403 when Origin does not match the request host', async () => {
@@ -335,7 +366,9 @@ describe('routes without secrets', () => {
   it('answers 503 not configured instead of throwing', async () => {
     const login = await handleLogin(new Request('https://film.example/auth/login'), {});
     expect(login.status).toBe(503);
-    expect(await login.text()).toContain('not configured');
+    const loginHtml = await login.text();
+    expect(loginHtml).toContain('not configured');
+    expect(loginHtml).toContain('noindex');
 
     const pick = await handlePick(new Request('https://film.example/api/pick', { method: 'POST' }), {});
     expect(pick.status).toBe(503);
@@ -357,6 +390,17 @@ describe('routes without secrets', () => {
     });
     expect(admin.status).toBe(302);
     expect(new URL(admin.headers.get('location') ?? '').pathname).toBe('/auth/login');
+  });
+});
+
+describe('spread prefill', () => {
+  it('uses the home number for a home pick and the negation for an away pick', () => {
+    const shared = { home: 'NYJ', away: 'BUF', homeSpread: 8, total: 50.5 };
+    expect(prefillLine({ ...shared, market: 'spread', side: 'NYJ' })).toBe('8');
+    expect(prefillLine({ ...shared, market: 'spread', side: 'BUF' })).toBe('-8');
+    expect(prefillLine({ ...shared, market: 'total', side: 'over' })).toBe('50.5');
+    expect(prefillLine({ ...shared, market: 'spread', side: 'BUF', awaySpread: -7 })).toBe('-7');
+    expect(prefillLine({ ...shared, market: 'spread', side: 'BUF', homeSpread: 0 })).toBe('0');
   });
 });
 

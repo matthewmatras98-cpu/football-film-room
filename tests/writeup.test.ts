@@ -46,6 +46,13 @@ describe('write-up escaping', () => {
     expect(html).not.toMatch(/<a\b[^>]*>x<\/a>/);
   });
 
+  it('drops protocol-relative links', () => {
+    const html = renderWriteup('[x](//evil.example/a)');
+    expect(html).not.toContain('//evil.example');
+    expect(html).not.toMatch(/<a\b/);
+    expect(html).toContain('>x<');
+  });
+
   it('keeps an ordinary https link', () => {
     const html = renderWriteup('[notes](https://example.com/a)');
     expect(html).toContain('href="https://example.com/a"');

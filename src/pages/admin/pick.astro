@@ -2,6 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { buildAdminData, openWeekGames } from '../../lib/admin/admin-data';
 import { gameMenuLabel } from '../../lib/admin/label';
+import { prefillLine } from '../../lib/admin/line';
 import { getAllGames } from '../../lib/games';
 import { picks } from '../../lib/picks';
 
@@ -9,6 +10,17 @@ const data = buildAdminData(await getAllGames(), picks);
 const games = openWeekGames(data);
 const openPicks = data.picks.filter((pick) => pick.status !== 'void');
 const first = games[0];
+const initialLine = first
+  ? prefillLine({
+      market: 'spread',
+      side: first.away,
+      home: first.home,
+      away: first.away,
+      homeSpread: first.home_spread,
+      awaySpread: first.away_spread,
+      total: first.total,
+    })
+  : '';
 ---
 
 <BaseLayout noindex title="Enter a pick" description="Owner pick entry for the open week.">
@@ -33,7 +45,8 @@ const first = games[0];
                 value={game.game_id}
                 data-away={game.away}
                 data-home={game.home}
-                data-spread={game.home_spread === null ? '' : String(game.home_spread)}
+                data-home-spread={game.home_spread === null ? '' : String(game.home_spread)}
+                data-away-spread={game.away_spread === null ? '' : String(game.away_spread)}
                 data-total={game.total === null ? '' : String(game.total)}
               >
                 {gameMenuLabel(game)}
@@ -61,7 +74,7 @@ const first = games[0];
             id="line"
             name="line"
             inputmode="decimal"
-            value={first && first.home_spread !== null ? String(first.home_spread) : ''}
+            value={initialLine}
           />
         </label>
         <label>

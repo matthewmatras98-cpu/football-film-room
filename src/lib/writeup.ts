@@ -55,6 +55,9 @@ export function safeHref(escapedUrl: string): string | null {
   if (compact.startsWith('javascript:') || compact.startsWith('data:') || compact.startsWith('vbscript:')) {
     return null;
   }
+  if (raw.startsWith('//')) {
+    return null;
+  }
   if (raw.startsWith('#') || raw.startsWith('/') || raw.startsWith('./') || raw.startsWith('../')) {
     if (/[\s"<>]/.test(raw)) {
       return null;
