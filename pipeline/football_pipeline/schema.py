@@ -91,6 +91,31 @@ def normalize_action(value: str) -> str:
     return text
 
 
+def pick_version(pick_id: str, game_id: str, market: str) -> int | None:
+    """1 for `{game_id}-{market}`, 2-9 for an `-rN` replacement, else None."""
+    base = f"{game_id}-{market}"
+    if pick_id == base:
+        return 1
+    prefix = f"{base}-r"
+    if len(pick_id) != len(prefix) + 1 or not pick_id.startswith(prefix):
+        return None
+    digit = pick_id[-1]
+    if digit not in "23456789":
+        return None
+    return int(digit)
+
+
+def previous_pick_id(pick_id: str, game_id: str, market: str) -> str | None:
+    """The id a replacement supersedes. None when this is not an `-rN` id."""
+    version = pick_version(pick_id, game_id, market)
+    if version is None or version < 2:
+        return None
+    base = f"{game_id}-{market}"
+    if version == 2:
+        return base
+    return f"{base}-r{version - 1}"
+
+
 def canonical_row(cells: Mapping[str, str]) -> str:
     """CSV encoding of one pick in schema order.
 

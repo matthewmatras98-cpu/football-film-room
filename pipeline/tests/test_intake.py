@@ -7,7 +7,7 @@ import io
 from datetime import timedelta
 from pathlib import Path
 
-from football_pipeline.intake import IntakeError, IntakeFields, apply_intake, clean_writeup
+from football_pipeline.intake import PICK_ID_RE, IntakeError, IntakeFields, apply_intake, clean_writeup
 from football_pipeline.nflv import load_games
 from football_pipeline.schema import PICK_COLUMNS, format_ts, parse_pick_file, row_sha
 from tests.conftest import run_cli
@@ -132,7 +132,7 @@ def test_unknown_closed_week_duplicate_and_bad_fields(tmp_path: Path):
 
     _apply(root, schedules, now, market="spread", side="CHI", line="1")
     duplicate = _fail(root, schedules, now, market="spread", side="CHI", line="1.5")
-    assert f"duplicate pick {OPEN}-spread" in str(duplicate)
+    assert str(duplicate) == f"active pick exists: {OPEN}-spread"
     assert len(_rows(root)) == 3
 
 
@@ -141,6 +141,8 @@ def test_void_before_the_lock_and_rejected_voids(tmp_path: Path):
     now = kick[OPEN] - timedelta(hours=5)
     pick_id = _apply(root, schedules, now, line="-3", side="CHI", writeup="keep me")
     md_before = (root / "src" / "content" / "picks" / f"{pick_id}.md").read_bytes()
+    blocked = _fail(root, schedules, now, side="GB", line="-1")
+    assert str(blocked) == f"active pick exists: {pick_id}"
     voided = _apply(
         root,
         schedules,
@@ -156,8 +158,6 @@ def test_void_before_the_lock_and_rejected_voids(tmp_path: Path):
     assert rows[1]["picked_at"] == format_ts(now + timedelta(minutes=20))
     assert rows[1]["side"] == rows[0]["side"]
     assert rows[1]["line_at_pick"] == rows[0]["line_at_pick"]
-    blocked = _fail(root, schedules, now, side="GB", line="-1")
-    assert f"duplicate pick {pick_id}" in str(blocked)
     _assert_round_trip(root)
 
     again = _fail(root, schedules, now, action="void", void_pick_id=pick_id)
@@ -226,7 +226,7 @@ def test_cli_prints_the_pick_id_and_a_failure_writes_nothing(tmp_path: Path):
         env=_env(server=now),
     )
     assert ok.returncode == 0, ok.stderr
-    assert ok.stdout == f"pick\n{OPEN}-spread\n"
+    assert ok.stdout == f"pick\n{OPEN}-spread\n{REQUEST}\n"
     assert "::error::" not in ok.stderr
 
     bad = run_cli(
@@ -243,15 +243,15 @@ def test_padded_void_emits_the_validated_action(tmp_path: Path):
     root, schedules, kick = _repo(tmp_path)
     now = kick[OPEN] - timedelta(hours=5)
     args = ["intake", "--root", str(root), "--schedules", str(schedules), "--now", format_ts(now)]
-    made = run_cli(args, env=_env(server=now, action="pick "))
+    made = run_cli(args, env=_env(server=now, action="pick ", request_id=f" {REQUEST} "))
     assert made.returncode == 0, made.stderr
-    assert made.stdout == f"pick\n{OPEN}-spread\n"
+    assert made.stdout == f"pick\n{OPEN}-spread\n{REQUEST}\n"
     voided = run_cli(
         args,
-        env=_env(server=now, action="void ", void_pick_id=f"{OPEN}-spread"),
+        env=_env(server=now, action="void ", void_pick_id=f" {OPEN}-spread "),
     )
     assert voided.returncode == 0, voided.stderr
-    assert voided.stdout == f"void\n{OPEN}-spread\n"
+    assert voided.stdout == f"void\n{OPEN}-spread\n{REQUEST}\n"
     assert [row["action"] for row in _rows(root)] == ["pick", "void"]
 
 
@@ -317,6 +317,95 @@ def test_append_leaves_blank_action_rows_byte_identical(tmp_path: Path):
     assert [row.row_sha for row in after_rows[:2]] == before_shas
     assert [row.cells["action"] for row in after_rows[:2]] == ["", ""]
     assert [row.cells["action"] for row in after_rows[2:]] == ["pick", "void"]
+
+
+def test_repick_after_void_is_r2_then_r3(tmp_path: Path):
+    root, schedules, kick = _repo(tmp_path)
+    now = kick[OPEN] - timedelta(hours=5)
+    first = _apply(root, schedules, now, writeup="first")
+    assert first == f"{OPEN}-spread"
+    _apply(root, schedules, now, action="void", void_pick_id=first)
+    second = _apply(root, schedules, now, line="-1", side="CHI", writeup="second")
+    assert second == f"{OPEN}-spread-r2"
+    assert _markdown(root, first)[1] == "first"
+    assert _markdown(root, second)[1] == "second"
+    assert (root / "src" / "content" / "picks" / f"{first}.md").is_file()
+    _apply(root, schedules, now, action="void", void_pick_id=second)
+    third = _apply(root, schedules, now, line="-2", writeup="third")
+    assert third == f"{OPEN}-spread-r3"
+    blocked = _fail(root, schedules, now, line="1", side="CHI")
+    assert str(blocked) == f"active pick exists: {third}"
+    superseded = _fail(root, schedules, now, action="void", void_pick_id=first)
+    assert "already voided" in str(superseded)
+    older = _fail(root, schedules, now, action="void", void_pick_id=second)
+    assert "already voided" in str(older)
+    assert len(_rows(root)) == 5
+
+
+def test_repick_without_void_names_the_active_id(tmp_path: Path):
+    root, schedules, kick = _repo(tmp_path)
+    now = kick[OPEN] - timedelta(hours=5)
+    args = ["intake", "--root", str(root), "--schedules", str(schedules), "--now", format_ts(now)]
+    made = run_cli(args, env=_env(server=now, line="-2.5"))
+    assert made.returncode == 0, made.stderr
+    assert made.stdout == f"pick\n{OPEN}-spread\n{REQUEST}\n"
+    again = run_cli(args, env=_env(server=now, line="-1", side="CHI"))
+    assert again.returncode == 1
+    assert again.stdout == ""
+    assert again.stderr == f"::error::active pick exists: {OPEN}-spread\n"
+    assert len(_rows(root)) == 1
+    assert not (root / "src" / "content" / "picks" / f"{OPEN}-spread-r2.md").exists()
+
+
+def test_void_of_a_live_older_id_fails_when_a_newer_one_is_active(tmp_path: Path):
+    root, schedules, kick = _repo(tmp_path)
+    now = kick[OPEN] - timedelta(hours=5)
+    header = ",".join(PICK_COLUMNS)
+    base = f"{OPEN}-spread"
+    newer = f"{base}-r2"
+    rows = "\n".join(
+        [
+            header,
+            f"{base},{OPEN},2099,3,spread,GB,-2.5,{format_ts(now)},1.0,1,,,pick",
+            f"{newer},{OPEN},2099,3,spread,CHI,-1.0,{format_ts(now)},1.0,1,,,pick",
+            "",
+        ]
+    )
+    (root / "data" / "picks.csv").write_text(rows, encoding="utf-8")
+    failed = _fail(root, schedules, now, action="void", void_pick_id=base)
+    assert str(failed) == f"void_pick_id {base} is not the active pick"
+    assert [row["action"] for row in _rows(root)] == ["pick", "pick"]
+
+
+def test_pick_id_regex_rejects_r1_r10_and_r02(tmp_path: Path):
+    root, schedules, kick = _repo(tmp_path)
+    now = kick[OPEN] - timedelta(hours=5)
+    base = f"{OPEN}-spread"
+    assert PICK_ID_RE.fullmatch(base)
+    assert PICK_ID_RE.fullmatch(f"{base}-r2")
+    assert PICK_ID_RE.fullmatch(f"{base}-r9")
+    for suffix in ("-r1", "-r10", "-r02"):
+        assert PICK_ID_RE.fullmatch(base + suffix) is None
+        failed = _fail(root, schedules, now, action="void", void_pick_id=base + suffix)
+        assert str(failed) == "void_pick_id is not a pick id"
+    assert not _rows(root)
+
+
+def test_tenth_version_fails(tmp_path: Path):
+    root, schedules, kick = _repo(tmp_path)
+    now = kick[OPEN] - timedelta(hours=5)
+    pick_id = ""
+    for version in range(1, 10):
+        if pick_id:
+            _apply(root, schedules, now, action="void", void_pick_id=pick_id)
+        pick_id = _apply(root, schedules, now, line="-2.5", side="GB", writeup=str(version))
+        expected = f"{OPEN}-spread" if version == 1 else f"{OPEN}-spread-r{version}"
+        assert pick_id == expected
+    _apply(root, schedules, now, action="void", void_pick_id=pick_id)
+    failed = _fail(root, schedules, now, line="-2.5", side="GB")
+    assert str(failed) == "a 10th version is not allowed"
+    assert not (root / "src" / "content" / "picks" / f"{OPEN}-spread-r10.md").exists()
+    assert len(_rows(root)) == 18
 
 
 def _repo(tmp_path: Path) -> tuple[Path, Path, dict]:

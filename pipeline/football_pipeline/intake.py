@@ -1,7 +1,8 @@
 """Append one pick or one void from a workflow_dispatch.
 
 The runner clock and server_received_at both have to be more than 10 minutes
-before kickoff. Inputs that fail validation leave the tree untouched.
+before kickoff. A new pick is accepted only when that game and market has no
+active pick. Inputs that fail validation leave the tree untouched.
 """
 
 from __future__ import annotations
@@ -36,7 +37,9 @@ FUTURE_SLACK = timedelta(minutes=5)
 WRITEUP_LIMIT = 50_000
 
 GAME_ID_RE = re.compile(r"^\d{4}_\d{2}_[A-Z]{2,3}_[A-Z]{2,3}$")
-PICK_ID_RE = re.compile(r"^\d{4}_\d{2}_[A-Z]{2,3}_[A-Z]{2,3}-(spread|total)$")
+PICK_ID_RE = re.compile(
+    r"^\d{4}_\d{2}_[A-Z]{2,3}_[A-Z]{2,3}-(spread|total)(-r[2-9])?$"
+)
 UUID_V4_RE = re.compile(
     r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
 )
@@ -177,11 +180,17 @@ def _apply_pick(root, picks_path, raw, rows, games, by_id, now, server, fields: 
     line = _resolve_line(root, game, fields.market, fields.side, fields.line)
     confidence = _check_confidence(fields.confidence)
     body = clean_writeup(fields.writeup)
-    pick_id = f"{fields.game_id}-{fields.market}"
+    active = _active_pick_id(rows, game.game_id, fields.market)
+    if active is not None:
+        raise IntakeError(f"active pick exists: {active}")
+    # n = existing pick rows + 1. Version 1 has no suffix; 2-9 are -rN; 10 fails.
+    version = _pick_count(rows, game.game_id, fields.market) + 1
+    if version > 9:
+        raise IntakeError("a 10th version is not allowed")
+    base = f"{game.game_id}-{fields.market}"
+    pick_id = base if version == 1 else f"{base}-r{version}"
     if not PICK_ID_RE.fullmatch(pick_id):
         raise IntakeError("pick id does not match the pick id pattern")
-    if any(row.pick_id == pick_id for row in rows):
-        raise IntakeError(f"duplicate pick {pick_id}")
     submitted = format_ts(server)
     cells = {
         "pick_id": pick_id,
@@ -227,6 +236,9 @@ def _apply_void(picks_path, raw, rows: list[PickRow], by_id, now, server, fields
     if not picks:
         raise IntakeError(f"pick {pick_id} does not exist")
     source = picks[0]
+    active = _active_pick_id(rows, source.cells["game_id"], source.cells["market"])
+    if active != pick_id:
+        raise IntakeError(f"void_pick_id {pick_id} is not the active pick")
     game = by_id.get(source.cells["game_id"])
     if game is None or game.kickoff_utc is None:
         raise IntakeError(f"pick {pick_id} is not in the schedule")
@@ -236,6 +248,50 @@ def _apply_void(picks_path, raw, rows: list[PickRow], by_id, now, server, fields
     cells["action"] = "void"
     _append_row(picks_path, raw, cells)
     return pick_id
+
+
+def _market_rows(rows: list[PickRow], game_id: str, market: str) -> list[PickRow]:
+    return [
+        row
+        for row in rows
+        if row.cells["game_id"] == game_id and row.cells["market"] == market
+    ]
+
+
+def _pick_count(rows: list[PickRow], game_id: str, market: str) -> int:
+    return sum(
+        1
+        for row in _market_rows(rows, game_id, market)
+        if normalize_action(row.cells["action"]) == "pick"
+    )
+
+
+def _active_pick_id(rows: list[PickRow], game_id: str, market: str) -> str | None:
+    """The highest active version. Active means a pick row and no void row."""
+    voided = {
+        row.pick_id
+        for row in _market_rows(rows, game_id, market)
+        if normalize_action(row.cells["action"]) == "void"
+    }
+    active: list[str] = []
+    for row in _market_rows(rows, game_id, market):
+        if normalize_action(row.cells["action"]) != "pick" or row.pick_id in voided:
+            continue
+        if row.pick_id not in active:
+            active.append(row.pick_id)
+    if not active:
+        return None
+    base = f"{game_id}-{market}"
+
+    def version(pick_id: str) -> int:
+        if pick_id == base:
+            return 1
+        prefix = f"{base}-r"
+        if pick_id.startswith(prefix) and pick_id[len(prefix):].isdigit():
+            return int(pick_id[len(prefix):])
+        return 0
+
+    return max(active, key=version)
 
 
 def _check_side(game, market: str, side: str) -> None:

@@ -263,9 +263,17 @@ def test_pick_intake_is_dispatch_only_and_read_only():
     assert 'if [ "$ACTION"' not in text
     assert "git fetch origin main && git checkout -B main origin/main" in text
     record = next(block for block in _run_blocks(text) if "football_pipeline intake" in block)
-    assert record.index("git fetch origin main && git checkout -B main origin/main") < record.index(
-        "football_pipeline intake"
+    checkout_at = record.index("git fetch origin main && git checkout -B main origin/main")
+    sync_at = record.index("uv sync --frozen")
+    intake_at = record.index("football_pipeline intake")
+    assert checkout_at < sync_at < intake_at
+    assert text.count("uv sync --frozen") == 1
+    assert 'IFS= read -r validated_request_id' in record
+    assert record.index("validated_action") < record.index("pick_id") < record.index(
+        "validated_request_id"
     )
+    assert '-m "${validated_request_id}"' in text
+    assert '-m "${REQUEST_ID}"' not in text
     void_branch = text.split('if [ "$validated_action" = "void" ]; then', 1)[1].split(
         'elif [ "$validated_action" = "pick" ]; then', 1
     )[0]
