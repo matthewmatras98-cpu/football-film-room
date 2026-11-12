@@ -101,7 +101,10 @@ def test_replacement_suffix_r2_through_r9_is_valid(tmp_path: Path):
         _write_rows(root, [row])
         result = _validate(root)
         assert result.returncode != 0, suffix
-        assert "pick_id must be" in result.stdout
+        assert (
+            "pick_id must be 2099_01_DET_PHI-spread or 2099_01_DET_PHI-spread-r2..-r9"
+            in result.stdout
+        )
 
 
 def test_duplicate_pick_id(tmp_path: Path):

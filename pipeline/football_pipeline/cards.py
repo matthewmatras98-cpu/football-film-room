@@ -1278,7 +1278,7 @@ def _lines(connection: duckdb.DuckDBPyConnection) -> list[dict]:
     _require_columns(
         connection,
         "lines",
-        ["snapshot_ts", "game_id", "market", "line", "n_books", "min", "max"],
+        ["snapshot_ts", "game_id", "market", "line", "n_books"],
     )
     return _fetch(
         connection,

@@ -167,12 +167,12 @@ def test_taken_shot_hides_the_key_from_lines_and_logs(tmp_path, capsys):
     books = book_lines_from_snapshots(d1.fetch_snapshots(), games)
     export_lines(tmp_path, games, books, now)
     text = (tmp_path / "data" / "lines" / "2026_w11.csv").read_text(encoding="utf-8")
-    assert text.splitlines()[0] == "snapshot_ts,game_id,market,line,n_books,min,max"
+    assert text.splitlines()[0] == "snapshot_ts,game_id,market,line,n_books"
     assert "draftkings" not in text
     assert "98765" not in text
     assert SENTINEL not in text
-    assert ",spread,-3.5,1,-3.5,-3.5" in text
-    assert ",total,47.5,1,47.5,47.5" in text
+    assert ",spread,-3.5,1\n" in text
+    assert ",total,47.5,1\n" in text
     assert "price" not in text.splitlines()[0]
     stored = " ".join(call["body"].decode() for call in d1_calls(d1))
     assert "draftkings" in stored

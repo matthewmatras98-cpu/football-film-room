@@ -75,7 +75,12 @@ def _row_issues(row: PickRow, games: dict[str, Game]) -> list[Issue]:
     game_id = cells["game_id"]
     market = cells["market"]
     if pick_version(cells["pick_id"], game_id, market) is None:
-        issues.append(Issue(line, f"pick_id must be {game_id}-{market}"))
+        issues.append(
+            Issue(
+                line,
+                f"pick_id must be {game_id}-{market} or {game_id}-{market}-r2..-r9",
+            )
+        )
     if market not in MARKETS:
         issues.append(Issue(line, "market must be spread or total"))
 

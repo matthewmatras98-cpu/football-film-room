@@ -126,7 +126,11 @@ def _columns(connection: duckdb.DuckDBPyConnection, table: str) -> set[str]:
 
 
 def _drop_line_bounds(connection: duckdb.DuckDBPyConnection) -> None:
-    """Keep the median line and the book count. Drop min and max."""
+    """Keep the median line and the book count.
+
+    The public file no longer has min or max. A file from before that
+    change may still have them. This projection drops both shapes.
+    """
     _run(
         connection,
         """
