@@ -15,7 +15,7 @@ All ten inputs are strings. GitHub does not require them. The intake command rej
 | `game_id` | open-week game id, `YYYY_WW_AWAY_HOME` |
 | `market` | `spread` or `total` |
 | `side` | team abbreviation on a spread; `over` or `under` on a total |
-| `line` | blank uses the latest pre-kick snapshot; otherwise a `.0` or `.5` number in range |
+| `line` | blank uses the latest pre-kick `line` from `data/lines`; otherwise a `.0` or `.5` number in range |
 | `confidence` | blank, or `1`, `2`, or `3` |
 | `writeup` | markdown body, at most 50000 characters |
 | `server_received_at` | ISO-8601 UTC timestamp ending in `Z` |
@@ -23,7 +23,13 @@ All ten inputs are strings. GitHub does not require them. The intake command rej
 
 A caller does not send a pick id. Intake assigns `{game_id}-{market}` for the first pick on that game and market. A pick id is active when it has a pick row and no void row. At most one active pick per game and market. A new pick is accepted only when no active pick exists; otherwise the job fails with `active pick exists: {pick_id}`, naming the active id.
 
-After that void, the next id is `{game_id}-{market}-r{n}`. `n` is the number of existing pick rows for that game and market, plus one, so the replacements are `-r2` through `-r9`. A 10th version fails. The id matches `{game_id}-(spread|total)(-r[2-9])?`.
+After that void, the next id is `{game_id}-{market}-r{n}`. `n` is the number of existing pick rows for that game and market, plus one, so the replacements are `-r2` through `-r9`. There is no `-r1` suffix. A 10th version fails. The id matches `{game_id}-(spread|total)(-r[2-9])?`.
+
+`validate` rejects any other pick id. The error is `pick_id must be {game_id}-{market} or {game_id}-{market}-r2..-r9`.
+
+The grader counts a replacement only when every earlier pick id for that same game and market has a void that itself counted (`picked_at` and the ledger push time are both before kickoff). A void on only the immediately previous id is not enough. Otherwise the replacement is `rejected_late`. A hand-edited `-r3` is rejected when the original void counted and `-r2`'s did not, and also when `-r2`'s void counted and the original's did not.
+
+A blank `line` reads `data/lines/{season}_w{NN}.csv`, whose columns are `snapshot_ts,game_id,market,line,n_books`. An older file may also have `min` and `max`. Intake uses `line` and does not read those columns.
 
 `void_pick_id` must be that active id. Voiding a superseded or already-voided id fails.
 

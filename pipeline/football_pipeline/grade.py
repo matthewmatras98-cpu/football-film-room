@@ -4,7 +4,8 @@ Statuses:
   rejected_late  picked_at >= kickoff, or the ledger time for the current
                  row_sha >= kickoff, or there is no ledger row and kickoff
                  has passed relative to --as-of, or this is a replacement
-                 (-rN) and the previous pick_id's void did not count
+                 (-rN) and any earlier pick_id for the same game and market
+                 lacks a counted void
   pending        no final score
   ungraded       final score but no closing line
   graded         a final and a close, and the pick was locked in time
@@ -92,9 +93,11 @@ def grade_picks(
                 clv_pts=None,
                 voided_at=parse_ts(void_row.cells["picked_at"]),
             )
-        # A hand edit can append -rN without a void that itself locked in time.
-        previous = previous_pick_id(pick.pick_id, pick.cells["game_id"], pick.cells["market"])
-        if previous is not None and _counting_void(voids.get(previous, []), game, ledger) is None:
+        # A hand edit can append -rN without a counted void on every earlier id.
+        earlier = _earlier_pick_ids(pick.pick_id, pick.cells["game_id"], pick.cells["market"])
+        if any(
+            _counting_void(voids.get(earlier_id, []), game, ledger) is None for earlier_id in earlier
+        ):
             item = replace(
                 item,
                 status="rejected_late",
@@ -106,6 +109,24 @@ def grade_picks(
         graded.append(item)
     graded.sort(key=lambda item: item.pick.pick_id)
     return graded
+
+
+def _earlier_pick_ids(pick_id: str, game_id: str, market: str) -> list[str]:
+    """Every pick id this replacement supersedes, oldest first.
+
+    Empty when this id is not an `-rN`. A counted void has to exist for
+    each of these ids, not only the immediately previous one.
+    """
+    chain: list[str] = []
+    current = pick_id
+    while True:
+        previous = previous_pick_id(current, game_id, market)
+        if previous is None:
+            break
+        chain.append(previous)
+        current = previous
+    chain.reverse()
+    return chain
 
 
 def _counting_void(voids: list[PickRow], game: Game, ledger: list[LedgerRow]) -> PickRow | None:

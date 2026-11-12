@@ -34,16 +34,17 @@ def test_lower_middle_and_week_selection(tmp_path: Path):
     assert not (tmp_path / "data" / "lines" / "2099_w01.csv").exists()
     assert not (tmp_path / "data" / "lines" / "2099_w08.csv").exists()
 
+    assert LINES_COLUMNS == ("snapshot_ts", "game_id", "market", "line", "n_books")
     week3 = (tmp_path / "data" / "lines" / "2099_w03.csv").read_text(encoding="utf-8")
     assert week3.splitlines()[0] == ",".join(LINES_COLUMNS)
     assert "book_" not in week3
     assert "-110" not in week3
     # floor((5 - 1) / 2) = 2 of [-7, -3, -3, -2.5, -2] is -3.
-    assert f"{format_ts(also_final.kickoff_utc - timedelta(minutes=30))},2099_03_KC_BUF,spread,-3,5,-7,-2" in week3
+    assert f"{format_ts(also_final.kickoff_utc - timedelta(minutes=30))},2099_03_KC_BUF,spread,-3,5\n" in week3
 
     week4 = (tmp_path / "data" / "lines" / "2099_w04.csv").read_text(encoding="utf-8")
     # Two books: lower of 3 and 3.5.
-    assert ",2099_04_DET_PHI,spread,3,2,3,3.5" in week4
+    assert ",2099_04_DET_PHI,spread,3,2\n" in week4
 
 
 def test_close_table_keeps_home_spread_and_the_over(tmp_path: Path):
@@ -100,7 +101,7 @@ def test_lines_export_cli(tmp_path: Path):
     assert "secretbook" not in text
     assert "otherbook" not in text
     # Sorted [-3, -2.5], floor((2 - 1) / 2) = 0, so -3.
-    assert "2099_01_GB_CHI,spread,-3,2,-3,-2.5" in text
+    assert "2099_01_GB_CHI,spread,-3,2\n" in text
 
 
 def _books(game: Game, points: list[Decimal]) -> list[BookLine]:

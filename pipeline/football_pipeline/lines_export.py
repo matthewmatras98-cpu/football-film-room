@@ -2,8 +2,10 @@
 
 data/lines/{season}_w{NN}.csv is one row per snapshot, game, and market.
 `line` is the lower-middle book line, element floor((n - 1) / 2).
-The week being graded is the latest fully final week. An open week is any
-week that is not final and starts within seven days of --as-of.
+The file is snapshot_ts, game_id, market, line, n_books. It does not
+include min or max. The week being graded is the latest fully final week.
+An open week is any week that is not final and starts within seven days
+of --as-of.
 """
 
 from __future__ import annotations
@@ -22,8 +24,6 @@ LINES_COLUMNS: tuple[str, ...] = (
     "market",
     "line",
     "n_books",
-    "min",
-    "max",
 )
 
 
@@ -107,8 +107,6 @@ def export_lines(root: Path, games: list[Game], books: list[BookLine], as_of: da
                 market,
                 format_point(lower_middle(points)),
                 str(len(points)),
-                format_point(min(points)),
-                format_point(max(points)),
             ]
         )
     written: list[Path] = []

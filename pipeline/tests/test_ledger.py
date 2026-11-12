@@ -372,6 +372,47 @@ def test_replacement_requires_the_immediate_previous_void(tmp_path: Path):
     assert set(summary) == _SUMMARY_KEYS
 
 
+def test_hand_edited_r3_needs_every_earlier_void(tmp_path: Path):
+    """-r3 counts only when the original and -r2 each have a counted void.
+
+    There is no -r1 suffix. The first id is unsuffixed. One order is a counted
+    void on that id and a void on -r2 that does not count. The other order is
+    the reverse. Both voids counting leaves -r3 graded.
+    """
+    base = "2099_01_DET_PHI-spread"
+    counted = "2099-09-13T16:00:00Z"
+    missed = "2099-09-13T17:00:00Z"
+    cases = (
+        (counted, missed, "rejected_late"),
+        (missed, counted, "rejected_late"),
+        (counted, counted, "graded"),
+    )
+    for original_void, second_void, expected in cases:
+        root = _repo(tmp_path / f"{original_void}-{second_void}")
+        pick = _pick(line="2.5", picked_at="2099-09-13T15:00:00Z")
+        pick["action"] = "pick"
+        void = _pick(line="2.5", picked_at=original_void)
+        void["action"] = "void"
+        second = _pick(line="2.5", picked_at="2099-09-13T15:10:00Z")
+        second["action"] = "pick"
+        second["pick_id"] = f"{base}-r2"
+        second_void_row = _pick(line="2.5", picked_at=second_void)
+        second_void_row["action"] = "void"
+        second_void_row["pick_id"] = f"{base}-r2"
+        third = _pick(line="2.5", picked_at="2099-09-13T15:20:00Z")
+        third["action"] = "pick"
+        third["pick_id"] = f"{base}-r3"
+        _write(root, [pick, void, second, second_void_row, third])
+        _ledger(root, "sha-early", "2099-09-13T12:00:00Z")
+        _grade(root, "2099-09-20T00:00:00Z")
+        graded = _graded_by_id(root)
+        assert graded[f"{base}-r3"]["status"] == expected
+        if expected == "graded":
+            assert graded[f"{base}-r3"]["result"] == "W"
+        else:
+            assert graded[f"{base}-r3"]["result"] == ""
+
+
 def test_canonical_row_quotes_commas_and_changes_when_edited():
     base = _pick(line="-3.0")
     base["note"] = 'say "hi", pal'

@@ -41,7 +41,7 @@ A fixed roof, including a fixed canopy, is `dome`. The card never says whether a
 - `line_open` deep-equals the first point and `line_latest` deep-equals the last point. Both are `null` when the history is empty.
 - `min`, `max`, prices, and book names are never emitted.
 
-The derived file the generator reads is `data/lines/{season}_w{NN}.csv`. `lines-export` writes market `spread` (home spread) and `total`. The reader also accepts `spreads` and `totals`.
+The derived file the generator reads is `data/lines/{season}_w{NN}.csv`. `lines-export` writes market `spread` (home spread) and `total`. The reader also accepts `spreads` and `totals`. It requires `snapshot_ts`, `game_id`, `market`, `line`, and `n_books`. A file that still has `min` and `max` is accepted, and those columns are not read.
 
 ## StatNumber
 
@@ -121,11 +121,13 @@ The 2026 nflverse stadium names do not contain those tokens, so `venue` is scann
 
 ### §12 S7 lines CSV
 
-`data/lines/{season}_w{NN}.csv` is exactly:
+`lines-export` writes `data/lines/{season}_w{NN}.csv` as exactly:
 
-`snapshot_ts,game_id,market,line,n_books,min,max`
+`snapshot_ts,game_id,market,line,n_books`
 
-`line` is the single lower-middle book line, element `floor((n - 1) / 2)`. There is no second line column. `lines-export` writes `market` as `spread` (the home spread) or `total`.
+`line` is the single lower-middle book line, element `floor((n - 1) / 2)`. There is no second line column. `market` is `spread` (the home spread) or `total`. `min` and `max` are not written. With one or two books those columns were raw book quotes, and the Odds API terms bar redistributing that as a downloadable file.
+
+Files committed before this change still end in `min,max`. They stay in git history as they are. The next `lines-export` rewrites the week files without those columns. The card loader, `build-db`, and `agent-db` read a file with or without `min` and `max`, and they do not use those values.
 
 ### §8 budget skips
 

@@ -238,6 +238,38 @@ def test_cards_leave_other_weeks_and_ignore_the_dump(tmp_path: Path):
             assert (games / name).read_bytes() == (ROOT / "tests" / "fixtures" / "generated-cards" / name).read_bytes()
 
 
+def test_lines_reader_accepts_files_with_and_without_min_max(tmp_path: Path):
+    root = tmp_path / "repo"
+    (root / "src" / "content" / "games").mkdir(parents=True)
+    stripped = tmp_path / "fixtures"
+    _copy_tree(CARDS, stripped)
+    _drop_line_bounds(stripped / "lines" / "2099_w03.csv")
+    with_rows = _lines_rows(tmp_path / "with.duckdb", root, CARDS)
+    without_rows = _lines_rows(tmp_path / "without.duckdb", root, stripped)
+    assert with_rows == without_rows
+    assert with_rows
+    assert set(with_rows[0]) == {"snapshot_ts", "game_id", "market", "line", "n_books"}
+    database = tmp_path / "without.duckdb"
+    written = run_cli(
+        [
+            "cards",
+            "--root",
+            str(root),
+            "--db",
+            str(database),
+            "--as-of",
+            AS_OF,
+            "--nws-fixtures",
+            str(stripped / "nws"),
+        ]
+    )
+    assert written.returncode == 0, written.stderr + written.stdout
+    games = root / "src" / "content" / "games"
+    for path in games.glob("2099_03_*.json"):
+        assert path.read_bytes() == (ROOT / "tests" / "fixtures" / "generated-cards" / path.name).read_bytes()
+        assert "91.25" not in path.read_text(encoding="utf-8")
+
+
 def test_build_db_fixture_counts_and_skips_a_missing_dump(tmp_path: Path):
     root = tmp_path / "repo"
     root.mkdir()
@@ -270,6 +302,52 @@ def test_build_db_fixture_counts_and_skips_a_missing_dump(tmp_path: Path):
     finally:
         connection.close()
     assert tables == {"injuries", "lines", "ngs_passing", "pbp", "schedules"}
+
+
+def _lines_rows(database: Path, root: Path, fixtures: Path) -> list[dict]:
+    import duckdb
+
+    built = run_cli(
+        [
+            "build-db",
+            "--root",
+            str(root),
+            "--season",
+            "2099",
+            "--out",
+            str(database),
+            "--fixtures",
+            str(fixtures),
+        ]
+    )
+    assert built.returncode == 0, built.stderr
+    connection = duckdb.connect(str(database), read_only=True)
+    try:
+        columns = [row[0] for row in connection.execute("DESCRIBE lines").fetchall()]
+        assert "min" not in columns
+        assert "max" not in columns
+        cursor = connection.execute(
+            "SELECT snapshot_ts, game_id, market, line, n_books FROM lines ORDER BY 1, 2, 3"
+        )
+        names = [item[0] for item in cursor.description]
+        return [dict(zip(names, row, strict=True)) for row in cursor.fetchall()]
+    finally:
+        connection.close()
+
+
+def _drop_line_bounds(path: Path) -> None:
+    import csv
+
+    with path.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.reader(handle))
+    header, body = rows[0], rows[1:]
+    assert header[-2:] == ["min", "max"]
+    keep = [index for index, name in enumerate(header) if name not in {"min", "max"}]
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.writer(handle, lineterminator="\n")
+        writer.writerow([header[index] for index in keep])
+        for row in body:
+            writer.writerow([row[index] for index in keep])
 
 
 def _copy_tree(source: Path, dest: Path) -> None:

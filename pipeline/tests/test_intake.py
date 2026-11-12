@@ -100,6 +100,25 @@ def test_lock_rejects_the_runner_clock_the_server_time_and_a_future_stamp(tmp_pa
     assert accepted == f"{OPEN}-spread"
 
 
+def test_blank_line_reads_a_file_without_min_max(tmp_path: Path):
+    root, schedules, kick = _repo(tmp_path)
+    path = root / "data" / "lines" / "2099_w03.csv"
+    with path.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.reader(handle))
+    header, body = rows[0], rows[1:]
+    assert header[-2:] == ["min", "max"]
+    keep = [index for index, name in enumerate(header) if name not in {"min", "max"}]
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.writer(handle, lineterminator="\n")
+        writer.writerow([header[index] for index in keep])
+        for row in body:
+            writer.writerow([row[index] for index in keep])
+    now = kick[OPEN] - timedelta(hours=5)
+    blank = _apply(root, schedules, now, game_id=OTHER, market="spread", side="DET", line="")
+    assert blank == f"{OTHER}-spread"
+    assert _rows(root)[0]["line_at_pick"] == "3"
+
+
 def test_unknown_closed_week_duplicate_and_bad_fields(tmp_path: Path):
     root, schedules, kick = _repo(tmp_path)
     now = kick[OPEN] - timedelta(hours=5)

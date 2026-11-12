@@ -17,6 +17,7 @@ Tests pass --fixtures and never call the network.
 
 from __future__ import annotations
 
+import csv
 import io
 from pathlib import Path
 
@@ -37,8 +38,6 @@ LINES_COLUMNS: tuple[str, ...] = (
     "market",
     "line",
     "n_books",
-    "min",
-    "max",
 )
 
 
@@ -190,6 +189,7 @@ def _store_frame(connection: duckdb.DuckDBPyConnection, name: str, frame: pl.Dat
 
 
 def _load_lines(connection: duckdb.DuckDBPyConnection, paths: list[Path]) -> None:
+    """Load the five public columns. An older file's min and max are ignored."""
     frames: list[pl.DataFrame] = []
     schema = {
         "snapshot_ts": pl.Utf8,
@@ -197,20 +197,33 @@ def _load_lines(connection: duckdb.DuckDBPyConnection, paths: list[Path]) -> Non
         "market": pl.Utf8,
         "line": pl.Float64,
         "n_books": pl.Int64,
-        "min": pl.Float64,
-        "max": pl.Float64,
     }
     for path in paths:
-        frame = pl.read_csv(path, schema=schema, null_values=["", "NA", "NULL"])
-        missing = [column for column in LINES_COLUMNS if column not in frame.columns]
+        missing = _missing_line_columns(path)
         if missing:
             raise PipelineError(f"{path.name} is missing columns: {', '.join(missing)}")
+        frame = pl.read_csv(
+            path,
+            schema=schema,
+            null_values=["", "NA", "NULL"],
+            extra_columns="ignore",
+        )
         frames.append(frame.select(list(LINES_COLUMNS)))
     if frames:
         combined = pl.concat(frames, how="vertical")
     else:
         combined = pl.DataFrame(schema=schema)
     _store_frame(connection, "lines", combined)
+
+
+def _missing_line_columns(path: Path) -> list[str]:
+    with path.open(newline="", encoding="utf-8-sig") as handle:
+        reader = csv.reader(handle)
+        try:
+            header = next(reader)
+        except StopIteration as exc:
+            raise PipelineError(f"{path.name} is empty") from exc
+    return [column for column in LINES_COLUMNS if column not in header]
 
 
 def _load_dump(connection: duckdb.DuckDBPyConnection, path: Path) -> None:
