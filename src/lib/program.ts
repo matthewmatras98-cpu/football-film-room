@@ -1,4 +1,4 @@
-import { formatHomeLine, formatTotalLine } from './format-stat';
+import { formatSpreadTeam, formatTotalLine } from './format-stat';
 import type { LinePoint } from './game-schema';
 
 export type SlateWindow = 'early' | 'late';
@@ -15,10 +15,10 @@ export function kickoffWindow(iso: string): SlateWindow {
   return hour < 16 ? 'early' : 'late';
 }
 
-/** Home spread and total from a real line point. Null stays the unavailable string. */
-export function slateLine(point: LinePoint | null): string {
+/** Home team's spread and the total. A missing line stays the unavailable string. */
+export function slateLine(point: LinePoint | null, home: string): string {
   if (!point || (point.home_spread === null && point.total === null)) {
     return 'Line n/a (source unavailable)';
   }
-  return `Home ${formatHomeLine(point.home_spread)} · Total ${formatTotalLine(point.total)}`;
+  return `${formatSpreadTeam(home, point.home_spread)} · Total ${formatTotalLine(point.total)}`;
 }

@@ -785,6 +785,15 @@ main {
   background: transparent;
 }
 
+.card-stats caption {
+  caption-side: bottom;
+  padding: var(--space-8) var(--space-12) var(--space-4);
+  text-align: left;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
 .picks .num,
 .picks td:nth-child(4),
 .picks td:nth-child(5),
@@ -1079,17 +1088,36 @@ tbody.is-rejected .record {
   }
 
   .site-nav {
-    gap: var(--space-4) var(--space-12);
+    gap: var(--space-8) var(--space-24);
   }
 
   .site-nav a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    padding: var(--space-8) var(--space-8);
     font-size: 0.8125rem;
     letter-spacing: 0.06em;
   }
 
   .ledger-chip {
-    width: 100%;
+    align-items: center;
     justify-content: center;
+    width: 100%;
+    min-width: 44px;
+    min-height: 44px;
+    padding: var(--space-8) var(--space-12);
+  }
+
+  .tap-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    padding: var(--space-8) var(--space-4);
   }
 
   .box-score {

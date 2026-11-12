@@ -6,9 +6,8 @@ vi.mock('astro:content', () => ({
   getCollection: (...args: unknown[]) => getCollection(...args),
 }));
 
-const { currentWeekGames, gamesByWeek, gamesForWeek, getAllGames, getGame, picksForGame } = await import(
-  '../src/lib/games'
-);
+const { currentWeekGames, gamesByWeek, gamesForWeek, getAllGames, getGame, picksForGame, sortGameCards } =
+  await import('../src/lib/games');
 
 describe('currentWeekGames', () => {
   const rows = [
@@ -51,6 +50,29 @@ describe('currentWeekGames', () => {
       { season: 2027, week: 1, game_id: '2027-w1-b' },
     ];
     expect(currentWeekGames(rows).map((row) => row.game_id)).toEqual(['2027-w1-a', '2027-w1-b']);
+  });
+});
+
+describe('sortGameCards', () => {
+  it('orders cards by kickoff, then game id', () => {
+    const rows = [
+      { game_id: '2026_10_KC_ATL', kickoff_utc: '2026-11-15T18:00:00Z', season: 2026, week: 10 },
+      { game_id: '2026_10_WAS_NYG', kickoff_utc: '2026-11-13T01:15:00Z', season: 2026, week: 10 },
+      { game_id: '2026_10_LAC_BAL', kickoff_utc: '2026-11-17T01:15:00Z', season: 2026, week: 10 },
+      { game_id: '2026_10_BUF_NYJ', kickoff_utc: '2026-11-15T18:00:00Z', season: 2026, week: 10 },
+    ];
+    expect(sortGameCards(rows).map((row) => row.game_id)).toEqual([
+      '2026_10_WAS_NYG',
+      '2026_10_BUF_NYJ',
+      '2026_10_KC_ATL',
+      '2026_10_LAC_BAL',
+    ]);
+    expect(gamesByWeek(rows)[0]?.games.map((row) => row.game_id)).toEqual([
+      '2026_10_WAS_NYG',
+      '2026_10_BUF_NYJ',
+      '2026_10_KC_ATL',
+      '2026_10_LAC_BAL',
+    ]);
   });
 });
 
