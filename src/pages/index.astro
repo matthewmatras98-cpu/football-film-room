@@ -21,41 +21,34 @@ const emptyNote = homeEmptyNote(picks.length, posts.length, thisWeekCards.length
 <BaseLayout title={siteName} description={siteDescription} wide>
   <div class:list={['home-stack', { 'home-stack--cards': thisWeekCards.length > 0 }]}>
     <div class:list={['home-intro', { 'home-intro--summary': Boolean(summary) }]}>
-      {
-        summary ? (
-          <>
-            <p class="kicker">Season performance</p>
-            <h1>Season record</h1>
-            <p class="lede">A public pick record graded against the closing line, kept in units.</p>
-            <SeasonSummary summary={summary} />
-          </>
-        ) : (
-          <>
-            <h1>{siteName}</h1>
-            <p class="lede">{siteDescription}</p>
-          </>
-        )
-      }
+      {summary ? <p class="kicker">Season performance</p> : null}
+      <h1 class:list={[summary && 'visually-hidden']}>{summary ? 'Season record' : siteName}</h1>
+      <p class="lede">
+        {
+          summary
+            ? 'A public pick record graded against the closing line, kept in units.'
+            : siteDescription
+        }
+      </p>
+      {summary ? <SeasonSummary summary={summary} /> : null}
     </div>
 
     {emptyNote && thisWeekCards.length === 0 ? <p class="home-empty">{emptyNote}</p> : null}
 
     <div class="week-layout">
       <div class="home-column">
-        <div class="home-picks">
-          {
-            thisWeek.length === 0 ? (
-              <p>No picks yet this season.</p>
-            ) : (
+        {
+          thisWeek.length > 0 ? (
+            <div class="home-picks">
               <section class="section">
                 <div class="section-head">
                   <h2>This week</h2>
                 </div>
                 <PicksTable picks={thisWeek} gameIds={gameIds} />
               </section>
-            )
-          }
-        </div>
+            </div>
+          ) : null
+        }
 
         {
           thisWeekCards.length > 0 && (
@@ -87,6 +80,7 @@ const emptyNote = homeEmptyNote(picks.length, posts.length, thisWeekCards.length
             <p class="home-record-line nums">{formatSeasonLine(summary)}</p>
           ) : null
         }
+        {thisWeek.length === 0 ? <p class="home-picks">No picks yet this season.</p> : null}
       </div>
 
       <aside class="rail" data-dispatches aria-labelledby="latest-notes">
