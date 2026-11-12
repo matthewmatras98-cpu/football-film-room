@@ -5,6 +5,7 @@ import PicksTable from '../components/PicksTable.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { siteDescription, siteName } from '../data/site';
 import { currentWeekGames, getAllGames, picksForGame, sortGameCards } from '../lib/games';
+import { formatSeasonLine, homeEmptyNote } from '../lib/home';
 import { currentWeekPicks, picks, summary } from '../lib/picks';
 import { formatPublishedAt, getPublishedWeeks } from '../lib/posts';
 
@@ -14,99 +15,114 @@ const gameIds = new Set(games.map((game) => game.game_id));
 const thisWeek = currentWeekPicks(picks);
 const thisWeekCards = sortGameCards(currentWeekGames(games));
 const currentCard = thisWeekCards[0];
+const emptyNote = homeEmptyNote(picks.length, posts.length, thisWeekCards.length);
 ---
 
 <BaseLayout title={siteName} description={siteDescription} wide>
-  {
-    summary ? (
-      <>
-        <p class="kicker">Season performance</p>
-        <h1>Season record</h1>
-        <p class="lede">A public pick record graded against the closing line, kept in units.</p>
-        <SeasonSummary summary={summary} />
-      </>
-    ) : (
-      <>
-        <h1>{siteName}</h1>
-        <p class="lede">{siteDescription}</p>
-      </>
-    )
-  }
-
-  <div class="week-layout">
-    <div>
+  <div class:list={['home-stack', { 'home-stack--cards': thisWeekCards.length > 0 }]}>
+    <div class:list={['home-intro', { 'home-intro--summary': Boolean(summary) }]}>
       {
-        thisWeek.length === 0 ? (
-          <p>No picks yet this season.</p>
+        summary ? (
+          <>
+            <p class="kicker">Season performance</p>
+            <h1>Season record</h1>
+            <p class="lede">A public pick record graded against the closing line, kept in units.</p>
+            <SeasonSummary summary={summary} />
+          </>
         ) : (
-          <section class="section">
-            <div class="section-head">
-              <h2>This week</h2>
-            </div>
-            <PicksTable picks={thisWeek} gameIds={gameIds} />
-          </section>
-        )
-      }
-
-      {
-        thisWeekCards.length > 0 && (
-          <section data-week-cards>
-            <div class="section-head">
-              <div>
-                {currentCard ? (
-                  <p class="kicker">
-                    Season {currentCard.season}, week {currentCard.week}
-                  </p>
-                ) : null}
-                <h2>This week's cards</h2>
-              </div>
-              <a class="section-link" href="/games/">View the full slate</a>
-            </div>
-            <ul class="card-list">
-              {thisWeekCards.map((card) => (
-                <li class="game-card" data-game-id={card.game_id}>
-                  <ProgramCard card={card} picks={picksForGame(card.game_id, picks)} />
-                </li>
-              ))}
-            </ul>
-          </section>
+          <>
+            <h1>{siteName}</h1>
+            <p class="lede">{siteDescription}</p>
+          </>
         )
       }
     </div>
 
-    <aside class="rail" data-dispatches aria-labelledby="latest-notes">
-      <p class="kicker">Latest notes</p>
-      <h2 class="h2" id="latest-notes">Dispatches</h2>
-      {
-        posts.length === 0 ? (
-          <ul class="note-list">
-            <li>
-              <p>No published weeks yet.</p>
-            </li>
-          </ul>
-        ) : (
-          <ul class="note-list">
-            {posts.map((post) => (
-              <li>
-                <p class="meta">
-                  <time datetime={post.data.published_at}>{formatPublishedAt(post.data.published_at)}</time>
-                </p>
-                <h3>
-                  <a href={`/weeks/${post.id}/`}>{post.data.title}</a>
-                </h3>
-                <p>{post.data.summary}</p>
-              </li>
-            ))}
-          </ul>
-        )
-      }
-      <div class="callout">
-        <p class="kicker">From the methodology</p>
-        <blockquote>
-          <p>Each pick is a flat 1 unit. Results are in units, never dollars.</p>
-        </blockquote>
-        <a class="btn" href="/methodology/">Read the methodology</a>
+    {emptyNote && thisWeekCards.length === 0 ? <p class="home-empty">{emptyNote}</p> : null}
+
+    <div class="week-layout">
+      <div class="home-column">
+        <div class="home-picks">
+          {
+            thisWeek.length === 0 ? (
+              <p>No picks yet this season.</p>
+            ) : (
+              <section class="section">
+                <div class="section-head">
+                  <h2>This week</h2>
+                </div>
+                <PicksTable picks={thisWeek} gameIds={gameIds} />
+              </section>
+            )
+          }
+        </div>
+
+        {
+          thisWeekCards.length > 0 && (
+            <section class="home-cards" data-week-cards>
+              <div class="section-head">
+                <div>
+                  {currentCard ? (
+                    <p class="kicker">
+                      Season {currentCard.season}, week {currentCard.week}
+                    </p>
+                  ) : null}
+                  <h2>This week's cards</h2>
+                </div>
+                <a class="section-link" href="/games/">View the full slate</a>
+              </div>
+              {emptyNote ? <p class="home-empty">{emptyNote}</p> : null}
+              <ul class="card-list">
+                {thisWeekCards.map((card) => (
+                  <li class="game-card" data-game-id={card.game_id}>
+                    <ProgramCard card={card} picks={picksForGame(card.game_id, picks)} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )
+        }
+        {
+          summary && thisWeekCards.length > 0 ? (
+            <p class="home-record-line nums">{formatSeasonLine(summary)}</p>
+          ) : null
+        }
       </div>
-    </aside>
+
+      <aside class="rail" data-dispatches aria-labelledby="latest-notes">
+        <p class="kicker">Latest notes</p>
+        <h2 class="h2" id="latest-notes">Dispatches</h2>
+        {
+          posts.length === 0 ? (
+            <ul class="note-list">
+              <li>
+                <p>No published weeks yet.</p>
+              </li>
+            </ul>
+          ) : (
+            <ul class="note-list">
+              {posts.map((post) => (
+                <li>
+                  <p class="meta">
+                    <time datetime={post.data.published_at}>{formatPublishedAt(post.data.published_at)}</time>
+                  </p>
+                  <h3>
+                    <a href={`/weeks/${post.id}/`}>{post.data.title}</a>
+                  </h3>
+                  <p>{post.data.summary}</p>
+                </li>
+              ))}
+            </ul>
+          )
+        }
+        <div class="callout">
+          <p class="kicker">From the methodology</p>
+          <blockquote>
+            <p>Each pick is a flat 1 unit. Results are in units, never dollars.</p>
+          </blockquote>
+          <a class="btn" href="/methodology/">Read the methodology</a>
+        </div>
+      </aside>
+    </div>
   </div>
 </BaseLayout>
