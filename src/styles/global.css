@@ -413,6 +413,10 @@ main {
   align-items: start;
 }
 
+.home-record-line {
+  display: none;
+}
+
 .card-list {
   list-style: none;
   margin: 0;
@@ -1202,5 +1206,46 @@ tbody.is-rejected .record {
   .picks td:nth-child(5),
   .picks td:nth-child(7) {
     white-space: normal;
+  }
+}
+
+@media (max-width: 40rem) {
+  .home-stack--cards {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .home-stack--cards > .week-layout,
+  .home-stack--cards > .week-layout > .home-column {
+    display: contents;
+  }
+
+  .home-stack--cards .home-cards {
+    order: 1;
+  }
+
+  .home-stack--cards .home-record-line {
+    display: block;
+    order: 2;
+    margin: 0 0 var(--space-24);
+    font-size: var(--text-small);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+
+  .home-stack--cards .home-picks {
+    order: 3;
+  }
+
+  .home-stack--cards > .week-layout > .rail {
+    order: 4;
+  }
+
+  .home-stack--cards > .home-intro {
+    order: 5;
+  }
+
+  .home-stack--cards > .home-intro--summary {
+    display: none;
   }
 }
