@@ -18,7 +18,7 @@
     "n_books": 8
   },
   "line_latest": {
-    "ts": "2026-11-10T14:13:19Z",
+    "ts": "2026-11-11T16:29:30Z",
     "home_spread": -3,
     "total": 51,
     "n_books": 9
@@ -35,17 +35,24 @@
       "home_spread": -3,
       "total": 51,
       "n_books": 9
+    },
+    {
+      "ts": "2026-11-11T16:29:30Z",
+      "home_spread": -3,
+      "total": 51,
+      "n_books": 9
     }
   ],
-  "generated_at": "2026-11-10T15:22:50Z",
+  "generated_at": "2026-11-12T11:59:02Z",
   "data_through_week": 9,
   "sources": [
     "nflverse_pbp",
     "nflverse_schedules",
+    "nflverse_injuries",
     "ngs_via_nflverse",
     "odds_api"
   ],
-  "injuries_status": "pending",
+  "injuries_status": "reported",
   "sections": {
     "epa": {
       "home": {
@@ -339,7 +346,26 @@
     },
     "injuries": {
       "home": [],
-      "away": []
+      "away": [
+        {
+          "player": "Ben Brown",
+          "position": "C",
+          "status": "Out",
+          "detail": "Knee"
+        },
+        {
+          "player": "Carlton Davis III",
+          "position": "CB",
+          "status": "Out",
+          "detail": "Knee"
+        },
+        {
+          "player": "TreVeyon Henderson",
+          "position": "RB",
+          "status": "Out",
+          "detail": "Illness"
+        }
+      ]
     },
     "weather": {
       "mode": "unavailable",

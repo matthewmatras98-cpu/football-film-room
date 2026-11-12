@@ -18,9 +18,9 @@
     "n_books": 9
   },
   "line_latest": {
-    "ts": "2026-11-10T14:13:19Z",
-    "home_spread": 5,
-    "total": 39.5,
+    "ts": "2026-11-11T16:29:30Z",
+    "home_spread": 4.5,
+    "total": 40,
     "n_books": 9
   },
   "line_history": [
@@ -35,9 +35,15 @@
       "home_spread": 5,
       "total": 39.5,
       "n_books": 9
+    },
+    {
+      "ts": "2026-11-11T16:29:30Z",
+      "home_spread": 4.5,
+      "total": 40,
+      "n_books": 9
     }
   ],
-  "generated_at": "2026-11-10T15:22:50Z",
+  "generated_at": "2026-11-12T11:59:02Z",
   "data_through_week": 9,
   "sources": [
     "nflverse_pbp",
@@ -345,24 +351,24 @@
     "weather": {
       "mode": "outdoor",
       "temp_f": {
-        "value": 45,
+        "value": 46,
         "source": "nws",
         "sample": null,
         "range": "2026-11-15T13:00:00-05:00/2026-11-15T14:00:00-05:00"
       },
       "wind_mph": {
-        "value": 12,
+        "value": 10,
         "source": "nws",
         "sample": null,
         "range": "2026-11-15T13:00:00-05:00/2026-11-15T14:00:00-05:00"
       },
       "precip_prob_pct": {
-        "value": 7,
+        "value": 23,
         "source": "nws",
         "sample": null,
         "range": "2026-11-15T13:00:00-05:00/2026-11-15T14:00:00-05:00"
       },
-      "summary": "Partly Sunny"
+      "summary": "Slight Chance Rain Showers"
     },
     "story_prompts": [
       {

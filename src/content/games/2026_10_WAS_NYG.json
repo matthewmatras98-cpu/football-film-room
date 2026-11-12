@@ -18,10 +18,10 @@
     "n_books": 8
   },
   "line_latest": {
-    "ts": "2026-11-10T14:13:19Z",
-    "home_spread": -2.5,
-    "total": 41.5,
-    "n_books": 8
+    "ts": "2026-11-11T16:29:30Z",
+    "home_spread": -2,
+    "total": 41,
+    "n_books": 9
   },
   "line_history": [
     {
@@ -35,18 +35,25 @@
       "home_spread": -2.5,
       "total": 41.5,
       "n_books": 8
+    },
+    {
+      "ts": "2026-11-11T16:29:30Z",
+      "home_spread": -2,
+      "total": 41,
+      "n_books": 9
     }
   ],
-  "generated_at": "2026-11-10T15:22:50Z",
+  "generated_at": "2026-11-12T11:59:02Z",
   "data_through_week": 9,
   "sources": [
     "nflverse_pbp",
     "nflverse_schedules",
+    "nflverse_injuries",
     "ngs_via_nflverse",
     "odds_api",
     "nws"
   ],
-  "injuries_status": "pending",
+  "injuries_status": "reported",
   "sections": {
     "epa": {
       "home": {
@@ -217,7 +224,7 @@
           "range": "2026 wk1–9"
         },
         "cpoe": {
-          "value": 4.94726,
+          "value": 4.921377,
           "source": "nflverse_pbp",
           "sample": 164,
           "range": "2026 wk1–9"
@@ -339,30 +346,50 @@
       }
     },
     "injuries": {
-      "home": [],
-      "away": []
+      "home": [
+        {
+          "player": "Malik Harrison",
+          "position": "LB",
+          "status": "Questionable",
+          "detail": "Groin"
+        }
+      ],
+      "away": [
+        {
+          "player": "Colson Yankoff",
+          "position": "TE",
+          "status": "Out",
+          "detail": "Knee"
+        },
+        {
+          "player": "Lucas Patrick",
+          "position": "C",
+          "status": "Out",
+          "detail": "Concussion"
+        }
+      ]
     },
     "weather": {
       "mode": "outdoor",
       "temp_f": {
-        "value": 53,
+        "value": 52,
         "source": "nws",
         "sample": null,
         "range": "2026-11-12T20:00:00-05:00/2026-11-12T21:00:00-05:00"
       },
       "wind_mph": {
-        "value": 10,
+        "value": 12,
         "source": "nws",
         "sample": null,
         "range": "2026-11-12T20:00:00-05:00/2026-11-12T21:00:00-05:00"
       },
       "precip_prob_pct": {
-        "value": 77,
+        "value": 74,
         "source": "nws",
         "sample": null,
         "range": "2026-11-12T20:00:00-05:00/2026-11-12T21:00:00-05:00"
       },
-      "summary": "Light Rain"
+      "summary": "Light Rain Likely"
     },
     "story_prompts": [
       {

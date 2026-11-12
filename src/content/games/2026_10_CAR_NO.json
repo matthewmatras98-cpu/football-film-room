@@ -18,9 +18,9 @@
     "n_books": 9
   },
   "line_latest": {
-    "ts": "2026-11-10T14:13:19Z",
-    "home_spread": -1,
-    "total": 48,
+    "ts": "2026-11-11T16:29:30Z",
+    "home_spread": -2.5,
+    "total": 48.5,
     "n_books": 9
   },
   "line_history": [
@@ -35,9 +35,15 @@
       "home_spread": -1,
       "total": 48,
       "n_books": 9
+    },
+    {
+      "ts": "2026-11-11T16:29:30Z",
+      "home_spread": -2.5,
+      "total": 48.5,
+      "n_books": 9
     }
   ],
-  "generated_at": "2026-11-10T15:22:50Z",
+  "generated_at": "2026-11-12T11:59:02Z",
   "data_through_week": 9,
   "sources": [
     "nflverse_pbp",
