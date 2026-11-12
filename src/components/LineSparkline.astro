@@ -4,9 +4,10 @@ import type { LinePoint } from '../lib/game-schema';
 
 interface Props {
   history: LinePoint[];
+  home: string;
 }
 
-const { history } = Astro.props;
+const { history, home } = Astro.props;
 
 interface PlotPoint {
   x: number;
@@ -45,7 +46,7 @@ const total = plot(history.map((point) => point.total));
 const drawable = spread.length > 0 || total.length > 0;
 
 const panels = [
-  { label: 'Home line', points: spread, offset: 16 },
+  { label: home, points: spread, offset: 16 },
   { label: 'Total', points: total, offset: 78 },
 ];
 ---
@@ -57,7 +58,7 @@ const panels = [
         data-chart="sparkline"
         viewBox={`0 0 ${width} 128`}
         role="img"
-        aria-label="Home line and total across recorded snapshots"
+        aria-label={`${home} line and total across recorded snapshots`}
       >
         {panels.map((panel) => (
           <g>

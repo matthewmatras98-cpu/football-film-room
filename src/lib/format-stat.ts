@@ -1,5 +1,9 @@
+import { ngsCredit } from '../data/legal';
 import { formatPickLine, formatSignedLine } from './format-picks';
 import type { StatNumber } from './game-schema';
+
+/** Same nflverse clause as the site footer. Shown once on each nflverse stat table. */
+export const NFLVERSE_TABLE_CREDIT = 'Data: nflverse (CC-BY 4.0).';
 
 /** Exact missing-data string. A null stat is never rendered as 0 or left blank. */
 export const SOURCE_UNAVAILABLE = 'n/a (source unavailable)';
@@ -122,6 +126,60 @@ export function statFootnote(stat: Pick<StatNumber, 'source' | 'sample' | 'range
     parts.push(stat.range);
   }
   return parts.join(' \u00b7 ');
+}
+
+/**
+ * One source footnote for a table. A shared sample and range stay on that line.
+ * When those differ, the line names each source once instead of repeating under every stat.
+ * nflverse tables also carry the CC-BY 4.0 credit.
+ */
+export function tableSourceNotes(stats: readonly Pick<StatNumber, 'source' | 'sample' | 'range'>[]): string[] {
+  const unique: string[] = [];
+  const seen = new Set<string>();
+  for (const stat of stats) {
+    const note = statFootnote(stat);
+    if (seen.has(note)) {
+      continue;
+    }
+    seen.add(note);
+    unique.push(note);
+  }
+  const notes: string[] = [];
+  if (unique.length === 1 && unique[0]) {
+    notes.push(unique[0]);
+  } else if (stats.length > 0) {
+    const sources = [...new Set(stats.map((stat) => stat.source))];
+    const ranges = [...new Set(stats.map((stat) => stat.range).filter((range): range is string => Boolean(range)))];
+    const samples = [...new Set(stats.map((stat) => stat.sample))];
+    const parts = [sources.join(', ')];
+    if (samples.length === 1 && samples[0] !== null && samples[0] !== undefined) {
+      parts.push(`n=${samples[0]}`);
+    }
+    if (ranges.length === 1 && ranges[0]) {
+      parts.push(ranges[0]);
+    }
+    notes.push(parts.join(' \u00b7 '));
+  }
+  const sources = new Set(stats.map((stat) => stat.source));
+  if ([...sources].some((source) => source.includes('nflverse'))) {
+    notes.push(NFLVERSE_TABLE_CREDIT);
+  }
+  if (sources.has('ngs_via_nflverse')) {
+    notes.push(ngsCredit);
+  }
+  return notes;
+}
+
+/** Team abbreviation and a one-decimal spread with an explicit sign. Null stays the unavailable string. */
+export function formatSpreadTeam(team: string, spread: number | null): string {
+  if (spread === null) {
+    return `${team} ${SOURCE_UNAVAILABLE}`;
+  }
+  const magnitude = Math.abs(spread).toFixed(1);
+  if (spread < 0) {
+    return `${team} -${magnitude}`;
+  }
+  return `${team} +${magnitude}`;
 }
 
 export function formatHomeLine(value: number | null): string {

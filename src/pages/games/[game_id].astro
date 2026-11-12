@@ -8,10 +8,9 @@ import StatCompare from '../../components/StatCompare.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { formatMst } from '../../lib/format-picks';
 import type { GameCard, LinePoint } from '../../lib/game-schema';
-import { formatEpaStory } from '../../lib/format-stat';
+import { formatEpaStory, formatSpreadTeam, tableSourceNotes } from '../../lib/format-stat';
 import {
   SOURCE_UNAVAILABLE,
-  formatHomeLine,
   formatPlayer,
   formatRest,
   formatText,
@@ -193,6 +192,9 @@ const downRows = [
 ];
 
 const gamePicks = picksForGame(game.game_id, picks);
+const weatherNotes = weatherNumbers
+  ? tableSourceNotes([weatherNumbers.temp_f, weatherNumbers.wind_mph, weatherNumbers.precip_prob_pct])
+  : [];
 
 const injurySides = [
   { team: away, rows: sections.injuries.away },
@@ -220,7 +222,7 @@ const injurySides = [
       Rest: {away} {formatRest(game.away_rest)}, {home} {formatRest(game.home_rest)}.
     </p>
     <p>
-      <a href="/games/">All games</a>
+      <a class="tap-link" href="/games/">All games</a>
     </p>
   </header>
 
@@ -241,7 +243,7 @@ const injurySides = [
           <div>
             <h3>{label}</h3>
             <p>
-              Home line {formatHomeLine(point.home_spread)}. Total {formatTotalLine(point.total)}.
+              {formatSpreadTeam(home, point.home_spread)}. Total {formatTotalLine(point.total)}.
             </p>
             <p>
               Lower-middle of {point.n_books} books.{' '}
@@ -255,7 +257,7 @@ const injurySides = [
         ),
       )
     }
-    <LineSparkline history={game.line_history} />
+    <LineSparkline history={game.line_history} home={home} />
   </section>
 
   <section data-section="epa">
@@ -328,14 +330,15 @@ const injurySides = [
       weatherNumbers ? (
         <div>
           <p>
-            Temperature <StatCell stat={weatherNumbers.temp_f} kind="temp" />
+            Temperature <StatCell stat={weatherNumbers.temp_f} kind="temp" showSource={false} />
           </p>
           <p>
-            Wind <StatCell stat={weatherNumbers.wind_mph} kind="wind" />
+            Wind <StatCell stat={weatherNumbers.wind_mph} kind="wind" showSource={false} />
           </p>
           <p>
-            Precipitation probability <StatCell stat={weatherNumbers.precip_prob_pct} kind="precip" />
+            Precipitation probability <StatCell stat={weatherNumbers.precip_prob_pct} kind="precip" showSource={false} />
           </p>
+          {weatherNotes.map((note) => <p class="stat-meta">{note}</p>)}
           {weatherNumbers.summary ? <p>{weatherNumbers.summary}</p> : null}
         </div>
       ) : null

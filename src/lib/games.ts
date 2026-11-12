@@ -21,7 +21,33 @@ export interface WeekGames<T> {
   games: T[];
 }
 
-/** Groups by season and week, latest season and week first. Order inside a week is kept. */
+export function compareGameCards(
+  a: { kickoff_utc: string; game_id: string },
+  b: { kickoff_utc: string; game_id: string },
+): number {
+  const ak = Date.parse(a.kickoff_utc);
+  const bk = Date.parse(b.kickoff_utc);
+  if (Number.isFinite(ak) && Number.isFinite(bk) && ak !== bk) {
+    return ak - bk;
+  }
+  return a.game_id.localeCompare(b.game_id);
+}
+
+/** Kickoff ascending, then game id. Rows without both fields keep their order. */
+export function sortGameCards<T>(rows: readonly T[]): T[] {
+  const cards = rows as readonly { kickoff_utc?: unknown; game_id?: unknown }[];
+  if (!cards.every((row) => typeof row.kickoff_utc === 'string' && typeof row.game_id === 'string')) {
+    return [...rows];
+  }
+  return [...rows].sort((a, b) =>
+    compareGameCards(
+      a as { kickoff_utc: string; game_id: string },
+      b as { kickoff_utc: string; game_id: string },
+    ),
+  );
+}
+
+/** Groups by season and week, latest season and week first. Cards in a week follow kickoff, then game id. */
 export function gamesByWeek<T extends { season: number; week: number }>(
   rows: readonly T[],
 ): WeekGames<T>[] {
@@ -35,7 +61,9 @@ export function gamesByWeek<T extends { season: number; week: number }>(
       groups.set(key, { season: row.season, week: row.week, games: [row] });
     }
   }
-  return [...groups.values()].sort((a, b) => compareSeasonWeek(b, a));
+  return [...groups.values()]
+    .map((group) => ({ ...group, games: sortGameCards(group.games) }))
+    .sort((a, b) => compareSeasonWeek(b, a));
 }
 
 /** Cards for one week number. An unknown week is empty. This does not substitute an older week. */

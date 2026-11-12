@@ -1,6 +1,6 @@
 ---
 import StatCell from './StatCell.astro';
-import type { StatKind } from '../lib/format-stat';
+import { tableSourceNotes, type StatKind } from '../lib/format-stat';
 import type { StatNumber } from '../lib/game-schema';
 
 interface Row {
@@ -17,10 +17,14 @@ interface Props {
 }
 
 const { away, home, rows } = Astro.props;
+const notes = tableSourceNotes(rows.flatMap((row) => [row.away, row.home]));
 ---
 
 <div class="table-scroll">
   <table class="card-stats">
+    <caption>
+      {notes.map((note) => <span class="stat-meta">{note}</span>)}
+    </caption>
     <thead>
       <tr>
         <th scope="col">Stat</th>
@@ -34,10 +38,10 @@ const { away, home, rows } = Astro.props;
           <tr>
             <th scope="row">{row.label}</th>
             <td>
-              <StatCell stat={row.away} kind={row.kind} />
+              <StatCell stat={row.away} kind={row.kind} showSource={false} />
             </td>
             <td>
-              <StatCell stat={row.home} kind={row.kind} />
+              <StatCell stat={row.home} kind={row.kind} showSource={false} />
             </td>
           </tr>
         ))

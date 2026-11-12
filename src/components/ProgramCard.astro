@@ -20,7 +20,7 @@ const prompt = card.sections.story_prompts[0];
   <span class="when">
     <time datetime={card.kickoff_utc}>{formatMst(card.kickoff_utc)}</time>
   </span>
-  <span class="line nums">{slateLine(card.line_latest)}</span>
+  <span class="line nums">{slateLine(card.line_latest, card.home)}</span>
 </div>
 <Title class="game-title">
   <a class="game-card-link" href={`/games/${card.game_id}/`}>{card.away} @ {card.home}</a>

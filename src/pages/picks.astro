@@ -8,6 +8,8 @@ import { byWeek, picks, summary } from '../lib/picks';
 const weeks = byWeek(picks);
 const gameIds = new Set((await getAllGames()).map((game) => game.game_id));
 const severalSeasons = new Set(weeks.map((group) => group.season)).size > 1;
+const gradingRules =
+  'Each pick is a flat 1 unit. Grading assumes standard \u2212110 odds. A win is +0.909 units, a loss is \u22121.000 units, and a push is 0 units. Win percentage excludes pushes. CLV is shown for reference only and does not change the grade. Results are in units, never dollars.';
 ---
 
 <BaseLayout
@@ -23,6 +25,10 @@ const severalSeasons = new Set(weeks.map((group) => group.season)).size > 1;
     picks.length === 0 ? (
       <>
         <p>No picks yet this season.</p>
+        <section>
+          <h2>Grading rules</h2>
+          <p>{gradingRules}</p>
+        </section>
         <p>
           <a href="/methodology/#grading">Grading rules</a>
         </p>
@@ -40,6 +46,10 @@ const severalSeasons = new Set(weeks.map((group) => group.season)).size > 1;
           ))}
           <a class="chip" href="/methodology/">Grading rules</a>
         </div>
+        <section>
+          <h2>Grading rules</h2>
+          <p>{gradingRules}</p>
+        </section>
         {weeks.map((group) => (
           <section class="week-block" id={`week-${group.season}-${group.week}`}>
             <h2>

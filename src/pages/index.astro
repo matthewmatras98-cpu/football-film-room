@@ -4,7 +4,7 @@ import SeasonSummary from '../components/SeasonSummary.astro';
 import PicksTable from '../components/PicksTable.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { siteDescription, siteName } from '../data/site';
-import { currentWeekGames, getAllGames, picksForGame } from '../lib/games';
+import { currentWeekGames, getAllGames, picksForGame, sortGameCards } from '../lib/games';
 import { currentWeekPicks, picks, summary } from '../lib/picks';
 import { formatPublishedAt, getPublishedWeeks } from '../lib/posts';
 
@@ -12,7 +12,7 @@ const posts = await getPublishedWeeks();
 const games = await getAllGames();
 const gameIds = new Set(games.map((game) => game.game_id));
 const thisWeek = currentWeekPicks(picks);
-const thisWeekCards = currentWeekGames(games);
+const thisWeekCards = sortGameCards(currentWeekGames(games));
 const currentCard = thisWeekCards[0];
 ---
 
