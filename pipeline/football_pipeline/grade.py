@@ -23,23 +23,27 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 from dataclasses import dataclass, replace
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
 from football_pipeline.close import BookLine, Close, Game, select_close
-from football_pipeline.ledger import LedgerRow, lookup_push
+from football_pipeline.ledger import LedgerRow, load_ledger, lookup_push
 from football_pipeline.lines import cover_result, picked_side_line
 from football_pipeline.schema import (
     GRADED_COLUMNS,
     PickRow,
+    PipelineError,
     format_ts,
     normalize_action,
+    parse_pick_file,
     parse_ts,
     previous_pick_id,
     write_csv,
 )
+from football_pipeline.validate import Issue, emit_annotations, validate_rows
 
 UNIT_WIN = Decimal("0.909")
 UNIT_LOSS = Decimal("-1.000")
@@ -199,6 +203,107 @@ def write_outputs(
     _write_json(summary_path, summary_document(graded, as_of))
     _write_json(view_path, picks_view(graded))
     return graded_path, summary_path, view_path
+
+
+_GAME_ID = re.compile(r"^(?P<season>\d{4})_(?P<week>\d{2})_(?P<away>[A-Z]{2,3})_(?P<home>[A-Z]{2,3})$")
+
+
+def resolve_offline_as_of(root: Path, explicit: str | None) -> datetime:
+    """Prefer an explicit --as-of. Otherwise keep the published generated_at.
+
+    A wall-clock stamp would change summary.json on every rerun. The last
+    published instant stays until weekly grades again.
+    """
+    if explicit:
+        return parse_ts(explicit)
+    path = root / "src" / "data" / "summary.json"
+    if path.is_file():
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        stamp = payload.get("generated_at") if isinstance(payload, dict) else None
+        if isinstance(stamp, str) and stamp:
+            return parse_ts(stamp)
+    raise PipelineError("grade --no-fetch needs --as-of or summary.json generated_at")
+
+
+def republish(root: Path, as_of: datetime, schedules: Path | None = None) -> int:
+    """Regenerate the public view from files already in the repo.
+
+    Same grade_picks and JSON encoder as `grade`. No nflverse read and no
+    snapshot pull. Picks already in picks_view.json keep their closes and
+    scores. A new pick is graded from the game card when the repo has one.
+    A void that is not in the ledger yet still counts: intake refreshes the
+    view in the same push, before pick-ledger records the push, and the
+    void's picked_at is already before kickoff.
+    """
+    picks_path = root / "data" / "picks.csv"
+    rows, structural = parse_pick_file(picks_path)
+    issues = [Issue(line, message) for line, message in structural]
+    if issues:
+        emit_annotations(root, picks_path, issues)
+        print(f"error: {len(issues)} validation problem(s)", file=sys.stderr)
+        return 1
+
+    voids: dict[str, list[PickRow]] = {}
+    picks: list[PickRow] = []
+    for row in rows:
+        if normalize_action(row.cells["action"]) == "void":
+            voids.setdefault(row.pick_id, []).append(row)
+        else:
+            picks.append(row)
+
+    published = _load_published_view(root)
+    by_id = {row["pick_id"]: row for row in published}
+    fresh_ids = {
+        pick.pick_id
+        for pick in picks
+        if pick.pick_id not in by_id or _void_changed(by_id[pick.pick_id], voids.get(pick.pick_id, []))
+    }
+    needed: set[str] = set()
+    by_pick_id = {pick.pick_id: pick for pick in picks}
+    for pick_id in fresh_ids:
+        pick = by_pick_id[pick_id]
+        needed.add(pick_id)
+        needed.update(_earlier_pick_ids(pick.pick_id, pick.cells["game_id"], pick.cells["market"]))
+
+    ledger = load_ledger(root / "data" / "pick_ledger.csv")
+    fresh_by_id: dict[str, GradedPick] = {}
+    if needed:
+        grade_rows = [row for row in rows if row.pick_id in needed]
+        games = _games_for(root, grade_rows, as_of, schedules)
+        game_issues = validate_rows(grade_rows, games)
+        if game_issues:
+            emit_annotations(root, picks_path, game_issues)
+            print(f"error: {len(game_issues)} validation problem(s)", file=sys.stderr)
+            return 1
+        graded = grade_picks(
+            grade_rows,
+            games,
+            _ledger_with_unpushed_voids(ledger, grade_rows),
+            [],
+            as_of,
+        )
+        fresh_by_id = {item.pick.pick_id: item for item in graded}
+
+    merged: list[GradedPick] = []
+    for pick in picks:
+        published_row = by_id.get(pick.pick_id)
+        fresh = fresh_by_id.get(pick.pick_id) if pick.pick_id in fresh_ids else None
+        if fresh is None:
+            if published_row is None:
+                raise PipelineError(f"missing published row for {pick.pick_id}")
+            merged.append(_graded_from_published(pick, published_row, _pushed_at(ledger, pick, published_row)))
+            continue
+        applied = _apply_fresh(fresh, published_row, bool(voids.get(pick.pick_id)))
+        if applied is None:
+            if published_row is None:
+                raise PipelineError(f"missing published row for {pick.pick_id}")
+            merged.append(_graded_from_published(pick, published_row, _pushed_at(ledger, pick, published_row)))
+        else:
+            merged.append(applied)
+    merged.sort(key=lambda item: item.pick.pick_id)
+    _publish_view(root, merged, as_of)
+    print(f"graded {len(merged)} pick(s) as of {format_ts(as_of)}")
+    return 0
 
 
 def total_result(final_total: Decimal, close: Decimal, side: str) -> str:
@@ -413,14 +518,245 @@ def _q3(value: Decimal | None) -> _Fixed3 | None:
 
 
 def _write_json(path: Path, payload: object) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
+    _write_text(path, _json_text(payload))
+
+
+def _json_text(payload: object) -> str:
     text = json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False, cls=_Encoder)
     text = _NUM_PATTERN.sub(r"\1", text)
     if not text.endswith("\n"):
         text += "\n"
+    return text
+
+
+def _write_text(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_bytes(text.encode("utf-8"))
     temporary.replace(path)
+
+
+def _load_published_view(root: Path) -> list[dict]:
+    path = root / "src" / "data" / "picks_view.json"
+    if not path.is_file():
+        return []
+    payload = json.loads(path.read_text(encoding="utf-8"), parse_float=Decimal)
+    if not isinstance(payload, list):
+        raise PipelineError("picks_view.json must be a list")
+    return payload
+
+
+def _void_changed(published: dict, voids: list[PickRow]) -> bool:
+    published_at = published.get("voided_at")
+    current = [row.cells["picked_at"] for row in voids]
+    if published_at is None:
+        return bool(current)
+    return published_at not in current or len(current) != 1
+
+
+def _pushed_at(ledger: list[LedgerRow], pick: PickRow, published: dict) -> datetime | None:
+    pushed = lookup_push(ledger, pick.pick_id, pick.row_sha)
+    if pushed is not None:
+        return pushed
+    stamp = published.get("first_pushed_at")
+    if isinstance(stamp, str) and stamp:
+        return parse_ts(stamp)
+    return None
+
+
+def _ledger_with_unpushed_voids(ledger: list[LedgerRow], rows: list[PickRow]) -> list[LedgerRow]:
+    """Treat a not-yet-pushed void as locked at its picked_at.
+
+    The refresh runs in the intake push, so pick-ledger has not appended the
+    void. picked_at is the time intake already checked against kickoff.
+    _counting_void still drops it when that time is not before kickoff.
+    """
+    extra: list[LedgerRow] = []
+    for row in rows:
+        if normalize_action(row.cells["action"]) != "void":
+            continue
+        if lookup_push(ledger, row.pick_id, row.row_sha) is not None:
+            continue
+        extra.append(LedgerRow(row.pick_id, "void", row.row_sha, parse_ts(row.cells["picked_at"])))
+    if not extra:
+        return ledger
+    return [*ledger, *extra]
+
+
+def _games_for(
+    root: Path,
+    rows: list[PickRow],
+    as_of: datetime,
+    schedules: Path | None,
+) -> dict[str, Game]:
+    schedule_games: dict[str, Game] | None = None
+    games: dict[str, Game] = {}
+    by_game: dict[str, list[PickRow]] = {}
+    for row in rows:
+        by_game.setdefault(row.cells["game_id"], []).append(row)
+    for game_id, game_rows in by_game.items():
+        card = _card_game(root, game_id)
+        if card is not None:
+            games[game_id] = card
+            continue
+        if schedules is not None:
+            if schedule_games is None:
+                schedule_games = _games_from_schedules(schedules)
+            if game_id in schedule_games:
+                games[game_id] = schedule_games[game_id]
+                continue
+        games[game_id] = _synthetic_game(game_id, game_rows, as_of)
+    return games
+
+
+def _games_from_schedules(path: Path) -> dict[str, Game]:
+    from football_pipeline.nflv import load_games
+
+    loaded, _source = load_games(fixture=path)
+    return {game.game_id: game for game in loaded}
+
+
+def _card_game(root: Path, game_id: str) -> Game | None:
+    path = root / "src" / "content" / "games" / f"{game_id}.json"
+    if not path.is_file():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise PipelineError(f"{path.name} is not valid JSON") from exc
+    if not isinstance(payload, dict):
+        raise PipelineError(f"{game_id} card is missing schedule fields")
+    kickoff = payload.get("kickoff_utc")
+    if not isinstance(kickoff, str) or not kickoff:
+        raise PipelineError(f"{game_id} card has no kickoff")
+    try:
+        return Game(
+            game_id=str(payload.get("game_id") or game_id),
+            season=int(payload["season"]),
+            week=int(payload["week"]),
+            away_team=str(payload["away"]),
+            home_team=str(payload["home"]),
+            kickoff_utc=parse_ts(kickoff),
+            away_score=None,
+            home_score=None,
+            spread_line=None,
+            total_line=None,
+        )
+    except (KeyError, TypeError, ValueError) as exc:
+        raise PipelineError(f"{game_id} card is missing schedule fields") from exc
+
+
+def _synthetic_game(game_id: str, rows: list[PickRow], as_of: datetime) -> Game:
+    match = _GAME_ID.fullmatch(game_id)
+    if match is None:
+        raise PipelineError(f"unknown game_id {game_id}")
+    latest = as_of
+    for row in rows:
+        picked_at = parse_ts(row.cells["picked_at"])
+        if picked_at > latest:
+            latest = picked_at
+    return Game(
+        game_id=game_id,
+        season=int(match.group("season")),
+        week=int(match.group("week")),
+        away_team=match.group("away"),
+        home_team=match.group("home"),
+        kickoff_utc=latest + timedelta(hours=1),
+        away_score=None,
+        home_score=None,
+        spread_line=None,
+        total_line=None,
+    )
+
+
+def _apply_fresh(item: GradedPick, published: dict | None, voids_present: bool) -> GradedPick | None:
+    if published is None:
+        return item
+    if item.status == "void":
+        return _fill_from_published(item, published)
+    # A void that does not count, or a grade we cannot reproduce offline,
+    # keeps the row weekly already published.
+    if voids_present or item.status != published.get("status"):
+        return None
+    return item
+
+
+def _fill_from_published(item: GradedPick, published: dict) -> GradedPick:
+    closing = item.closing_line
+    source = item.close_source
+    close_ts = item.close_ts
+    books = item.close_books
+    age = item.close_age_min
+    final_home = item.final_home
+    final_away = item.final_away
+    if closing is None and published.get("closing_line") is not None:
+        closing = _as_decimal(published["closing_line"])
+        source = published.get("close_source")
+        close_ts = published.get("close_ts") or ""
+        books = published.get("close_books")
+        raw_age = published.get("close_age_min")
+        age = _as_decimal(raw_age) if raw_age is not None else None
+    if final_home is None and published.get("final_home") is not None:
+        final_home = published.get("final_home")
+        final_away = published.get("final_away")
+    return replace(
+        item,
+        closing_line=closing,
+        close_source=source,
+        close_ts=close_ts,
+        close_books=books,
+        close_age_min=age,
+        final_home=final_home,
+        final_away=final_away,
+    )
+
+
+def _graded_from_published(pick: PickRow, published: dict, pushed: datetime | None) -> GradedPick:
+    voided = published.get("voided_at")
+    age = published.get("close_age_min")
+    return GradedPick(
+        pick=pick,
+        status=str(published["status"]),
+        closing_line=_as_decimal(published["closing_line"]) if published.get("closing_line") is not None else None,
+        close_source=published.get("close_source"),
+        close_ts=published.get("close_ts") or "",
+        close_books=published.get("close_books"),
+        close_age_min=_as_decimal(age) if age is not None else None,
+        final_home=published.get("final_home"),
+        final_away=published.get("final_away"),
+        result=published.get("result"),
+        units_pl=_as_decimal(published["units_pl"]) if published.get("units_pl") is not None else None,
+        clv_pts=_as_decimal(published["clv_pts"]) if published.get("clv_pts") is not None else None,
+        first_pushed_at=pushed,
+        voided_at=parse_ts(voided) if isinstance(voided, str) and voided else None,
+    )
+
+
+def _as_decimal(value: object) -> Decimal:
+    if isinstance(value, Decimal):
+        return value
+    return Decimal(str(value))
+
+
+def _publish_view(root: Path, graded: list[GradedPick], as_of: datetime) -> None:
+    """Write summary.json and picks_view.json when the bytes change.
+
+    graded.csv stays as weekly left it. These two files are what the site reads.
+    """
+    summary_path = root / "src" / "data" / "summary.json"
+    view_path = root / "src" / "data" / "picks_view.json"
+    summary_text = _json_text(summary_document(graded, as_of))
+    view_text = _json_text(picks_view(graded))
+    if not _same_text(summary_path, summary_text):
+        _write_text(summary_path, summary_text)
+    if not _same_text(view_path, view_text):
+        _write_text(view_path, view_text)
+
+
+def _same_text(path: Path, text: str) -> bool:
+    if not path.is_file():
+        return False
+    return path.read_bytes() == text.encode("utf-8")
 
 
 class _Fixed3(Decimal):
