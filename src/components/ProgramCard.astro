@@ -1,37 +1,56 @@
 ---
 import WriteupAccordion from './WriteupAccordion.astro';
-import { formatCardPick, officialCardPicks } from '../lib/card-pick';
-import { formatEpaStory } from '../lib/format-stat';
-import { formatMst } from '../lib/picks';
+import { formatCardPick, formatPickGrade, officialCardPicks } from '../lib/card-pick';
+import { SOURCE_UNAVAILABLE, formatEpaStory } from '../lib/format-stat';
+import { STATUS_LABEL, formatMst, matchupTeams } from '../lib/picks';
 import { slateLine } from '../lib/program';
 import type { GameCard } from '../lib/game-schema';
 import type { PickView } from '../lib/picks-schema';
 import { writeupForPick, type Writeup as WriteupEntry } from '../lib/writeup';
 
 interface Props {
-  card: GameCard;
+  card: GameCard | null;
   picks: PickView[];
   level?: 'h2' | 'h3';
   writeups?: readonly WriteupEntry[];
+  /** One submitted row on /picks/. Home and /games/ leave this unset. */
+  record?: PickView;
 }
 
-const { card, picks, level = 'h3', writeups: providedWriteups } = Astro.props;
+const { card, picks, level = 'h3', writeups: providedWriteups, record } = Astro.props;
 const Title = level;
-const prompt = card.sections.story_prompts[0];
-const official = officialCardPicks(picks);
+const prompt = card?.sections.story_prompts[0];
+const shown = record ? [record] : officialCardPicks(picks);
 const writeups =
-  providedWriteups ?? (official.length > 0 ? await (await import('../lib/writeups')).getWriteups() : []);
-const matchup = `${card.away} at ${card.home}`;
+  providedWriteups ?? (shown.length > 0 ? await (await import('../lib/writeups')).getWriteups() : []);
+const parsed = matchupTeams(record?.game_id ?? card?.game_id ?? '');
+const away = card?.away ?? parsed?.away ?? record?.game_id ?? '';
+const home = card?.home ?? parsed?.home ?? '';
+const matchup = home ? `${away} at ${home}` : away;
+const title = home ? `${away} @ ${home}` : away;
+const gameHref = card ? `/games/${card.game_id}/` : null;
 ---
 
 <div class="game-card-meta">
   <span class="when">
-    <time datetime={card.kickoff_utc}>{formatMst(card.kickoff_utc)}</time>
+    {
+      card ? (
+        <time datetime={card.kickoff_utc}>{formatMst(card.kickoff_utc)}</time>
+      ) : (
+        SOURCE_UNAVAILABLE
+      )
+    }
   </span>
-  <span class="line nums">{slateLine(card.line_latest, card.home)}</span>
+  <span class="line nums">{slateLine(card?.line_latest ?? null, home)}</span>
 </div>
 <Title class="game-title">
-  <a class="game-card-link" href={`/games/${card.game_id}/`}>{card.away} @ {card.home}</a>
+  {
+    gameHref ? (
+      <a class="game-card-link" href={gameHref}>{title}</a>
+    ) : (
+      <span class="game-card-link">{title}</span>
+    )
+  }
 </Title>
 {prompt ? <p class="game-angle">{prompt.title}</p> : null}
 {prompt ? <p class="game-story">{formatEpaStory(prompt.title, prompt.body)}</p> : null}
@@ -39,18 +58,34 @@ const matchup = `${card.away} at ${card.home}`;
   <div class="program-pick">
     Program pick
     {
-      official.length === 0 ? (
+      shown.length === 0 ? (
         <span class="badge badge--none">No official pick</span>
       ) : (
-        official.map((row) => <span class="badge badge--none pick-line">{formatCardPick(row)}</span>)
+        shown.map((row) =>
+          record && (row.status === 'void' || row.status === 'rejected_late') ? (
+            <span class="badge badge--none badge--quiet">{STATUS_LABEL[row.status]}</span>
+          ) : (
+            <span class="badge badge--none pick-line">{formatCardPick(row)}</span>
+          ),
+        )
       )
     }
   </div>
-  <a class="section-link" href={`/games/${card.game_id}/`}>Read matchup notes</a>
+  {gameHref ? <a class="section-link" href={gameHref}>Read matchup notes</a> : null}
 </div>
 {
-  official.map((row) => {
+  shown.map((row) => {
     const entry = writeupForPick(row.pick_id, writeups);
+    if (record) {
+      return (
+        <WriteupAccordion
+          entry={entry}
+          matchup={matchup}
+          pickedAt={row.picked_at}
+          gradeLine={formatPickGrade(row)}
+        />
+      );
+    }
     return entry ? <WriteupAccordion entry={entry} matchup={matchup} /> : null;
   })
 }

@@ -121,14 +121,22 @@ export function formatMst(iso: string | null): string {
 
 const GAME_TEAMS = /^(\d{4})_(\d{2})_([A-Z]{2,3})_([A-Z]{2,3})$/;
 
-export function matchupLabel(gameId: string): string {
+export function matchupTeams(gameId: string): { away: string; home: string } | null {
   const match = GAME_TEAMS.exec(gameId);
-  if (!match) {
+  const away = match?.[3];
+  const home = match?.[4];
+  if (!away || !home) {
+    return null;
+  }
+  return { away, home };
+}
+
+export function matchupLabel(gameId: string): string {
+  const teams = matchupTeams(gameId);
+  if (!teams) {
     return gameId;
   }
-  const away = match[3] ?? gameId;
-  const home = match[4] ?? gameId;
-  return `${away} at ${home}`;
+  return `${teams.away} at ${teams.home}`;
 }
 
 export function formatFinal(gameId: string, finalAway: number | null, finalHome: number | null): string {

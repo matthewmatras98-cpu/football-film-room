@@ -1,12 +1,14 @@
 ---
+import PickCards from '../components/PickCards.astro';
 import SeasonSummary from '../components/SeasonSummary.astro';
-import PicksTable from '../components/PicksTable.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { getAllGames } from '../lib/games';
 import { byWeek, picks, summary } from '../lib/picks';
+import { getWriteups } from '../lib/writeups';
 
 const weeks = byWeek(picks);
-const gameIds = new Set((await getAllGames()).map((game) => game.game_id));
+const games = await getAllGames();
+const writeups = await getWriteups();
 const severalSeasons = new Set(weeks.map((group) => group.season)).size > 1;
 const gradingRules =
   'Each pick is a flat 1 unit. Grading assumes standard \u2212110 odds. A win is +0.909 units, a loss is \u22121.000 units, and a push is 0 units. Win percentage excludes pushes. CLV is shown for reference only and does not change the grade. Results are in units, never dollars.';
@@ -55,7 +57,7 @@ const gradingRules =
             <h2>
               Season {group.season}, week {group.week}
             </h2>
-            <PicksTable picks={group.picks} gameIds={gameIds} />
+            <PickCards picks={group.picks} games={games} writeups={writeups} />
           </section>
         ))}
         <p>

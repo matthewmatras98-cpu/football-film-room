@@ -1,3 +1,4 @@
+import { closeMarker, formatClv } from './format-picks';
 import { formatSpreadTeam, formatTotalLine } from './format-stat';
 
 export interface CardPickRef {
@@ -44,10 +45,47 @@ function totalSide(side: string, line: number): string {
   return `${label} ${formatTotalLine(line)}`;
 }
 
+function cardLine(market: string, side: string, line: number): string {
+  return market === 'total' ? totalSide(side, line) : formatSpreadTeam(side, line);
+}
+
 /** The line the pick was made at (`line_at_pick`), plus W, L, or Push when a grade exists. */
 export function formatCardPick(row: CardPickRef): string {
-  const line =
-    row.market === 'total' ? totalSide(row.side, row.line_at_pick) : formatSpreadTeam(row.side, row.line_at_pick);
+  const line = cardLine(row.market, row.side, row.line_at_pick);
   const grade = row.result === 'W' ? 'W' : row.result === 'L' ? 'L' : row.result === 'P' ? 'Push' : null;
   return grade ? `${line} \u00b7 ${grade}` : line;
+}
+
+export interface PickGradeRow extends CardPickRef {
+  closing_line: number | null;
+  clv_pts: number | null;
+  close_source?: string | null;
+}
+
+/**
+ * One muted line for a ledger card. Null grades are left out.
+ * Void and rejected rows keep the original pick, because the badge no longer shows it.
+ */
+export function formatPickGrade(row: PickGradeRow): string {
+  const parts: string[] = [];
+  if (row.status === 'void' || row.status === 'rejected_late') {
+    parts.push(`Pick ${cardLine(row.market, row.side, row.line_at_pick)}`);
+  }
+  if (row.closing_line !== null) {
+    parts.push(`Closed ${cardLine(row.market, row.side, row.closing_line)}`);
+    const marker = closeMarker(row.close_source ?? null);
+    if (marker) {
+      parts.push(marker.text);
+    }
+  }
+  if (row.clv_pts !== null) {
+    parts.push(`CLV ${formatClv(row.clv_pts)}`);
+  }
+  if (row.result === 'W' || row.result === 'L') {
+    parts.push(`Result ${row.result}`);
+  } else if (row.result === 'P') {
+    parts.push('Result Push');
+  }
+  parts.push(`Status ${row.status}`);
+  return parts.join(' \u00b7 ');
 }

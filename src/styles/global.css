@@ -445,6 +445,7 @@ main {
   list-style: none;
   margin: 0;
   padding: 0;
+  min-width: 0;
 }
 
 .game-card {
@@ -453,6 +454,8 @@ main {
   border-top: var(--rule-medium) solid var(--color-primary);
   padding: var(--space-24);
   margin-bottom: var(--space-16);
+  min-width: 0;
+  max-width: 100%;
 }
 
 .game-card-meta {
@@ -562,6 +565,11 @@ main {
   border-color: var(--color-border);
   color: var(--color-text-muted);
   font-weight: 600;
+}
+
+.badge.badge--quiet {
+  text-transform: none;
+  letter-spacing: 0.02em;
 }
 
 .program-pick .pick-line {
@@ -983,6 +991,16 @@ tbody.is-rejected .record {
 
 .writeup-details {
   margin-top: var(--space-12);
+}
+
+.pick-grade {
+  margin: var(--space-12) 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: var(--leading-caption);
+  text-transform: none;
 }
 
 .pick-writeup .writeup-details {

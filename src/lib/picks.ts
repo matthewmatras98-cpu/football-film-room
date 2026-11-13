@@ -17,6 +17,7 @@ export {
   formatUnits,
   formatWinPct,
   matchupLabel,
+  matchupTeams,
 } from './format-picks';
 
 const summaryModules = import.meta.glob('../data/summary.json', {

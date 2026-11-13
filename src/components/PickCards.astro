@@ -1,0 +1,32 @@
+---
+import ProgramCard from './ProgramCard.astro';
+import type { GameCard } from '../lib/game-schema';
+import type { PickView } from '../lib/picks-schema';
+import { getWriteups } from '../lib/writeups';
+import type { Writeup } from '../lib/writeup';
+
+interface Props {
+  picks: PickView[];
+  games: readonly GameCard[];
+  writeups?: readonly Writeup[];
+}
+
+const { picks, games } = Astro.props;
+const writeups = Astro.props.writeups ?? (await getWriteups());
+const gamesById = new Map(games.map((game) => [game.game_id, game]));
+---
+
+<ul class="card-list">
+  {
+    picks.map((pick) => (
+      <li id={`pick-${pick.pick_id}`} class="game-card" data-game-id={pick.game_id}>
+        <ProgramCard
+          card={gamesById.get(pick.game_id) ?? null}
+          picks={[pick]}
+          record={pick}
+          writeups={writeups}
+        />
+      </li>
+    ))
+  }
+</ul>

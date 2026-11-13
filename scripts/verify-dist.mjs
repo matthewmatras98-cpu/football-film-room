@@ -1181,9 +1181,7 @@ async function assertPresentPicks(distDir, summary, view) {
   if (home.includes('No picks yet this season.') || picksPage.includes('No picks yet this season.')) {
     fail('pick pages show the empty state while picks_view.json has rows');
   }
-  for (const row of view) {
-    assertRenderedPick(picksPage, row, '/picks/');
-  }
+  assertPicksPageCards(picksPage, view);
   const current = currentSeasonWeek(view);
   for (const row of view) {
     const anchor = `id="pick-${row.pick_id}"`;
@@ -1316,6 +1314,87 @@ function assertSummary(html, summary, label) {
   }
 }
 
+function cardLineText(row, line) {
+  return formatCardPick({ ...row, line_at_pick: line, result: null });
+}
+
+/** /picks/ is one program card per pick row. Home still uses the ledger table. */
+function assertPicksPageCards(html, view) {
+  if (/<table\b[^>]*\bclass="picks"/.test(html)) {
+    fail('/picks/ still renders the ledger table');
+  }
+  const cards = html.match(/<li\b[^>]*\bclass="game-card"/g) ?? [];
+  if (cards.length !== view.length) {
+    fail(`/picks/ has ${cards.length} cards, expected ${view.length}`);
+  }
+  const anchors = html.match(/id="pick-[^"]+"/g) ?? [];
+  if (anchors.length !== view.length) {
+    fail(`/picks/ has ${anchors.length} pick anchors, expected ${view.length}`);
+  }
+  for (const row of view) {
+    const block = rowBlock(html, row.pick_id, '/picks/');
+    if (!block.includes('class="game-card"')) {
+      fail(`/picks/ #pick-${row.pick_id} is not a card`);
+    }
+    if (!block.includes(matchupLabel(row.game_id))) {
+      fail(`/picks/ ${row.pick_id} is missing its matchup`);
+    }
+    if (!block.includes(formatMst(row.picked_at))) {
+      fail(`/picks/ ${row.pick_id} is missing picked_at in MST`);
+    }
+    if (!block.includes(`Status ${row.status}`)) {
+      fail(`/picks/ ${row.pick_id} is missing status ${row.status}`);
+    }
+    if (row.closing_line !== null) {
+      const closed = cardLineText(row, row.closing_line);
+      if (!block.includes(`Closed ${closed}`)) {
+        fail(`/picks/ ${row.pick_id} is missing close ${closed}`);
+      }
+      const marker = row.close_source ? CLOSE_MARKER[row.close_source] : undefined;
+      if (marker && !block.includes(marker.text)) {
+        fail(`/picks/ ${row.pick_id} is missing the ${marker.text} marker`);
+      }
+      if (!marker) {
+        for (const text of Object.values(CLOSE_MARKER).map((item) => item.text)) {
+          if (block.includes(text)) {
+            fail(`/picks/ ${row.pick_id} shows ${text} for close source ${row.close_source}`);
+          }
+        }
+      }
+    }
+    if (row.clv_pts !== null && !block.includes(`CLV ${formatClv(row.clv_pts)}`)) {
+      fail(`/picks/ ${row.pick_id} is missing CLV ${formatClv(row.clv_pts)}`);
+    }
+    if (row.result) {
+      const word = row.result === 'P' ? 'Push' : row.result;
+      if (!block.includes(`Result ${word}`)) {
+        fail(`/picks/ ${row.pick_id} is missing result ${word}`);
+      }
+    }
+    if (row.status === 'void' || row.status === 'rejected_late') {
+      const taken = cardLineText(row, row.line_at_pick);
+      if (!block.includes(`Pick ${taken}`)) {
+        fail(`/picks/ ${row.pick_id} is missing the original pick ${taken}`);
+      }
+      const label = row.status === 'void' ? STATUS_LABEL.void : STATUS_LABEL.rejected_late;
+      if (!block.includes(label)) {
+        fail(`/picks/ ${row.pick_id} badge is missing ${label}`);
+      }
+    } else if (!block.includes(formatCardPick(row))) {
+      fail(`/picks/ ${row.pick_id} is missing ${formatCardPick(row)}`);
+    }
+    const links = block.match(/<a\b[^>]*>[\s\S]*?<\/a>/gi) ?? [];
+    for (const link of links) {
+      if (link.includes('<details')) {
+        fail(`/picks/ ${row.pick_id} nests a write-up inside a link`);
+      }
+    }
+    if (block.includes('$') || block.includes('&#36;') || block.includes('&dollar;')) {
+      fail(`/picks/ ${row.pick_id} renders dollars`);
+    }
+  }
+}
+
 function assertPickRow(block, row) {
   if (!block.includes(matchupLabel(row.game_id))) {
     fail(`${row.pick_id} is missing its matchup`);
@@ -1412,9 +1491,7 @@ async function assertFixturePicks(distDir) {
     fail(`expected ${rejected.length} "Rejected – late" labels, found ${rejectedLabels}`);
   }
 
-  for (const row of view) {
-    assertPickRow(rowBlock(picksHtml, row.pick_id), row);
-  }
+  assertPicksPageCards(picksHtml, view);
 
   const seenWeeks = [];
   for (const row of view) {
@@ -1593,7 +1670,7 @@ async function main() {
       await assertNoTemplate(picksDist);
       await assertNoDollar(picksDist);
       await assertNoSportsbooks(picksDist);
-      console.log('fixture build: /picks/ matches the grader summary and shows every row');
+      console.log('fixture build: /picks/ matches the grader summary and shows one card per pick');
       console.log('fixture build: game cards render every section and stay out of the empty dist');
     } finally {
       await rm(summaryDest, { force: true });
