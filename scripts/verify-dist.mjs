@@ -9,11 +9,8 @@ import {
   CLOSE_MARKER,
   STATUS_LABEL,
   formatClv,
-  formatFinal,
   formatMst,
   formatPct,
-  formatPickLine,
-  formatSideLine,
   formatUnits,
   formatWinPct,
   matchupLabel,
@@ -22,7 +19,7 @@ import {
 register(new URL('./ts-resolver.mjs', import.meta.url));
 
 const { formatStatKind } = await import('../src/lib/format-stat.ts');
-const { formatCardPick, officialCardPicks } = await import('../src/lib/card-pick.ts');
+const { formatCardPick, formatPickGrade, officialCardPicks } = await import('../src/lib/card-pick.ts');
 const { gameCardSchema } = await import('../src/lib/game-schema.ts');
 const { currentSeasonWeek } = await import('../src/lib/current-week.ts');
 const { picksViewSchema, summarySchema } = await import('../src/lib/picks-schema.ts');
@@ -464,6 +461,7 @@ async function assertPages(distDir, entries, { requirePublished }) {
 
   await assertGameProgram(distDir, htmlFiles);
   await assertWeekEmptyCopy(distDir);
+  await assertUniquePageIds(distDir);
 
   for (const entry of entries) {
     const page = await weekPage(distDir, entry.slug);
@@ -746,13 +744,15 @@ async function assertEmptyCards(distDir) {
 }
 
 function gameItem(html, gameId) {
+  const scoped = html.includes('data-week-cards') ? weekCardsSection(html) : html;
   const marker = `data-game-id="${gameId}"`;
-  const start = html.indexOf(marker);
+  const start = scoped.indexOf(marker);
   if (start < 0) {
     fail(`home is missing data-game-id="${gameId}"`);
   }
-  const end = html.indexOf('</li>', start);
-  return html.slice(start, end === -1 ? html.length : end);
+  const liStart = scoped.lastIndexOf('<li', start);
+  const end = scoped.indexOf('</li>', start);
+  return scoped.slice(liStart === -1 ? start : liStart, end === -1 ? scoped.length : end);
 }
 
 function cardLinkSource(card) {
@@ -918,27 +918,7 @@ async function assertFixtureCards(distDir, fixtures, picks, knownGameId) {
     if (sameSeasonWeek(card, current)) {
       const item = gameItem(home, card.game_id);
       const matches = picks.filter((row) => row.game_id === card.game_id);
-      const official = officialCardPicks(matches);
-      if (official.length === 0) {
-        if (!item.includes('No official pick')) {
-          fail(`home ${card.game_id} is missing No official pick`);
-        }
-        if (item.includes('pick-badge') || item.includes('<details')) {
-          fail(`home ${card.game_id} rendered a pick or write-up with no official pick`);
-        }
-      } else if (item.includes('No official pick') || item.includes('pick-badge')) {
-        fail(`home ${card.game_id} still uses the empty-pick treatment`);
-      } else {
-        for (const row of official) {
-          const text = formatCardPick(row);
-          if (!item.includes(text)) {
-            fail(`home is missing ${text} for ${row.pick_id}`);
-          }
-        }
-        if (item.includes('<details')) {
-          fail(`home ${card.game_id} rendered a write-up without a write-up file`);
-        }
-      }
+      assertOfficialWeekCard(item, matches, `home ${card.game_id}`);
     }
 
     const injuries = section(page, 'injuries');
@@ -1123,18 +1103,6 @@ async function assertPresentCards(distDir, cards) {
   }
 }
 
-function assertRenderedPick(html, row, where) {
-  const block = rowBlock(html, row.pick_id, where);
-  assertPickRow(block, row);
-  const units = formatUnits(row.units_pl);
-  if (!block.includes(units)) {
-    fail(`${where} ${row.pick_id} is missing units ${units}`);
-  }
-  if (units.includes('$') || block.includes('$') || block.includes('&#36;') || block.includes('&dollar;')) {
-    fail(`${where} ${row.pick_id} renders units as dollars`);
-  }
-}
-
 async function assertPresentPicks(distDir, summary, view) {
   const home = await readHtml(distDir, 'index.html');
   const picksPage = await readHtml(distDir, 'picks', 'index.html');
@@ -1182,15 +1150,11 @@ async function assertPresentPicks(distDir, summary, view) {
     fail('pick pages show the empty state while picks_view.json has rows');
   }
   assertPicksPageCards(picksPage, view);
+  assertHomePickCards(home, view);
+  await assertWeekCardAccordions(distDir, view);
   const current = currentSeasonWeek(view);
   for (const row of view) {
-    const anchor = `id="pick-${row.pick_id}"`;
-    if (sameSeasonWeek(row, current)) {
-      if (!home.includes(anchor)) {
-        fail(`home is missing current-week pick ${row.pick_id}`);
-      }
-      assertRenderedPick(home, row, '/');
-    } else if (home.includes(row.pick_id)) {
+    if (!sameSeasonWeek(row, current) && home.includes(row.pick_id)) {
       fail(`home fell back to older pick ${row.pick_id}`);
     }
   }
@@ -1318,7 +1282,7 @@ function cardLineText(row, line) {
   return formatCardPick({ ...row, line_at_pick: line, result: null });
 }
 
-/** /picks/ is one program card per pick row. Home still uses the ledger table. */
+/** /picks/ and the home picks list are one program card per pick row. */
 function assertPicksPageCards(html, view) {
   if (/<table\b[^>]*\bclass="picks"/.test(html)) {
     fail('/picks/ still renders the ledger table');
@@ -1332,136 +1296,226 @@ function assertPicksPageCards(html, view) {
     fail(`/picks/ has ${anchors.length} pick anchors, expected ${view.length}`);
   }
   for (const row of view) {
-    const block = rowBlock(html, row.pick_id, '/picks/');
-    if (!block.includes('class="game-card"')) {
-      fail(`/picks/ #pick-${row.pick_id} is not a card`);
+    assertPickCardBlock(rowBlock(html, row.pick_id, '/picks/'), row, '/picks/');
+  }
+}
+
+function assertPickCardBlock(block, row, where) {
+  if (!block.includes('class="game-card"')) {
+    fail(`${where} #pick-${row.pick_id} is not a card`);
+  }
+  if (!block.includes(matchupLabel(row.game_id))) {
+    fail(`${where} ${row.pick_id} is missing its matchup`);
+  }
+  if (!block.includes(formatMst(row.picked_at))) {
+    fail(`${where} ${row.pick_id} is missing picked_at in MST`);
+  }
+  if (!block.includes(`Status ${row.status}`)) {
+    fail(`${where} ${row.pick_id} is missing status ${row.status}`);
+  }
+  if (row.closing_line !== null) {
+    const closed = cardLineText(row, row.closing_line);
+    if (!block.includes(`Closed ${closed}`)) {
+      fail(`${where} ${row.pick_id} is missing close ${closed}`);
     }
-    if (!block.includes(matchupLabel(row.game_id))) {
-      fail(`/picks/ ${row.pick_id} is missing its matchup`);
+    const marker = row.close_source ? CLOSE_MARKER[row.close_source] : undefined;
+    if (marker && !block.includes(marker.text)) {
+      fail(`${where} ${row.pick_id} is missing the ${marker.text} marker`);
     }
-    if (!block.includes(formatMst(row.picked_at))) {
-      fail(`/picks/ ${row.pick_id} is missing picked_at in MST`);
-    }
-    if (!block.includes(`Status ${row.status}`)) {
-      fail(`/picks/ ${row.pick_id} is missing status ${row.status}`);
-    }
-    if (row.closing_line !== null) {
-      const closed = cardLineText(row, row.closing_line);
-      if (!block.includes(`Closed ${closed}`)) {
-        fail(`/picks/ ${row.pick_id} is missing close ${closed}`);
-      }
-      const marker = row.close_source ? CLOSE_MARKER[row.close_source] : undefined;
-      if (marker && !block.includes(marker.text)) {
-        fail(`/picks/ ${row.pick_id} is missing the ${marker.text} marker`);
-      }
-      if (!marker) {
-        for (const text of Object.values(CLOSE_MARKER).map((item) => item.text)) {
-          if (block.includes(text)) {
-            fail(`/picks/ ${row.pick_id} shows ${text} for close source ${row.close_source}`);
-          }
+    if (!marker) {
+      for (const text of Object.values(CLOSE_MARKER).map((item) => item.text)) {
+        if (block.includes(text)) {
+          fail(`${where} ${row.pick_id} shows ${text} for close source ${row.close_source}`);
         }
       }
     }
-    if (row.clv_pts !== null && !block.includes(`CLV ${formatClv(row.clv_pts)}`)) {
-      fail(`/picks/ ${row.pick_id} is missing CLV ${formatClv(row.clv_pts)}`);
+  }
+  if (row.clv_pts !== null && !block.includes(`CLV ${formatClv(row.clv_pts)}`)) {
+    fail(`${where} ${row.pick_id} is missing CLV ${formatClv(row.clv_pts)}`);
+  }
+  if (row.result) {
+    const word = row.result === 'P' ? 'Push' : row.result;
+    if (!block.includes(`Result ${word}`)) {
+      fail(`${where} ${row.pick_id} is missing result ${word}`);
     }
-    if (row.result) {
-      const word = row.result === 'P' ? 'Push' : row.result;
-      if (!block.includes(`Result ${word}`)) {
-        fail(`/picks/ ${row.pick_id} is missing result ${word}`);
-      }
+  }
+  if (row.status === 'void' || row.status === 'rejected_late') {
+    const taken = cardLineText(row, row.line_at_pick);
+    if (!block.includes(`Pick ${taken}`)) {
+      fail(`${where} ${row.pick_id} is missing the original pick ${taken}`);
     }
-    if (row.status === 'void' || row.status === 'rejected_late') {
-      const taken = cardLineText(row, row.line_at_pick);
-      if (!block.includes(`Pick ${taken}`)) {
-        fail(`/picks/ ${row.pick_id} is missing the original pick ${taken}`);
-      }
-      const label = row.status === 'void' ? STATUS_LABEL.void : STATUS_LABEL.rejected_late;
-      if (!block.includes(label)) {
-        fail(`/picks/ ${row.pick_id} badge is missing ${label}`);
-      }
-    } else if (!block.includes(formatCardPick(row))) {
-      fail(`/picks/ ${row.pick_id} is missing ${formatCardPick(row)}`);
+    const label = row.status === 'void' ? STATUS_LABEL.void : STATUS_LABEL.rejected_late;
+    if (!block.includes(label)) {
+      fail(`${where} ${row.pick_id} badge is missing ${label}`);
     }
-    const links = block.match(/<a\b[^>]*>[\s\S]*?<\/a>/gi) ?? [];
-    for (const link of links) {
-      if (link.includes('<details')) {
-        fail(`/picks/ ${row.pick_id} nests a write-up inside a link`);
-      }
+  } else if (!block.includes(formatCardPick(row))) {
+    fail(`${where} ${row.pick_id} is missing ${formatCardPick(row)}`);
+  }
+  const grade = formatPickGrade(row);
+  if (!block.includes(grade)) {
+    fail(`${where} ${row.pick_id} is missing the grade line ${grade}`);
+  }
+  if (!block.includes('Submitted (server time)')) {
+    fail(`${where} ${row.pick_id} is missing the submitted time`);
+  }
+  const links = block.match(/<a\b[^>]*>[\s\S]*?<\/a>/gi) ?? [];
+  for (const link of links) {
+    if (link.includes('<details')) {
+      fail(`${where} ${row.pick_id} nests a write-up inside a link`);
     }
-    if (block.includes('$') || block.includes('&#36;') || block.includes('&dollar;')) {
-      fail(`/picks/ ${row.pick_id} renders dollars`);
+  }
+  if (block.includes('$') || block.includes('&#36;') || block.includes('&dollar;')) {
+    fail(`${where} ${row.pick_id} renders dollars`);
+  }
+}
+
+function assertNoPicksTable(html, label) {
+  if (/<table\b[^>]*\bclass="picks"/.test(html)) {
+    fail(`${label} still renders the picks ledger table`);
+  }
+}
+
+function homePicksSection(html) {
+  const start = html.indexOf('<div class="home-picks"');
+  if (start < 0) {
+    return '';
+  }
+  const candidates = ['data-week-cards', 'class="home-record-line"', '<aside']
+    .map((marker) => html.indexOf(marker, start + 1))
+    .filter((at) => at > start);
+  const end = candidates.length === 0 ? html.length : Math.min(...candidates);
+  return html.slice(start, end);
+}
+
+function sectionPickBlock(html, pickId, label) {
+  const marker = `id="pick-${pickId}"`;
+  const start = html.indexOf(marker);
+  if (start < 0) {
+    fail(`${label} is missing #pick-${pickId}`);
+  }
+  const next = html.indexOf('id="pick-', start + marker.length);
+  const liEnd = html.indexOf('</li>', start);
+  let end = html.length;
+  if (next !== -1) {
+    end = Math.min(end, next);
+  }
+  if (liEnd !== -1) {
+    end = Math.min(end, liEnd + '</li>'.length);
+  }
+  return html.slice(start, end);
+}
+
+function assertHomePickCards(html, view) {
+  assertNoPicksTable(html, 'home');
+  const current = currentSeasonWeek(view);
+  const shown = current ? view.filter((row) => sameSeasonWeek(row, current)) : [];
+  const section = homePicksSection(html);
+  const cards = section.match(/<li\b[^>]*\bclass="game-card"/g) ?? [];
+  if (cards.length !== shown.length) {
+    fail(`home has ${cards.length} pick cards, expected ${shown.length}`);
+  }
+  const week = weekCardsSection(html);
+  for (const row of shown) {
+    const anchor = `id="pick-${row.pick_id}"`;
+    const count = countOccurrences(html, anchor);
+    if (count !== 1) {
+      fail(`home has ${count} ${anchor} anchors`);
+    }
+    if (week.includes(anchor)) {
+      fail(`home week cards duplicate ${anchor}`);
+    }
+    assertPickCardBlock(sectionPickBlock(section, row.pick_id, 'home'), row, 'home');
+  }
+}
+
+function assertOfficialWeekCard(block, rows, where) {
+  if (/id="pick-/.test(block)) {
+    fail(`${where} duplicates a pick anchor`);
+  }
+  const official = officialCardPicks(rows);
+  if (official.length === 0) {
+    if (!block.includes('No official pick')) {
+      fail(`${where} is missing No official pick`);
+    }
+    if (block.includes('pick-badge') || block.includes('<details')) {
+      fail(`${where} rendered a pick or write-up with no official pick`);
+    }
+    return;
+  }
+  if (block.includes('No official pick') || block.includes('pick-badge')) {
+    fail(`${where} still uses the empty-pick treatment`);
+  }
+  const details = block.match(/<details\b[\s\S]*?<\/details>/g) ?? [];
+  if (details.length !== official.length) {
+    fail(`${where} has ${details.length} accordions, expected ${official.length}`);
+  }
+  for (const row of official) {
+    const text = formatCardPick(row);
+    if (!block.includes(text)) {
+      fail(`${where} is missing ${text} for ${row.pick_id}`);
+    }
+    const grade = formatPickGrade(row);
+    if (!details.some((item) => item.includes(grade))) {
+      fail(`${where} accordion is missing the grade line ${grade}`);
+    }
+    if (!block.includes('Submitted (server time)')) {
+      fail(`${where} is missing the submitted time`);
     }
   }
 }
 
-function assertPickRow(block, row) {
-  if (!block.includes(matchupLabel(row.game_id))) {
-    fail(`${row.pick_id} is missing its matchup`);
+async function assertWeekCardAccordions(distDir, view) {
+  const home = await readHtml(distDir, 'index.html');
+  const homeIds = [...weekCardsSection(home).matchAll(/data-game-id="([^"]+)"/g)].map((match) => match[1]);
+  for (const gameId of homeIds) {
+    assertOfficialWeekCard(
+      gameItem(home, gameId),
+      view.filter((row) => row.game_id === gameId),
+      `home ${gameId}`,
+    );
   }
-  if (!block.includes(formatSideLine(row.market, row.side, row.line_at_pick))) {
-    fail(`${row.pick_id} is missing the picked side and line`);
-  }
-  if (!block.includes(formatPickLine(row.market, row.closing_line))) {
-    fail(`${row.pick_id} is missing its close`);
-  }
-  if (!block.includes(formatFinal(row.game_id, row.final_away, row.final_home))) {
-    fail(`${row.pick_id} is missing the final`);
-  }
-  if (!block.includes(formatUnits(row.units_pl))) {
-    fail(`${row.pick_id} units rendered as something other than ${formatUnits(row.units_pl)}`);
-  }
-  if (!block.includes(formatClv(row.clv_pts))) {
-    fail(`${row.pick_id} CLV rendered as something other than ${formatClv(row.clv_pts)}`);
-  }
-  if (row.units_pl === null && (block.includes('0.000u') || block.includes('+0.000u'))) {
-    fail(`${row.pick_id} shows zero units for a null result`);
-  }
-  const label = STATUS_LABEL[row.status];
-  if (!label || !block.includes(label)) {
-    fail(`${row.pick_id} is missing status ${label}`);
-  }
-  const marker = row.close_source ? CLOSE_MARKER[row.close_source] : undefined;
-  if (marker) {
-    if (!block.includes(marker.text)) {
-      fail(`${row.pick_id} is missing the ${marker.text} marker`);
+  const gamesIndex = await readHtml(distDir, 'games', 'index.html');
+  const chunks = gamesIndex.split('<article class="slate-card"').slice(1);
+  for (const chunk of chunks) {
+    const end = chunk.indexOf('</article>');
+    const block = end === -1 ? chunk : chunk.slice(0, end);
+    const gameId = /href="\/games\/([^"/]+)\/"/.exec(block)?.[1];
+    if (!gameId) {
+      fail('/games/ has a week card without a game link');
     }
-  } else {
-    for (const text of Object.values(CLOSE_MARKER).map((item) => item.text)) {
-      if (block.includes(text)) {
-        fail(`${row.pick_id} shows ${text} for close source ${row.close_source}`);
-      }
+    assertOfficialWeekCard(
+      block,
+      view.filter((row) => row.game_id === gameId),
+      `/games/ ${gameId}`,
+    );
+  }
+}
+
+function assertUniqueIds(html, label) {
+  const ids = [...html.matchAll(/\sid="([^"]+)"/g)].map((match) => match[1]);
+  const seen = new Map();
+  for (const id of ids) {
+    seen.set(id, (seen.get(id) ?? 0) + 1);
+  }
+  for (const [id, count] of seen) {
+    if (count > 1) {
+      fail(`${label} duplicates id="${id}" (${count})`);
     }
   }
-  if (row.note && !block.includes(row.note)) {
-    fail(`${row.pick_id} is missing its note`);
+}
+
+async function assertUniquePageIds(distDir) {
+  const files = [path.join(distDir, 'index.html'), path.join(distDir, 'games', 'index.html')];
+  const weeksDir = path.join(distDir, 'weeks');
+  if (await exists(weeksDir)) {
+    files.push(...(await listHtml(weeksDir)));
   }
-  if (!block.includes('Locked at')) {
-    fail(`${row.pick_id} is missing the lock label`);
-  }
-  if (!block.includes(formatMst(row.picked_at))) {
-    fail(`${row.pick_id} is missing picked_at in MST`);
-  }
-  if (!block.includes(formatMst(row.first_pushed_at))) {
-    fail(`${row.pick_id} is missing first_pushed_at in MST`);
-  }
-  if (!block.includes(' MST')) {
-    fail(`${row.pick_id} is missing the MST label`);
-  }
-  if (attr(block, 'units-pl') && !sameNumber(attr(block, 'units-pl'), row.units_pl)) {
-    fail(`${row.pick_id} data-units-pl does not match the fixture`);
-  }
-  if (!sameNumber(attr(block, 'clv'), row.clv_pts)) {
-    fail(`${row.pick_id} data-clv does not match the fixture`);
-  }
-  if (!sameNumber(attr(block, 'close'), row.closing_line)) {
-    fail(`${row.pick_id} data-close does not match the fixture`);
-  }
-  if (attr(block, 'status') !== row.status) {
-    fail(`${row.pick_id} data-status does not match the fixture`);
-  }
-  if (attr(block, 'close-source') !== (row.close_source ?? 'null')) {
-    fail(`${row.pick_id} data-close-source does not match the fixture`);
+  for (const filePath of files) {
+    if (!(await exists(filePath))) {
+      continue;
+    }
+    const html = await readFile(filePath, 'utf8');
+    assertUniqueIds(html, path.relative(distDir, filePath));
   }
 }
 
@@ -1492,6 +1546,8 @@ async function assertFixturePicks(distDir) {
   }
 
   assertPicksPageCards(picksHtml, view);
+  assertHomePickCards(homeHtml, view);
+  await assertWeekCardAccordions(distDir, view);
 
   const seenWeeks = [];
   for (const row of view) {
