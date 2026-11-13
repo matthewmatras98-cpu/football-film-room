@@ -18,9 +18,9 @@
     "n_books": 8
   },
   "line_latest": {
-    "ts": "2026-11-11T16:29:30Z",
-    "home_spread": -2,
-    "total": 41,
+    "ts": "2026-11-13T01:08:29Z",
+    "home_spread": -1.5,
+    "total": 40.5,
     "n_books": 9
   },
   "line_history": [
@@ -41,17 +41,22 @@
       "home_spread": -2,
       "total": 41,
       "n_books": 9
+    },
+    {
+      "ts": "2026-11-13T01:08:29Z",
+      "home_spread": -1.5,
+      "total": 40.5,
+      "n_books": 9
     }
   ],
-  "generated_at": "2026-11-12T11:59:02Z",
+  "generated_at": "2026-11-13T03:14:30Z",
   "data_through_week": 9,
   "sources": [
     "nflverse_pbp",
     "nflverse_schedules",
     "nflverse_injuries",
     "ngs_via_nflverse",
-    "odds_api",
-    "nws"
+    "odds_api"
   ],
   "injuries_status": "reported",
   "sections": {
@@ -372,24 +377,24 @@
     "weather": {
       "mode": "outdoor",
       "temp_f": {
-        "value": 52,
+        "value": null,
         "source": "nws",
         "sample": null,
-        "range": "2026-11-12T20:00:00-05:00/2026-11-12T21:00:00-05:00"
+        "range": null
       },
       "wind_mph": {
-        "value": 12,
+        "value": null,
         "source": "nws",
         "sample": null,
-        "range": "2026-11-12T20:00:00-05:00/2026-11-12T21:00:00-05:00"
+        "range": null
       },
       "precip_prob_pct": {
-        "value": 74,
+        "value": null,
         "source": "nws",
         "sample": null,
-        "range": "2026-11-12T20:00:00-05:00/2026-11-12T21:00:00-05:00"
+        "range": null
       },
-      "summary": "Light Rain Likely"
+      "summary": null
     },
     "story_prompts": [
       {

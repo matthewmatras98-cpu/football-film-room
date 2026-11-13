@@ -1,1 +1,29 @@
-[]
+[
+  {
+    "close_age_min": 3681.517,
+    "close_books": 9,
+    "close_source": "odds_api_stale",
+    "close_ts": "2026-11-13T01:08:29Z",
+    "closing_line": -3,
+    "clv_pts": null,
+    "confidence": 1,
+    "final_away": null,
+    "final_home": null,
+    "first_pushed_at": "2026-11-13T02:17:17Z",
+    "game_id": "2026_10_NE_DET",
+    "line_at_pick": -3,
+    "market": "spread",
+    "note": "",
+    "pick_id": "2026_10_NE_DET-spread",
+    "picked_at": "2026-11-13T02:17:00Z",
+    "result": null,
+    "season": 2026,
+    "side": "DET",
+    "status": "pending",
+    "tags": "",
+    "units": 1,
+    "units_pl": null,
+    "voided_at": null,
+    "week": 10
+  }
+]
