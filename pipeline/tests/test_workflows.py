@@ -272,13 +272,22 @@ def test_pick_intake_is_dispatch_only_and_read_only():
     assert checkout_at < sync_at < intake_at
     assert "football_pipeline grade --no-fetch" in record
     assert "pull-snapshots" not in text
-    assert "refresh" not in record
+    assert "football_pipeline refresh" not in record
     grade_at = record.index("football_pipeline grade --no-fetch")
     push_at = record.index("bash scripts/push_with_retry.sh")
     assert intake_at < record.index('git commit -m "void:') < grade_at < push_at
     assert 'git commit -m "Refresh picks view"' in record
     assert "git commit --amend" not in text
     assert record.index("git add -- src/data/summary.json src/data/picks_view.json") > grade_at
+    guarded = record.index(
+        "if (cd pipeline && uv run --frozen python -m football_pipeline grade --no-fetch); then"
+    )
+    warning_at = record.index(
+        'echo "::warning::picks view refresh failed; weekly will republish"'
+    )
+    restore_at = record.index("git checkout -- src/data/summary.json src/data/picks_view.json")
+    assert guarded < grade_at < warning_at < restore_at < push_at
+    assert 'git commit -m "Refresh picks view"' not in record[warning_at:push_at]
     assert text.count("uv sync --frozen") == 1
     assert 'IFS= read -r validated_request_id' in record
     assert record.index("validated_action") < record.index("pick_id") < record.index(

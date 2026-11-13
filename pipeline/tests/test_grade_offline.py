@@ -119,6 +119,27 @@ def test_card_kickoff_rejects_a_late_pick_without_a_fetch(tmp_path: Path):
     assert row["first_pushed_at"] is None
 
 
+def test_bad_card_exits_without_touching_published_bytes(tmp_path: Path):
+    root = prepare_repo(tmp_path)
+    graded = run_cli(grade_args(root))
+    assert graded.returncode == 0, graded.stderr + graded.stdout
+    before = _bytes(root)
+    games = root / "src" / "content" / "games"
+    games.mkdir(parents=True)
+    (games / "2099_05_GB_CHI.json").write_text(
+        json.dumps({"game_id": "2099_05_GB_CHI", "season": 2099, "week": 5, "away": "GB", "home": "CHI"}),
+        encoding="utf-8",
+    )
+    _append(
+        root / "data" / "picks.csv",
+        "2099_05_GB_CHI-spread,2099_05_GB_CHI,2099,5,spread,GB,3.0,2099-09-20T12:00:00Z,1.0,1,,bad card,pick",
+    )
+    result = run_cli(["grade", "--root", str(root), "--no-fetch"])
+    assert result.returncode == 1
+    assert "card has no kickoff" in result.stderr
+    assert _bytes(root) == before
+
+
 def test_missing_card_still_publishes_a_pending_pick(tmp_path: Path):
     root = prepare_repo(tmp_path)
     graded = run_cli(grade_args(root))
