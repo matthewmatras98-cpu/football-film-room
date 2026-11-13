@@ -1,21 +1,49 @@
 ---
 import Writeup from './Writeup.astro';
-import type { Writeup as WriteupEntry } from '../lib/writeup';
+import { formatMst } from '../lib/format-picks';
+import { renderWriteup, type Writeup as WriteupEntry } from '../lib/writeup';
 
 interface Props {
-  entry: WriteupEntry;
+  entry: WriteupEntry | null;
   matchup: string;
+  /** Ledger cards pass the pick's picked_at so the submitted line does not depend on a write-up file. */
+  pickedAt?: string;
+  gradeLine?: string;
 }
 
-const { entry, matchup } = Astro.props;
+const { entry, matchup, pickedAt, gradeLine } = Astro.props;
+const ledger = pickedAt !== undefined;
+const hasBody = Boolean(entry && entry.body.trim());
 ---
 
-<details class="writeup-details">
-  <summary>
-    <span class="writeup-label writeup-label--read">Read the write-up</span>
-    <span class="writeup-label writeup-label--hide">Hide the write-up</span>
-    <span class="visually-hidden"> for {matchup}</span>
-    <span class="writeup-chevron" aria-hidden="true"></span>
-  </summary>
-  <Writeup entry={entry} />
-</details>
+{
+  ledger ? (
+    <details class="writeup-details">
+      <summary>
+        <span class="writeup-label writeup-label--read">{hasBody ? 'Read the write-up' : 'Pick details'}</span>
+        <span class="writeup-label writeup-label--hide">
+          {hasBody ? 'Hide the write-up' : 'Hide the pick details'}
+        </span>
+        <span class="visually-hidden"> for {matchup}</span>
+        <span class="writeup-chevron" aria-hidden="true"></span>
+      </summary>
+      {gradeLine ? <p class="pick-grade">{gradeLine}</p> : null}
+      <div class="writeup prose">
+        <p class="meta">
+          Submitted (server time) <time datetime={pickedAt}>{formatMst(pickedAt ?? null)}</time>
+        </p>
+        {hasBody && entry ? <div class="writeup-body" set:html={renderWriteup(entry.body)} /> : null}
+      </div>
+    </details>
+  ) : entry ? (
+    <details class="writeup-details">
+      <summary>
+        <span class="writeup-label writeup-label--read">Read the write-up</span>
+        <span class="writeup-label writeup-label--hide">Hide the write-up</span>
+        <span class="visually-hidden"> for {matchup}</span>
+        <span class="writeup-chevron" aria-hidden="true"></span>
+      </summary>
+      <Writeup entry={entry} />
+    </details>
+  ) : null
+}

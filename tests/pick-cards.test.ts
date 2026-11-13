@@ -1,9 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { experimental_AstroContainer as AstroContainer } from 'astro/container';
+import PickCards from '../src/components/PickCards.astro';
 import ProgramCard from '../src/components/ProgramCard.astro';
 import PicksTable from '../src/components/PicksTable.astro';
-import { formatCardPick, officialCardPicks } from '../src/lib/card-pick';
+import { formatCardPick, formatPickGrade, officialCardPicks } from '../src/lib/card-pick';
 import { gameCardSchema, type GameCard } from '../src/lib/game-schema';
 import type { PickView } from '../src/lib/picks-schema';
 import type { Writeup } from '../src/lib/writeup';
@@ -82,6 +83,35 @@ async function cardHtml(picks: PickView[], writeups: readonly Writeup[] = [write
   });
 }
 
+async function ledgerHtml(
+  rows: PickView[],
+  writeups: readonly Writeup[] = [writeup],
+  games: GameCard[] = [card],
+): Promise<string> {
+  return container.renderToString(PickCards, {
+    props: { picks: rows, games, writeups },
+  });
+}
+
+function anchors(html: string): string[] {
+  return html.match(/<a\b[^>]*>[\s\S]*?<\/a>/g) ?? [];
+}
+
+function cardBlock(html: string, pickId: string): string {
+  const marker = `id="pick-${pickId}"`;
+  const start = html.indexOf(marker);
+  expect(start, marker).toBeGreaterThanOrEqual(0);
+  const next = html.indexOf('id="pick-', start + marker.length);
+  return html.slice(start, next === -1 ? html.length : next);
+}
+
+function cardInner(html: string, pickId: string): string {
+  const block = cardBlock(html, pickId);
+  const open = block.indexOf('>');
+  const close = block.lastIndexOf('</li>');
+  return block.slice(open + 1, close === -1 ? block.length : close);
+}
+
 describe('official card picks', () => {
   it('uses the line the pick was made at', () => {
     expect(formatCardPick(pick())).toBe('DET -3.0');
@@ -108,6 +138,55 @@ describe('official card picks', () => {
         }),
       ),
     ).toBe('Under 45.5');
+  });
+
+  it('keeps a short grade line and drops fields that are missing', () => {
+    expect(formatPickGrade(pick())).toBe('Closed DET -6.5 · Status pending');
+    expect(
+      formatPickGrade(
+        pick({
+          closing_line: null,
+          clv_pts: null,
+          result: null,
+          close_source: null,
+        }),
+      ),
+    ).toBe('Status pending');
+    expect(
+      formatPickGrade(
+        pick({
+          closing_line: -4.5,
+          clv_pts: 1.5,
+          result: 'W',
+          status: 'graded',
+          units_pl: 0.909,
+          close_source: 'odds_api',
+        }),
+      ),
+    ).toBe('Closed DET -4.5 · CLV +1.500 · Result W · Status graded');
+    expect(
+      formatPickGrade(
+        pick({
+          status: 'void',
+          voided_at: '2026-11-13T03:00:00Z',
+          closing_line: -4.5,
+          close_source: 'odds_api_stale',
+          clv_pts: null,
+          result: null,
+        }),
+      ),
+    ).toBe('Pick DET -3.0 · Closed DET -4.5 · stale close · Status void');
+    expect(
+      formatPickGrade(
+        pick({
+          status: 'rejected_late',
+          closing_line: null,
+          clv_pts: null,
+          result: null,
+          close_source: null,
+        }),
+      ),
+    ).toBe('Pick DET -3.0 · Status rejected_late');
   });
 
   it('appends a grade only when one is already on the row', () => {
@@ -231,6 +310,123 @@ describe('picks ledger', () => {
     expect(outside).toContain('Void');
     expect(outside).not.toContain('Cover the number');
     expect(html).toContain('<details class="writeup-details">');
+  });
+});
+
+describe('picks page cards', () => {
+  it('renders exactly one card per pick, including re-picks', async () => {
+    const rows = [
+      pick(),
+      pick({
+        pick_id: '2026_10_NE_DET-spread-r2',
+        side: 'NE',
+        line_at_pick: -1,
+        status: 'pending',
+        closing_line: null,
+        clv_pts: null,
+      }),
+      pick({
+        pick_id: '2026_10_NE_DET-total',
+        market: 'total',
+        side: 'over',
+        line_at_pick: 51,
+        status: 'void',
+        voided_at: '2026-11-13T03:00:00Z',
+      }),
+    ];
+    const html = await ledgerHtml(rows);
+    expect(html.match(/<li\b[^>]*\bclass="game-card"/g)).toHaveLength(rows.length);
+    expect(html.match(/id="pick-[^"]+"/g)).toHaveLength(rows.length);
+    for (const row of rows) {
+      expect(html).toContain(`id="pick-${row.pick_id}"`);
+    }
+    expect(html).toContain('class="card-list"');
+    for (const anchor of anchors(html)) {
+      expect(anchor).not.toContain('<details');
+    }
+  });
+
+  it('matches the home card for the same game, ignoring the accordion', async () => {
+    const row = pick();
+    const home = await cardHtml([row]);
+    const ledger = await ledgerHtml([row]);
+    const inner = cardInner(ledger, row.pick_id);
+    expect(compact(withoutDetails(inner))).toBe(compact(withoutDetails(home)));
+    expect(home).toContain('<span class="badge badge--none pick-line">DET -3.0</span>');
+    expect(inner).toContain('class="pick-grade"');
+    expect(inner).toContain('Closed DET -6.5 · Status pending');
+    expect(inner.indexOf('class="pick-grade"')).toBeLessThan(inner.indexOf('Submitted (server time)'));
+    expect(inner.indexOf('Submitted (server time)')).toBeLessThan(inner.indexOf('Cover the number'));
+    expect(inner).toContain(`datetime="${row.picked_at}"`);
+  });
+
+  it('shows a void pick as its own muted card and leaves the home card unpicked', async () => {
+    const row = pick({ status: 'void', voided_at: '2026-11-13T03:00:00Z' });
+    const home = await cardHtml([row]);
+    const ledger = await ledgerHtml([row], []);
+    const block = cardBlock(ledger, row.pick_id);
+    expect(home).toContain('No official pick');
+    expect(home).not.toContain('<details');
+    expect(block).toContain('<span class="badge badge--none badge--quiet">Void</span>');
+    expect(block).not.toContain('pick-line');
+    expect(block).toContain('Pick DET -3.0 · Closed DET -6.5 · Status void');
+    expect(block).toContain('Pick details');
+    expect(block).toContain('<span class="visually-hidden"> for NE at DET</span>');
+    expect(block).not.toContain('Cover the number');
+    expect(block).not.toContain('Read the write-up');
+  });
+
+  it('shows a rejected-late pick as its own muted card', async () => {
+    const row = pick({ status: 'rejected_late', closing_line: -4, close_source: null });
+    const home = await cardHtml([row]);
+    const ledger = await ledgerHtml([row]);
+    const block = cardBlock(ledger, row.pick_id);
+    expect(home).toContain('No official pick');
+    expect(home).not.toContain('Rejected');
+    expect(block).toContain('<span class="badge badge--none badge--quiet">Rejected \u2013 late</span>');
+    expect(block).toContain('Pick DET -3.0');
+    expect(block).toContain('Status rejected_late');
+    expect(block).not.toContain('pick-line');
+    for (const anchor of anchors(block)) {
+      expect(anchor).not.toContain('<details');
+    }
+  });
+
+  it('uses Pick details when the ledger card has no write-up', async () => {
+    const row = pick({ closing_line: null, clv_pts: null, result: null, close_source: null });
+    const html = await ledgerHtml([row], []);
+    const summary = html.match(/<summary>[\s\S]*?<\/summary>/)?.[0] ?? '';
+    expect(summary).toContain('Pick details');
+    expect(summary).toContain('Hide the pick details');
+    expect(summary).toContain('<span class="visually-hidden"> for NE at DET</span>');
+    expect(summary).not.toContain('Read the write-up');
+    expect(html).toContain('Submitted (server time)');
+    expect(html).toContain('Status pending');
+    expect(html).not.toContain('Cover the number');
+    expect(html).not.toContain('<writeup');
+    expect(html.match(/<details\b[^>]*>/g)).toEqual(['<details class="writeup-details">']);
+  });
+
+  it('still renders a card when the game JSON is missing', async () => {
+    const row = pick({
+      pick_id: '2026_11_BUF_KC-spread',
+      game_id: '2026_11_BUF_KC',
+      side: 'BUF',
+      line_at_pick: -2.5,
+      closing_line: null,
+      clv_pts: null,
+      close_source: null,
+    });
+    const html = await ledgerHtml([row], []);
+    const block = cardBlock(html, row.pick_id);
+    expect(block).toContain('BUF @ KC');
+    expect(block).toContain('<span class="visually-hidden"> for BUF at KC</span>');
+    expect(block).toContain('<span class="when">n/a (source unavailable)</span>');
+    expect(block).toContain('Line n/a (source unavailable)');
+    expect(block).not.toContain('game-angle');
+    expect(block).not.toContain('href="/games/2026_11_BUF_KC/"');
+    expect(block).toContain('Submitted (server time)');
+    expect(block).toContain('Status pending');
   });
 });
 
