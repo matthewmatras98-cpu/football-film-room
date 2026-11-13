@@ -16,7 +16,7 @@ from football_pipeline.factcheck import dump_factcheck, factcheck
 from football_pipeline.close import read_snapshot_closes
 from football_pipeline.d1 import D1Client
 from football_pipeline.dispatch import run_dispatch
-from football_pipeline.grade import grade_picks, write_outputs
+from football_pipeline.grade import grade_picks, republish, resolve_offline_as_of, write_outputs
 from football_pipeline.ledger import (
     append_new_rows,
     fetch_push_timestamp_from_github,
@@ -135,10 +135,13 @@ def _ledger(args: argparse.Namespace) -> int:
 
 
 def _grade(args: argparse.Namespace) -> int:
+    root = find_root(args.root)
+    if args.no_fetch:
+        as_of = resolve_offline_as_of(root, args.as_of)
+        return republish(root, as_of, schedules=args.schedules)
     if not args.as_of:
         raise PipelineError("grade requires --as-of so generated_at is deterministic")
     as_of = parse_ts(args.as_of)
-    root = find_root(args.root)
     picks_path = root / "data" / "picks.csv"
     rows, games, issues = _validated(root, picks_path, args.schedules)
     if issues:
@@ -324,6 +327,11 @@ def _parser() -> argparse.ArgumentParser:
         help="JSON list of activity-API objects; skips the network (tests)",
     )
     grade.add_argument("--as-of", dest="as_of", default=None, help="ISO-8601 timestamp with offset")
+    grade.add_argument(
+        "--no-fetch",
+        action="store_true",
+        help="regenerate picks_view.json and summary.json from the repo only; do not read nflverse",
+    )
     grade.add_argument(
         "--snapshots",
         type=Path,

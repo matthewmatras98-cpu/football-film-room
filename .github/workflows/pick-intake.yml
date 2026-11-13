@@ -110,4 +110,13 @@ jobs:
             echo "::error::intake did not return a validated action" >&2
             exit 1
           fi
+          # Same grade entry point as weekly. No schedule load and no snapshot pull.
+          # generated_at stays the published summary timestamp, so a rerun does not churn it.
+          (cd pipeline && uv run --frozen python -m football_pipeline grade --no-fetch)
+          git add -- src/data/summary.json src/data/picks_view.json
+          if git diff --cached --quiet; then
+            echo "no grader changes"
+          else
+            git commit -m "Refresh picks view"
+          fi
           bash scripts/push_with_retry.sh
