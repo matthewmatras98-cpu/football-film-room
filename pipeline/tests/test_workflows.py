@@ -25,6 +25,9 @@ def test_every_action_is_pinned_to_the_b1_shas():
         text = path.read_text(encoding="utf-8")
         assert "set -x" not in text
         uses_lines = [line for line in text.splitlines() if "uses:" in line]
+        if path.name == "scheduled-rebuild.yml":
+            assert not uses_lines
+            continue
         assert uses_lines, path.name
         for line in uses_lines:
             match = USES.search(line)
@@ -36,6 +39,23 @@ def test_every_action_is_pinned_to_the_b1_shas():
         assert not re.search(r"uses:\s+\S+@v\d", text)
     assert "actions/checkout" in seen
     assert "astral-sh/setup-uv" in seen
+
+
+def test_scheduled_rebuild_posts_the_hook_without_actions_or_echo():
+    text = (WORKFLOWS / "scheduled-rebuild.yml").read_text(encoding="utf-8")
+    assert "permissions: {}" in text
+    assert "cron: '15 10 * * *'" in text
+    assert "workflow_dispatch:" in text
+    assert "HOOK: ${{ secrets.CF_PAGES_DEPLOY_HOOK }}" in text
+    assert "uses:" not in text
+    assert "actions/checkout" not in text
+    assert "git commit" not in text
+    assert "git push" not in text
+    assert 'curl -fsS -X POST "$HOOK" > /dev/null' in text
+    assert 'echo "$HOOK"' not in text
+    assert "echo $HOOK" not in text
+    assert "echo '$HOOK'" not in text
+    assert "set -x" not in text
 
 
 def test_ci_keeps_the_site_job_and_the_pipeline_pytest_job():
