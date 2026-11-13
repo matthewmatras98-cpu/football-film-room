@@ -21,13 +21,13 @@ function pickVersion(row: Pick<CardPickRef, 'pick_id' | 'game_id' | 'market'>): 
 }
 
 /**
- * One non-void pick per game and market. A later version replaces an earlier one.
- * A voided id is left out, so a card with only voids renders as unpicked.
+ * One official pick per game and market. A later version replaces an earlier one.
+ * Void and rejected-late rows are left out, so the card renders as unpicked.
  */
 export function officialCardPicks<T extends CardPickRef>(rows: readonly T[]): T[] {
   const chosen = new Map<string, T>();
   for (const row of rows) {
-    if (row.status === 'void') {
+    if (row.status === 'void' || row.status === 'rejected_late') {
       continue;
     }
     const key = `${row.game_id}\0${row.market}`;
@@ -49,5 +49,5 @@ export function formatCardPick(row: CardPickRef): string {
   const line =
     row.market === 'total' ? totalSide(row.side, row.line_at_pick) : formatSpreadTeam(row.side, row.line_at_pick);
   const grade = row.result === 'W' ? 'W' : row.result === 'L' ? 'L' : row.result === 'P' ? 'Push' : null;
-  return grade ? `Pick: ${line} \u00b7 ${grade}` : `Pick: ${line}`;
+  return grade ? `${line} \u00b7 ${grade}` : line;
 }

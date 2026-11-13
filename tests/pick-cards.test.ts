@@ -60,9 +60,10 @@ function withoutDetails(html: string): string {
 }
 
 function asUnpicked(html: string): string {
-  return compact(withoutDetails(html))
-    .replace(/ class="badge badge--none pick-line"/g, ' class="badge badge--none"')
-    .replace(/Pick: DET -3\.0(?: · [WL]| · Push)?/g, 'No official pick');
+  return compact(withoutDetails(html)).replace(
+    /<span class="badge badge--none pick-line">DET -3\.0(?: · [WL]| · Push)?<\/span>/g,
+    '<span class="badge badge--none">No official pick</span>',
+  );
 }
 
 function block(source: string, startMarker: string, endMarker: string): string {
@@ -83,7 +84,8 @@ async function cardHtml(picks: PickView[], writeups: readonly Writeup[] = [write
 
 describe('official card picks', () => {
   it('uses the line the pick was made at', () => {
-    expect(formatCardPick(pick())).toBe('Pick: DET -3.0');
+    expect(formatCardPick(pick())).toBe('DET -3.0');
+    expect(formatCardPick(pick())).not.toContain('Pick:');
     expect(formatCardPick(pick())).not.toContain('-6.5');
     expect(
       formatCardPick(
@@ -95,7 +97,7 @@ describe('official card picks', () => {
           closing_line: 47,
         }),
       ),
-    ).toBe('Pick: Over 45.5');
+    ).toBe('Over 45.5');
     expect(
       formatCardPick(
         pick({
@@ -105,19 +107,20 @@ describe('official card picks', () => {
           line_at_pick: 45.5,
         }),
       ),
-    ).toBe('Pick: Under 45.5');
+    ).toBe('Under 45.5');
   });
 
   it('appends a grade only when one is already on the row', () => {
-    expect(formatCardPick(pick({ result: 'W' }))).toBe('Pick: DET -3.0 · W');
-    expect(formatCardPick(pick({ result: 'L' }))).toBe('Pick: DET -3.0 · L');
-    expect(formatCardPick(pick({ result: 'P' }))).toBe('Pick: DET -3.0 · Push');
-    expect(formatCardPick(pick({ result: null, status: 'pending' }))).toBe('Pick: DET -3.0');
+    expect(formatCardPick(pick({ result: 'W' }))).toBe('DET -3.0 · W');
+    expect(formatCardPick(pick({ result: 'L' }))).toBe('DET -3.0 · L');
+    expect(formatCardPick(pick({ result: 'P' }))).toBe('DET -3.0 · Push');
+    expect(formatCardPick(pick({ result: null, status: 'pending' }))).toBe('DET -3.0');
     expect(formatCardPick(pick({ result: null, status: 'ungraded' }))).not.toContain('Ungraded');
   });
 
-  it('drops voids and keeps the latest remaining version', () => {
+  it('drops voids and rejected-late rows and keeps the latest remaining version', () => {
     const voided = pick({ status: 'void', voided_at: '2026-11-13T03:00:00Z' });
+    const rejected = pick({ status: 'rejected_late' });
     const repick = pick({
       pick_id: '2026_10_NE_DET-spread-r2',
       side: 'NE',
@@ -125,7 +128,8 @@ describe('official card picks', () => {
       status: 'pending',
     });
     expect(officialCardPicks([voided])).toEqual([]);
-    expect(officialCardPicks([voided, repick])).toEqual([repick]);
+    expect(officialCardPicks([rejected])).toEqual([]);
+    expect(officialCardPicks([voided, rejected, repick])).toEqual([repick]);
   });
 });
 
@@ -146,7 +150,8 @@ describe('program card markup', () => {
     const picked = await cardHtml([pick()]);
     const openTags = picked.match(/<details\b[^>]*>/g) ?? [];
     expect(openTags).toEqual(['<details class="writeup-details">']);
-    expect(picked).toContain('Pick: DET -3.0');
+    expect(picked).toContain('<span class="badge badge--none pick-line">DET -3.0</span>');
+    expect(picked).not.toContain('Pick:');
     expect(picked).not.toContain('DET -6.5');
     expect(picked).toContain('<span class="visually-hidden"> for NE at DET</span>');
     expect(picked).toMatch(/<summary>[\s\S]*<span class="visually-hidden"> for NE at DET<\/span>[\s\S]*<\/summary>/);
@@ -166,9 +171,17 @@ describe('program card markup', () => {
     expect(voided).toContain('No official pick');
   });
 
+  it('renders a rejected-late pick as an unpicked card', async () => {
+    const unpicked = await cardHtml([]);
+    const rejected = await cardHtml([pick({ status: 'rejected_late' })]);
+    expect(compact(rejected)).toBe(compact(unpicked));
+    expect(rejected).not.toContain('<details');
+    expect(rejected).toContain('No official pick');
+  });
+
   it('leaves the accordion off when the official pick has no write-up', async () => {
     const html = await cardHtml([pick()], []);
-    expect(html).toContain('Pick: DET -3.0');
+    expect(html).toContain('<span class="badge badge--none pick-line">DET -3.0</span>');
     expect(html).not.toContain('<details');
   });
 });
@@ -192,6 +205,18 @@ describe('picks ledger', () => {
     expect(outside).not.toContain('<details');
     const openTags = html.match(/<details\b[^>]*>/g) ?? [];
     expect(openTags).toEqual(['<details class="writeup-details">']);
+  });
+
+  it('still labels a rejected-late ledger row as rejected', async () => {
+    const html = await container.renderToString(PicksTable, {
+      props: {
+        picks: [pick({ status: 'rejected_late' })],
+        gameIds: new Set<string>(),
+        writeups: [],
+      },
+    });
+    expect(html).toContain('Rejected \u2013 late');
+    expect(html).not.toContain('<details');
   });
 
   it('still labels a voided ledger row as void', async () => {
