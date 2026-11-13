@@ -1,0 +1,21 @@
+---
+import Writeup from './Writeup.astro';
+import type { Writeup as WriteupEntry } from '../lib/writeup';
+
+interface Props {
+  entry: WriteupEntry;
+  matchup: string;
+}
+
+const { entry, matchup } = Astro.props;
+---
+
+<details class="writeup-details">
+  <summary>
+    <span class="writeup-label writeup-label--read">Read the write-up</span>
+    <span class="writeup-label writeup-label--hide">Hide the write-up</span>
+    <span class="visually-hidden"> for {matchup}</span>
+    <span class="writeup-chevron" aria-hidden="true"></span>
+  </summary>
+  <Writeup entry={entry} />
+</details>

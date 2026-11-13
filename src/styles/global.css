@@ -440,6 +440,8 @@ main {
 }
 
 .card-list {
+  display: grid;
+  align-items: start;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -560,6 +562,13 @@ main {
   border-color: var(--color-border);
   color: var(--color-text-muted);
   font-weight: 600;
+}
+
+.program-pick .pick-line {
+  color: var(--color-text);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: none;
 }
 
 .badge--win {
@@ -710,6 +719,7 @@ main {
 
 .games-grid {
   display: grid;
+  align-items: start;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-16);
   margin-bottom: var(--space-32);
@@ -722,7 +732,6 @@ main {
   border: var(--rule-hairline) solid var(--color-border);
   border-top: var(--rule-medium) solid var(--color-border-strong);
   padding: var(--space-16) var(--space-16) var(--space-20);
-  min-height: 100%;
 }
 
 .slate-card .when,
@@ -865,6 +874,13 @@ main {
   text-transform: none;
 }
 
+.pick-writeup {
+  min-width: 16rem;
+  overflow-wrap: break-word;
+  text-align: left;
+  white-space: normal;
+}
+
 tbody.is-rejected .record {
   text-decoration: line-through;
   color: var(--color-text-muted);
@@ -963,6 +979,74 @@ tbody.is-rejected .record {
 
 .writeup .meta {
   display: block;
+}
+
+.writeup-details {
+  margin-top: var(--space-12);
+}
+
+.pick-writeup .writeup-details {
+  margin-top: 0;
+}
+
+.writeup-details > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  cursor: pointer;
+  color: var(--color-text);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.writeup-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.writeup-details > summary:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+.writeup-label--hide {
+  display: none;
+}
+
+.writeup-details[open] .writeup-label--read {
+  display: none;
+}
+
+.writeup-details[open] .writeup-label--hide {
+  display: inline;
+}
+
+.writeup-chevron {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 0.45rem;
+  height: 0.45rem;
+  margin-left: auto;
+  border-right: var(--rule-medium) solid currentColor;
+  border-bottom: var(--rule-medium) solid currentColor;
+  transform: rotate(45deg);
+}
+
+.writeup-details[open] .writeup-chevron {
+  transform: rotate(225deg);
+}
+
+.writeup-details .writeup {
+  overflow: visible;
+  max-height: none;
+}
+
+.week-picks .writeup-details {
+  flex-basis: 100%;
 }
 
 .not-found {
@@ -1214,12 +1298,17 @@ tbody.is-rejected .record {
     text-transform: uppercase;
   }
 
-  .picks td.pick-detail {
+  .picks td.pick-detail,
+  .picks td.pick-writeup {
     display: block;
+    max-width: 100%;
+    min-width: 0;
     text-align: left;
+    white-space: normal;
   }
 
-  .picks td.pick-detail::before {
+  .picks td.pick-detail::before,
+  .picks td.pick-writeup::before {
     content: none;
   }
 
