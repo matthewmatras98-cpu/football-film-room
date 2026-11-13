@@ -1,19 +1,27 @@
 ---
+import WriteupAccordion from './WriteupAccordion.astro';
+import { formatCardPick, officialCardPicks } from '../lib/card-pick';
 import { formatEpaStory } from '../lib/format-stat';
-import { formatSideLine, formatMst } from '../lib/picks';
+import { formatMst } from '../lib/picks';
 import { slateLine } from '../lib/program';
 import type { GameCard } from '../lib/game-schema';
 import type { PickView } from '../lib/picks-schema';
+import { writeupForPick, type Writeup as WriteupEntry } from '../lib/writeup';
 
 interface Props {
   card: GameCard;
   picks: PickView[];
   level?: 'h2' | 'h3';
+  writeups?: readonly WriteupEntry[];
 }
 
-const { card, picks, level = 'h3' } = Astro.props;
+const { card, picks, level = 'h3', writeups: providedWriteups } = Astro.props;
 const Title = level;
 const prompt = card.sections.story_prompts[0];
+const official = officialCardPicks(picks);
+const writeups =
+  providedWriteups ?? (official.length > 0 ? await (await import('../lib/writeups')).getWriteups() : []);
+const matchup = `${card.away} at ${card.home}`;
 ---
 
 <div class="game-card-meta">
@@ -31,16 +39,18 @@ const prompt = card.sections.story_prompts[0];
   <div class="program-pick">
     Program pick
     {
-      picks.length === 0 ? (
+      official.length === 0 ? (
         <span class="badge badge--none">No official pick</span>
       ) : (
-        picks.map((row) => (
-          <a class="pick-badge badge badge--pick" href={`/picks/#pick-${row.pick_id}`}>
-            {formatSideLine(row.market, row.side, row.line_at_pick)}
-          </a>
-        ))
+        official.map((row) => <span class="badge badge--none pick-line">{formatCardPick(row)}</span>)
       )
     }
   </div>
   <a class="section-link" href={`/games/${card.game_id}/`}>Read matchup notes</a>
 </div>
+{
+  official.map((row) => {
+    const entry = writeupForPick(row.pick_id, writeups);
+    return entry ? <WriteupAccordion entry={entry} matchup={matchup} /> : null;
+  })
+}

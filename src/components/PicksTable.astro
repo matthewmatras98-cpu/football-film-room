@@ -1,7 +1,7 @@
 ---
 import CloseMarker from './CloseMarker.astro';
 import StatusBadge from './StatusBadge.astro';
-import Writeup from './Writeup.astro';
+import WriteupAccordion from './WriteupAccordion.astro';
 import {
   EM_DASH,
   formatClv,
@@ -13,16 +13,17 @@ import {
   matchupLabel,
 } from '../lib/picks';
 import type { PickView } from '../lib/picks-schema';
-import { getWriteups, writeupForPick } from '../lib/writeups';
+import { writeupForPick, type Writeup as WriteupEntry } from '../lib/writeup';
 
 interface Props {
   picks: PickView[];
   gameIds?: ReadonlySet<string>;
+  writeups?: readonly WriteupEntry[];
 }
 
 const { picks } = Astro.props;
 const gameIds = Astro.props.gameIds ?? new Set<string>();
-const writeups = await getWriteups();
+const writeups = Astro.props.writeups ?? (await (await import('../lib/writeups')).getWriteups());
 
 function dataValue(value: number | null): string {
   return value === null ? 'null' : String(value);
@@ -67,6 +68,7 @@ function unitsClass(result: PickView['result']): string | undefined {
       picks.map((pick) => {
         const word = resultWord(pick.result);
         const linked = gameIds.has(pick.game_id);
+        const entry = writeupForPick(pick.pick_id, writeups);
         return (
           <tbody
             id={`pick-${pick.pick_id}`}
@@ -121,9 +123,17 @@ function unitsClass(result: PickView['result']): string | undefined {
                   )}
                   .
                 </p>
-                <Writeup entry={writeupForPick(pick.pick_id, writeups)} />
               </td>
             </tr>
+            {
+              entry ? (
+                <tr>
+                  <td class="pick-writeup" colspan="7">
+                    <WriteupAccordion entry={entry} matchup={matchupLabel(pick.game_id)} />
+                  </td>
+                </tr>
+              ) : null
+            }
           </tbody>
         );
       })

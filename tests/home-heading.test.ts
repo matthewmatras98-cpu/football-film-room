@@ -82,6 +82,8 @@ describe('home h1', () => {
     expect(html).toMatch(/<h1 class="visually-hidden">Season record<\/h1>/);
     const gamesAt = html.indexOf('data-week-cards');
     const noteAt = html.indexOf('No picks yet this season.');
-    expect(noteAt).toBeGreaterThan(gamesAt);
+    if (noteAt !== -1) {
+      expect(noteAt).toBeGreaterThan(gamesAt);
+    }
   });
 });

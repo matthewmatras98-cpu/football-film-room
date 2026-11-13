@@ -22,6 +22,7 @@ import {
 register(new URL('./ts-resolver.mjs', import.meta.url));
 
 const { formatStatKind } = await import('../src/lib/format-stat.ts');
+const { formatCardPick, officialCardPicks } = await import('../src/lib/card-pick.ts');
 const { gameCardSchema } = await import('../src/lib/game-schema.ts');
 const { currentSeasonWeek } = await import('../src/lib/current-week.ts');
 const { picksViewSchema, summarySchema } = await import('../src/lib/picks-schema.ts');
@@ -512,12 +513,16 @@ function rowBlock(html, pickId, label = 'picks page') {
   }
   const next = html.indexOf('id="pick-', start + marker.length);
   const footer = html.indexOf('<footer', start);
+  const tbody = html.indexOf('</tbody>', start);
   let end = html.length;
   if (next !== -1) {
     end = Math.min(end, next);
   }
   if (footer !== -1) {
     end = Math.min(end, footer);
+  }
+  if (tbody !== -1) {
+    end = Math.min(end, tbody);
   }
   return html.slice(start, end);
 }
@@ -910,12 +915,25 @@ async function assertFixtureCards(distDir, fixtures, picks, knownGameId) {
     if (sameSeasonWeek(card, current)) {
       const item = gameItem(home, card.game_id);
       const matches = picks.filter((row) => row.game_id === card.game_id);
-      if (matches.length === 0 && item.includes('pick-badge')) {
-        fail(`home gave ${card.game_id} a pick badge without a pick`);
-      }
-      for (const row of matches) {
-        if (!item.includes('pick-badge') || !item.includes(`/picks/#pick-${row.pick_id}`)) {
-          fail(`home is missing the Pick badge for ${row.pick_id}`);
+      const official = officialCardPicks(matches);
+      if (official.length === 0) {
+        if (!item.includes('No official pick')) {
+          fail(`home ${card.game_id} is missing No official pick`);
+        }
+        if (item.includes('pick-badge') || item.includes('<details')) {
+          fail(`home ${card.game_id} rendered a pick or write-up with no official pick`);
+        }
+      } else if (item.includes('No official pick') || item.includes('pick-badge')) {
+        fail(`home ${card.game_id} still uses the empty-pick treatment`);
+      } else {
+        for (const row of official) {
+          const text = formatCardPick(row);
+          if (!item.includes(text)) {
+            fail(`home is missing ${text} for ${row.pick_id}`);
+          }
+        }
+        if (item.includes('<details')) {
+          fail(`home ${card.game_id} rendered a write-up without a write-up file`);
         }
       }
     }
@@ -1003,7 +1021,7 @@ function assertSparkline(lines, card, relative) {
 }
 
 function assertCardOnHome(home, card, current) {
-  const onHome = home.includes(`/games/${card.game_id}/`);
+  const onHome = home.includes(`data-game-id="${card.game_id}"`);
   if (sameSeasonWeek(card, current) && !onHome) {
     fail(`home is missing current-week card ${card.game_id}`);
   }

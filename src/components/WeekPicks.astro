@@ -1,6 +1,6 @@
 ---
 import GameCardLink from './GameCardLink.astro';
-import Writeup from './Writeup.astro';
+import WriteupAccordion from './WriteupAccordion.astro';
 import { getAllGames, picksForGame } from '../lib/games';
 import { matchupLabel, picks } from '../lib/picks';
 import { getWriteups, writeupForPick } from '../lib/writeups';
@@ -29,14 +29,17 @@ const writeups = await getWriteups();
               ) : matching.length === 0 ? (
                 gameId
               ) : null}
-              {matching.map((row) => (
-                <>
-                  <a href={`/picks/#pick-${row.pick_id}`}>
-                    {matchupLabel(row.game_id)} {row.market}
-                  </a>
-                  <Writeup entry={writeupForPick(row.pick_id, writeups)} />
-                </>
-              ))}
+              {matching.map((row) => {
+                const entry = writeupForPick(row.pick_id, writeups);
+                return (
+                  <>
+                    <a href={`/picks/#pick-${row.pick_id}`}>
+                      {matchupLabel(row.game_id)} {row.market}
+                    </a>
+                    {entry ? <WriteupAccordion entry={entry} matchup={matchupLabel(row.game_id)} /> : null}
+                  </>
+                );
+              })}
             </li>
           );
         })}
