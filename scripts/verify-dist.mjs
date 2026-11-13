@@ -511,9 +511,12 @@ function rowBlock(html, pickId, label = 'picks page') {
   if (start < 0) {
     fail(`${label} is missing #pick-${pickId}`);
   }
+  // Each pick is its own tbody. The home page keeps the season record after that
+  // table, so a slice that runs to the footer would treat "0-0-0 · 0.000u" as
+  // this row's units.
   const next = html.indexOf('id="pick-', start + marker.length);
   const footer = html.indexOf('<footer', start);
-  const tbody = html.indexOf('</tbody>', start);
+  const tbodyEnd = html.indexOf('</tbody>', start);
   let end = html.length;
   if (next !== -1) {
     end = Math.min(end, next);
@@ -521,8 +524,8 @@ function rowBlock(html, pickId, label = 'picks page') {
   if (footer !== -1) {
     end = Math.min(end, footer);
   }
-  if (tbody !== -1) {
-    end = Math.min(end, tbody);
+  if (tbodyEnd !== -1) {
+    end = Math.min(end, tbodyEnd + '</tbody>'.length);
   }
   return html.slice(start, end);
 }
@@ -1020,8 +1023,19 @@ function assertSparkline(lines, card, relative) {
   }
 }
 
+function weekCardsSection(home) {
+  const start = home.indexOf('data-week-cards');
+  if (start < 0) {
+    return '';
+  }
+  const end = home.indexOf('</section>', start);
+  return end === -1 ? home.slice(start) : home.slice(start, end);
+}
+
 function assertCardOnHome(home, card, current) {
-  const onHome = home.includes(`data-game-id="${card.game_id}"`);
+  // Judge the card list, not every /games/ link. A pick from an earlier week
+  // still links to its game page while this week's cards are a later week.
+  const onHome = weekCardsSection(home).includes(`data-game-id="${card.game_id}"`);
   if (sameSeasonWeek(card, current) && !onHome) {
     fail(`home is missing current-week card ${card.game_id}`);
   }

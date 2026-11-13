@@ -73,6 +73,7 @@ def test_only_weekly_and_the_ledger_push_and_they_use_the_helper():
         assert "bash scripts/push_with_retry.sh" in text
         assert "git push" not in text
     assert "pull-snapshots" in weekly
+    assert "--no-fetch" not in weekly
     assert "lines-export" in weekly
     assert "data/lines" in weekly
     assert "grep -qx 'data/picks.csv'" not in weekly
@@ -257,6 +258,8 @@ def test_pick_intake_is_dispatch_only_and_read_only():
     assert set(_git_add_pathspecs(text)) == {
         "data/picks.csv",
         "src/content/picks/${pick_id}.md",
+        "src/data/summary.json",
+        "src/data/picks_view.json",
     }
     assert 'git add -- data/picks.csv "src/content/picks/${pick_id}.md"' in text
     assert 'git add -- data/picks.csv\n' in text or "git add -- data/picks.csv\n" in text
@@ -267,6 +270,24 @@ def test_pick_intake_is_dispatch_only_and_read_only():
     sync_at = record.index("uv sync --frozen")
     intake_at = record.index("football_pipeline intake")
     assert checkout_at < sync_at < intake_at
+    assert "football_pipeline grade --no-fetch" in record
+    assert "pull-snapshots" not in text
+    assert "football_pipeline refresh" not in record
+    grade_at = record.index("football_pipeline grade --no-fetch")
+    push_at = record.index("bash scripts/push_with_retry.sh")
+    assert intake_at < record.index('git commit -m "void:') < grade_at < push_at
+    assert 'git commit -m "Refresh picks view"' in record
+    assert "git commit --amend" not in text
+    assert record.index("git add -- src/data/summary.json src/data/picks_view.json") > grade_at
+    guarded = record.index(
+        "if (cd pipeline && uv run --frozen python -m football_pipeline grade --no-fetch); then"
+    )
+    warning_at = record.index(
+        'echo "::warning::picks view refresh failed; weekly will republish"'
+    )
+    restore_at = record.index("git checkout -- src/data/summary.json src/data/picks_view.json")
+    assert guarded < grade_at < warning_at < restore_at < push_at
+    assert 'git commit -m "Refresh picks view"' not in record[warning_at:push_at]
     assert text.count("uv sync --frozen") == 1
     assert 'IFS= read -r validated_request_id' in record
     assert record.index("validated_action") < record.index("pick_id") < record.index(
