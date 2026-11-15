@@ -139,7 +139,12 @@ def test_deploy_key_pushes_are_read_only_and_cannot_stage_picks():
         "data/lines/*.csv",
         "src/content/games/*.json",
     ]
-    assert ledger_specs == ["data/pick_ledger.csv"]
+    assert ledger_specs == [
+        "data/pick_ledger.csv",
+        "src/data/summary.json",
+        "src/data/picks_view.json",
+        "data/pick_ledger.csv",
+    ]
     allowed = set(weekly_specs) | set(ledger_specs)
     forbidden = {".", "-A", "--all", "-u", "data/", "data/*"}
     for spec in weekly_specs + ledger_specs:
@@ -333,6 +338,41 @@ def test_pick_intake_is_dispatch_only_and_read_only():
         if count:
             deploy_hits.append((path.name, count, "ssh-key: ${{ secrets.PICK_INTAKE_DEPLOY_KEY }}" in body))
     assert deploy_hits == [("pick-intake.yml", 1, True)]
+
+
+def test_pick_ledger_regenerates_the_view_after_writing_the_ledger():
+    text = (WORKFLOWS / "pick-ledger.yml").read_text(encoding="utf-8")
+    assert "group: pick-ledger-${{ github.ref }}" in text
+    assert "cancel-in-progress: false" in text
+    write_at = text.index("uv run --frozen python -m football_pipeline ledger")
+    grade_at = text.index(
+        "if (cd pipeline && uv run --frozen python -m football_pipeline grade --no-fetch); then"
+    )
+    assert write_at < grade_at
+    record = next(block for block in _run_blocks(text) if "grade --no-fetch" in block)
+    assert "football_pipeline ledger" not in record
+    guarded = record.index(
+        "if (cd pipeline && uv run --frozen python -m football_pipeline grade --no-fetch); then"
+    )
+    add_with_view = record.index(
+        "git add -- data/pick_ledger.csv src/data/summary.json src/data/picks_view.json"
+    )
+    warning_at = record.index(
+        'echo "::warning::picks view refresh failed; weekly will republish"'
+    )
+    restore_at = record.index("git checkout -- src/data/summary.json src/data/picks_view.json")
+    commit_at = record.index('git commit -m "Update pick ledger"')
+    push_at = record.index("bash scripts/push_with_retry.sh")
+    assert guarded < add_with_view < warning_at < restore_at < commit_at < push_at
+    failure = record[warning_at:commit_at]
+    assert "git add -- data/pick_ledger.csv" in failure
+    assert "src/data/picks_view.json" in failure
+    assert 'git commit -m "Refresh picks view"' not in record
+    assert record.index('echo "ledger unchanged"') < commit_at
+    assert text.count('git commit -m "Update pick ledger"') == 1
+    intake = (WORKFLOWS / "pick-intake.yml").read_text(encoding="utf-8")
+    assert "football_pipeline grade --no-fetch" in intake
+    assert 'git commit -m "Refresh picks view"' in intake
 
 
 def _on_keys(text: str) -> list[str]:

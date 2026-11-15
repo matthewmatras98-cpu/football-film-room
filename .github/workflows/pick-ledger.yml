@@ -55,7 +55,17 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- data/pick_ledger.csv
+          # The ledger file is already written. Grade from it so this commit
+          # includes the new first_pushed_at. The deploy key pushes the commit
+          # and can start workflows. data/picks.csv is not staged, so
+          # pick-ledger does not run again.
+          if (cd pipeline && uv run --frozen python -m football_pipeline grade --no-fetch); then
+            git add -- data/pick_ledger.csv src/data/summary.json src/data/picks_view.json
+          else
+            echo "::warning::picks view refresh failed; weekly will republish"
+            git checkout -- src/data/summary.json src/data/picks_view.json
+            git add -- data/pick_ledger.csv
+          fi
           if git diff --cached --quiet; then
             echo "ledger unchanged"
             exit 0
