@@ -1,7 +1,7 @@
 ---
+import PickCards from '../components/PickCards.astro';
 import ProgramCard from '../components/ProgramCard.astro';
 import SeasonSummary from '../components/SeasonSummary.astro';
-import PicksTable from '../components/PicksTable.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { siteDescription, siteName } from '../data/site';
 import { buildTime } from '../lib/current-week';
@@ -9,10 +9,11 @@ import { currentWeekGames, getAllGames, picksForGame, sortGameCards } from '../l
 import { formatSeasonLine, homeEmptyNote } from '../lib/home';
 import { currentWeekPicks, picks, summary } from '../lib/picks';
 import { formatPublishedAt, getPublishedWeeks } from '../lib/posts';
+import { getWriteups } from '../lib/writeups';
 
 const posts = await getPublishedWeeks();
 const games = await getAllGames();
-const gameIds = new Set(games.map((game) => game.game_id));
+const writeups = await getWriteups();
 const now = buildTime();
 const thisWeekCards = sortGameCards(currentWeekGames(games, undefined, now));
 const thisWeek = currentWeekPicks(picks, now, games.length > 0 ? games : undefined);
@@ -46,7 +47,7 @@ const emptyNote = homeEmptyNote(picks.length, posts.length, thisWeekCards.length
                 <div class="section-head">
                   <h2>This week</h2>
                 </div>
-                <PicksTable picks={thisWeek} gameIds={gameIds} />
+                <PickCards picks={thisWeek} games={games} writeups={writeups} />
               </section>
             </div>
           ) : null

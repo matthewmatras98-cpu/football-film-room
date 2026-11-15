@@ -224,14 +224,14 @@ describe('program card markup', () => {
     expect(html).not.toContain('Cover the number');
   });
 
-  it('swaps only the footer text and adds a collapsed write-up', async () => {
+  it('swaps only the footer text and adds the ledger accordion', async () => {
     const unpicked = await cardHtml([]);
-    const picked = await cardHtml([pick()]);
+    const row = pick();
+    const picked = await cardHtml([row]);
     const openTags = picked.match(/<details\b[^>]*>/g) ?? [];
     expect(openTags).toEqual(['<details class="writeup-details">']);
     expect(picked).toContain('<span class="badge badge--none pick-line">DET -3.0</span>');
     expect(picked).not.toContain('Pick:');
-    expect(picked).not.toContain('DET -6.5');
     expect(picked).toContain('<span class="visually-hidden"> for NE at DET</span>');
     expect(picked).toMatch(/<summary>[\s\S]*<span class="visually-hidden"> for NE at DET<\/span>[\s\S]*<\/summary>/);
     const summary = picked.match(/<summary>[\s\S]*?<\/summary>/)?.[0] ?? '';
@@ -240,6 +240,12 @@ describe('program card markup', () => {
     expect(summary).not.toMatch(/<a\b|<button\b|<input\b/);
     expect(summary).not.toMatch(/aria-label/);
     expect(asUnpicked(picked)).toBe(compact(unpicked));
+    const details = picked.match(/<details\b[\s\S]*?<\/details>/)?.[0] ?? '';
+    expect(details).toContain('Closed DET -6.5 · Status pending');
+    expect(details.indexOf('class="pick-grade"')).toBeLessThan(details.indexOf('Submitted (server time)'));
+    expect(details.indexOf('Submitted (server time)')).toBeLessThan(details.indexOf('Cover the number'));
+    expect(details).toContain(`datetime="${row.picked_at}"`);
+    expect(withoutDetails(picked)).not.toContain('DET -6.5');
   });
 
   it('renders a voided pick as an unpicked card', async () => {
@@ -258,10 +264,40 @@ describe('program card markup', () => {
     expect(rejected).toContain('No official pick');
   });
 
-  it('leaves the accordion off when the official pick has no write-up', async () => {
-    const html = await cardHtml([pick()], []);
+  it('uses Pick details when the official pick has no write-up', async () => {
+    const row = pick();
+    const html = await cardHtml([row], []);
     expect(html).toContain('<span class="badge badge--none pick-line">DET -3.0</span>');
-    expect(html).not.toContain('<details');
+    const summary = html.match(/<summary>[\s\S]*?<\/summary>/)?.[0] ?? '';
+    expect(summary).toContain('Pick details');
+    expect(summary).toContain('Hide the pick details');
+    expect(summary).not.toContain('Read the write-up');
+    expect(html).toContain('Closed DET -6.5 · Status pending');
+    expect(html).toContain('Submitted (server time)');
+    expect(html).toContain(`datetime="${row.picked_at}"`);
+    expect(html).not.toContain('Cover the number');
+    expect(html.match(/<details\b[^>]*>/g)).toEqual(['<details class="writeup-details">']);
+    expect(html).not.toContain('id="pick-');
+  });
+
+  it('gives each official pick the same accordion as /picks/', async () => {
+    const spread = pick();
+    const total = pick({
+      pick_id: '2026_10_NE_DET-total',
+      market: 'total',
+      side: 'over',
+      line_at_pick: 45.5,
+      closing_line: 47,
+    });
+    const week = await cardHtml([spread, total]);
+    const ledger = await ledgerHtml([spread, total]);
+    expect(week.match(/<details\b[\s\S]*?<\/details>/g)).toEqual(
+      ledger.match(/<details\b[\s\S]*?<\/details>/g),
+    );
+    expect(week).toContain('Over 45.5');
+    expect(week).toContain('DET -3.0');
+    expect(week).not.toContain('id="pick-');
+    expect(ledger.match(/id="pick-[^"]+"/g)).toHaveLength(2);
   });
 });
 

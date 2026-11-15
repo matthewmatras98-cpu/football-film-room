@@ -13,7 +13,10 @@ interface Props {
   picks: PickView[];
   level?: 'h2' | 'h3';
   writeups?: readonly WriteupEntry[];
-  /** One submitted row on /picks/. Home and /games/ leave this unset. */
+  /**
+   * One submitted row on /picks/ and the home picks list, including void and rejected rows.
+   * Week cards leave this unset and show official picks only.
+   */
   record?: PickView;
 }
 
@@ -74,18 +77,12 @@ const gameHref = card ? `/games/${card.game_id}/` : null;
   {gameHref ? <a class="section-link" href={gameHref}>Read matchup notes</a> : null}
 </div>
 {
-  shown.map((row) => {
-    const entry = writeupForPick(row.pick_id, writeups);
-    if (record) {
-      return (
-        <WriteupAccordion
-          entry={entry}
-          matchup={matchup}
-          pickedAt={row.picked_at}
-          gradeLine={formatPickGrade(row)}
-        />
-      );
-    }
-    return entry ? <WriteupAccordion entry={entry} matchup={matchup} /> : null;
-  })
+  shown.map((row) => (
+    <WriteupAccordion
+      entry={writeupForPick(row.pick_id, writeups)}
+      matchup={matchup}
+      pickedAt={row.picked_at}
+      gradeLine={formatPickGrade(row)}
+    />
+  ))
 }
