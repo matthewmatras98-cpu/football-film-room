@@ -1,5 +1,4 @@
 ---
-import PickCards from '../components/PickCards.astro';
 import ProgramCard from '../components/ProgramCard.astro';
 import SeasonSummary from '../components/SeasonSummary.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
@@ -7,16 +6,13 @@ import { siteDescription, siteName } from '../data/site';
 import { buildTime } from '../lib/current-week';
 import { currentWeekGames, getAllGames, picksForGame, sortGameCards } from '../lib/games';
 import { formatSeasonLine, homeEmptyNote } from '../lib/home';
-import { currentWeekPicks, picks, summary } from '../lib/picks';
+import { picks, summary } from '../lib/picks';
 import { formatPublishedAt, getPublishedWeeks } from '../lib/posts';
-import { getWriteups } from '../lib/writeups';
 
 const posts = await getPublishedWeeks();
 const games = await getAllGames();
-const writeups = await getWriteups();
 const now = buildTime();
 const thisWeekCards = sortGameCards(currentWeekGames(games, undefined, now));
-const thisWeek = currentWeekPicks(picks, now, games.length > 0 ? games : undefined);
 const currentCard = thisWeekCards[0];
 const emptyNote = homeEmptyNote(picks.length, posts.length, thisWeekCards.length);
 ---
@@ -40,19 +36,6 @@ const emptyNote = homeEmptyNote(picks.length, posts.length, thisWeekCards.length
 
     <div class="week-layout">
       <div class="home-column">
-        {
-          thisWeek.length > 0 ? (
-            <div class="home-picks">
-              <section class="section">
-                <div class="section-head">
-                  <h2>This week</h2>
-                </div>
-                <PickCards picks={thisWeek} games={games} writeups={writeups} />
-              </section>
-            </div>
-          ) : null
-        }
-
         {
           thisWeekCards.length > 0 && (
             <section class="home-cards" data-week-cards>
@@ -83,7 +66,7 @@ const emptyNote = homeEmptyNote(picks.length, posts.length, thisWeekCards.length
             <p class="home-record-line nums">{formatSeasonLine(summary)}</p>
           ) : null
         }
-        {thisWeek.length === 0 ? <p class="home-picks">No picks yet this season.</p> : null}
+        {picks.length === 0 ? <p class="home-picks">No picks yet this season.</p> : null}
       </div>
 
       <aside class="rail" data-dispatches aria-labelledby="latest-notes">

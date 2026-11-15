@@ -1061,11 +1061,17 @@ function weekCardsSection(home) {
 function assertCardOnHome(home, card, current) {
   // Judge the card list, not every /games/ link. A pick from an earlier week
   // still links to its game page while this week's cards are a later week.
-  const onHome = weekCardsSection(home).includes(`data-game-id="${card.game_id}"`);
-  if (sameSeasonWeek(card, current) && !onHome) {
-    fail(`home is missing current-week card ${card.game_id}`);
-  }
-  if (!sameSeasonWeek(card, current) && onHome) {
+  const marker = `data-game-id="${card.game_id}"`;
+  const onHome = weekCardsSection(home).includes(marker);
+  const count = countOccurrences(home, marker);
+  if (sameSeasonWeek(card, current)) {
+    if (!onHome) {
+      fail(`home is missing current-week card ${card.game_id}`);
+    }
+    if (count !== 1) {
+      fail(`home has ${count} ${marker}, expected 1`);
+    }
+  } else if (onHome || count !== 0) {
     fail(`home fell back to older card ${card.game_id}`);
   }
 }
@@ -1191,6 +1197,7 @@ async function assertPresentPicks(distDir, summary, view) {
         fail(`${label} renders a pick row when picks_view.json has no rows`);
       }
     }
+    assertHomeSingleList(home);
     return;
   }
 
@@ -1198,7 +1205,7 @@ async function assertPresentPicks(distDir, summary, view) {
     fail('pick pages show the empty state while picks_view.json has rows');
   }
   assertPicksPageCards(picksPage, view);
-  await assertHomePickCards(home, view);
+  assertHomeSingleList(home);
   await assertWeekCardAccordions(distDir, view);
   const current = await homePickWeek(view);
   for (const row of view) {
@@ -1285,6 +1292,7 @@ async function assertEmptyPicks(distDir) {
       fail(`${label} renders pick data when the grader files are absent`);
     }
   }
+  assertHomeSingleList(home);
 }
 
 function assertSummary(html, summary, label) {
@@ -1423,56 +1431,17 @@ function assertNoPicksTable(html, label) {
   }
 }
 
-function homePicksSection(html) {
-  const start = html.indexOf('<div class="home-picks"');
-  if (start < 0) {
-    return '';
-  }
-  const candidates = ['data-week-cards', 'class="home-record-line"', '<aside']
-    .map((marker) => html.indexOf(marker, start + 1))
-    .filter((at) => at > start);
-  const end = candidates.length === 0 ? html.length : Math.min(...candidates);
-  return html.slice(start, end);
-}
-
-function sectionPickBlock(html, pickId, label) {
-  const marker = `id="pick-${pickId}"`;
-  const start = html.indexOf(marker);
-  if (start < 0) {
-    fail(`${label} is missing #pick-${pickId}`);
-  }
-  const next = html.indexOf('id="pick-', start + marker.length);
-  const liEnd = html.indexOf('</li>', start);
-  let end = html.length;
-  if (next !== -1) {
-    end = Math.min(end, next);
-  }
-  if (liEnd !== -1) {
-    end = Math.min(end, liEnd + '</li>'.length);
-  }
-  return html.slice(start, end);
-}
-
-async function assertHomePickCards(html, view) {
+/** Home lists each game once under This week's cards. Pick anchors stay on /picks/. */
+function assertHomeSingleList(html) {
   assertNoPicksTable(html, 'home');
-  const current = await homePickWeek(view);
-  const shown = current ? view.filter((row) => sameSeasonWeek(row, current)) : [];
-  const section = homePicksSection(html);
-  const cards = section.match(/<li\b[^>]*\bclass="game-card"/g) ?? [];
-  if (cards.length !== shown.length) {
-    fail(`home has ${cards.length} pick cards, expected ${shown.length}`);
+  if (/<div\b[^>]*\bclass="[^"]*\bhome-picks\b/.test(html)) {
+    fail('home still renders the picks section');
   }
-  const week = weekCardsSection(html);
-  for (const row of shown) {
-    const anchor = `id="pick-${row.pick_id}"`;
-    const count = countOccurrences(html, anchor);
-    if (count !== 1) {
-      fail(`home has ${count} ${anchor} anchors`);
-    }
-    if (week.includes(anchor)) {
-      fail(`home week cards duplicate ${anchor}`);
-    }
-    assertPickCardBlock(sectionPickBlock(section, row.pick_id, 'home'), row, 'home');
+  if (/<h2>\s*This week\s*<\/h2>/.test(html)) {
+    fail('home still renders the This week picks heading');
+  }
+  if (html.includes('id="pick-') || html.includes('#pick-')) {
+    fail('home still renders a pick anchor');
   }
 }
 
@@ -1485,13 +1454,16 @@ function assertOfficialWeekCard(block, rows, where) {
     if (!block.includes('No official pick')) {
       fail(`${where} is missing No official pick`);
     }
-    if (block.includes('pick-badge') || block.includes('<details')) {
+    if (block.includes('pick-badge') || block.includes('pick-line') || block.includes('<details')) {
       fail(`${where} rendered a pick or write-up with no official pick`);
     }
     return;
   }
   if (block.includes('No official pick') || block.includes('pick-badge')) {
     fail(`${where} still uses the empty-pick treatment`);
+  }
+  if (!block.includes('pick-line')) {
+    fail(`${where} is missing the pick badge`);
   }
   const details = block.match(/<details\b[\s\S]*?<\/details>/g) ?? [];
   if (details.length !== official.length) {
@@ -1594,7 +1566,7 @@ async function assertFixturePicks(distDir) {
   }
 
   assertPicksPageCards(picksHtml, view);
-  await assertHomePickCards(homeHtml, view);
+  assertHomeSingleList(homeHtml);
   await assertWeekCardAccordions(distDir, view);
 
   const seenWeeks = [];
@@ -1619,11 +1591,7 @@ async function assertFixturePicks(distDir) {
 
   const current = await homePickWeek(view);
   for (const row of view) {
-    const present = homeHtml.includes(row.pick_id);
-    if (sameSeasonWeek(row, current) && !present) {
-      fail(`home is missing current-week pick ${row.pick_id}`);
-    }
-    if (!sameSeasonWeek(row, current) && present) {
+    if (!sameSeasonWeek(row, current) && homeHtml.includes(row.pick_id)) {
       fail(`home fell back to older pick ${row.pick_id}`);
     }
   }
