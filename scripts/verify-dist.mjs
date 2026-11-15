@@ -24,7 +24,7 @@ register(new URL('./ts-resolver.mjs', import.meta.url));
 const { formatStatKind } = await import('../src/lib/format-stat.ts');
 const { formatCardPick, officialCardPicks } = await import('../src/lib/card-pick.ts');
 const { gameCardSchema } = await import('../src/lib/game-schema.ts');
-const { currentSeasonWeek } = await import('../src/lib/current-week.ts');
+const { currentWeek } = await import('../src/lib/current-week.ts');
 const { picksViewSchema, summarySchema } = await import('../src/lib/picks-schema.ts');
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -171,6 +171,50 @@ async function listHtml(dir) {
 
 function sameSeasonWeek(row, key) {
   return key !== null && row.season === key.season && row.week === key.week;
+}
+
+function weekHeading(week) {
+  return `Season ${week.season}, week ${week.week}`;
+}
+
+function hasWeekHeading(html, week) {
+  return new RegExp(`Season ${week.season}, week ${week.week}(?!\\d)`).test(html);
+}
+
+/** Home heading follows currentWeek at this build clock. The week number is not hard-coded. */
+function assertHomeWeekHeading(home, cards, current) {
+  if (!current) {
+    fail('cards are present but the current week is missing');
+  }
+  if (!hasWeekHeading(home, current)) {
+    fail(`home heading is missing ${weekHeading(current)}`);
+  }
+  const seen = new Set();
+  for (const card of cards) {
+    const key = `${card.season}-${card.week}`;
+    if (seen.has(key) || sameSeasonWeek(card, current)) {
+      continue;
+    }
+    seen.add(key);
+    if (hasWeekHeading(home, card)) {
+      fail(`home heading shows ${weekHeading(card)}`);
+    }
+  }
+}
+
+async function assertGamesWeekHeading(distDir, current) {
+  const gamesIndex = await readHtml(distDir, 'games', 'index.html');
+  if (!new RegExp(`<h1>\\s*Week ${current.week}(?!\\d)`).test(gamesIndex)) {
+    fail(`games page heading is missing Week ${current.week}`);
+  }
+}
+
+async function homePickWeek(rows) {
+  const cards = await loadContentCards();
+  if (cards.length > 0) {
+    return currentWeek(cards);
+  }
+  return currentWeek(rows);
 }
 
 function attribute(tag, name) {
@@ -775,11 +819,13 @@ Temporary card link check.
 
 async function assertFixtureCards(distDir, fixtures, picks, knownGameId) {
   const cards = fixtures.map((entry) => entry.card);
-  const current = currentSeasonWeek(cards);
+  const current = currentWeek(cards);
   const home = await readHtml(distDir, 'index.html');
   if (!home.includes('data-week-cards') || !weekCardsHeading(home)) {
     fail("home is missing This week's cards");
   }
+  assertHomeWeekHeading(home, cards, current);
+  await assertGamesWeekHeading(distDir, current);
 
   for (const card of cards) {
     const page = await readHtml(distDir, 'games', card.game_id, 'index.html');
@@ -1096,10 +1142,12 @@ function gamePageId(distDir, filePath) {
 
 async function assertPresentCards(distDir, cards) {
   const home = await readHtml(distDir, 'index.html');
-  const current = currentSeasonWeek(cards);
+  const current = currentWeek(cards);
   if (!home.includes('data-week-cards') || !weekCardsHeading(home)) {
     fail("home is missing This week's cards");
   }
+  assertHomeWeekHeading(home, cards, current);
+  await assertGamesWeekHeading(distDir, current);
   const pages = (await listHtml(path.join(distDir, 'games'))).filter(
     (filePath) => !isGamesIndex(distDir, filePath),
   );
@@ -1182,7 +1230,7 @@ async function assertPresentPicks(distDir, summary, view) {
     fail('pick pages show the empty state while picks_view.json has rows');
   }
   assertPicksPageCards(picksPage, view);
-  const current = currentSeasonWeek(view);
+  const current = await homePickWeek(view);
   for (const row of view) {
     const anchor = `id="pick-${row.pick_id}"`;
     if (sameSeasonWeek(row, current)) {
@@ -1513,7 +1561,7 @@ async function assertFixturePicks(distDir) {
     weekAt = at;
   }
 
-  const current = currentSeasonWeek(view);
+  const current = await homePickWeek(view);
   for (const row of view) {
     const present = homeHtml.includes(row.pick_id);
     if (sameSeasonWeek(row, current) && !present) {
@@ -1642,7 +1690,7 @@ async function main() {
     }
     const gameFixtures = await loadGameFixtures();
     const picksForCards = JSON.parse(await readFile(viewFixture, 'utf8'));
-    const currentCardWeek = currentSeasonWeek(gameFixtures.map((entry) => entry.card));
+    const currentCardWeek = currentWeek(gameFixtures.map((entry) => entry.card));
     const knownCard =
       gameFixtures.find(
         (entry) =>

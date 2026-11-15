@@ -1,0 +1,25 @@
+name: scheduled-rebuild
+
+on:
+  schedule:
+    - cron: '15 10 * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    env:
+      HOOK: ${{ secrets.CF_PAGES_DEPLOY_HOOK }}
+    steps:
+      - name: Rebuild
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo '::warning::CF_PAGES_DEPLOY_HOOK not set; skipping rebuild'
+            exit 0
+          fi
+          if ! curl -fsS -X POST "$HOOK" > /dev/null 2>&1; then
+            echo '::error::Cloudflare Pages deploy hook request failed'
+            exit 1
+          fi

@@ -1,4 +1,4 @@
-import { compareSeasonWeek, currentWeekRows } from './current-week';
+import { compareSeasonWeek, currentWeek, currentWeekRows } from './current-week';
 import { matchupLabel } from './format-picks';
 import { picksViewSchema, summarySchema, type PickView, type Summary } from './picks-schema';
 
@@ -101,11 +101,23 @@ export function picksForWeek<T extends { week: number }>(rows: readonly T[], wee
 }
 
 /**
- * "This week" is the latest (season, week), season first. It is not the calendar week.
- * Week 1 of a new season beats week 18 of the previous one. Older pairs are not used.
+ * Picks in the current week, using the same Tuesday rollover as currentWeekGames.
+ * Pass the game slate as `kickoffs` when these rows have no kickoff_utc.
+ * The clock is `now`, or BUILD_NOW, or new Date() at build time.
  */
-export function currentWeekPicks<T extends { season: number; week: number }>(rows: readonly T[]): T[] {
-  return currentWeekRows(rows);
+export function currentWeekPicks<T extends { season: number; week: number }>(
+  rows: readonly T[],
+  now?: Date,
+  kickoffs?: readonly { season: number; week: number }[],
+): T[] {
+  if (kickoffs === undefined) {
+    return currentWeekRows(rows, now);
+  }
+  const current = currentWeek(kickoffs, now);
+  if (current === null) {
+    return [];
+  }
+  return rows.filter((row) => compareSeasonWeek(row, current) === 0);
 }
 
 export interface WeekPickEntry {

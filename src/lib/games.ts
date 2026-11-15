@@ -72,17 +72,17 @@ export function gamesForWeek<T extends { week: number }>(rows: readonly T[], wee
 }
 
 /**
- * "This week" is the latest (season, week), the same rule as the picks page.
- * Season is compared first, then week. It is not the calendar week.
+ * "This week" is currentWeek: the earliest week still before its Tuesday rollover.
  * Pass an explicit week to read that week number only:
  * a week with zero cards returns an empty list and does not fall back.
  */
 export function currentWeekGames<T extends { season: number; week: number }>(
   rows: readonly T[],
   week?: number,
+  now?: Date,
 ): T[] {
   if (week === undefined) {
-    return currentWeekRows(rows);
+    return currentWeekRows(rows, now);
   }
   return gamesForWeek(rows, week);
 }

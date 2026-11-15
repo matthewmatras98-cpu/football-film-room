@@ -1,14 +1,14 @@
 ---
 import ProgramCard from '../../components/ProgramCard.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { currentSeasonWeek } from '../../lib/current-week';
-import { gamesByWeek, getAllGames, picksForGame } from '../../lib/games';
+import { buildTime } from '../../lib/current-week';
+import { currentWeekGames, gamesByWeek, getAllGames, picksForGame } from '../../lib/games';
 import { picks } from '../../lib/picks';
 import { kickoffWindow } from '../../lib/program';
 
 const games = await getAllGames();
 const groups = gamesByWeek(games);
-const current = currentSeasonWeek(games);
+const current = currentWeekGames(games, undefined, buildTime())[0];
 const earlyCount = games.filter((game) => kickoffWindow(game.kickoff_utc) === 'early').length;
 const lateCount = games.length - earlyCount;
 ---
