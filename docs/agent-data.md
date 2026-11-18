@@ -20,6 +20,8 @@ Open it read-only:
 duckdb.connect("/workspace/football-app/data/football.duckdb", read_only=True)
 ```
 
+numpy is not in the pipeline uv env, so `.fetchdf()` fails. Use `.show()` or `.fetchall()`.
+
 ## Refresh
 
 There is no standing job. Before answering, call `is_stale(path, now)`. Rebuild when that returns true: the file is missing, or its age is greater than 24 hours. An age of exactly 24 hours is still fresh.
@@ -27,7 +29,7 @@ There is no standing job. Before answering, call `is_stale(path, now)`. Rebuild 
 ## What is loaded
 
 - nflverse schedules, play-by-play, injuries, and NGS passing, through the same loader as `build-db`, with the D1 dump left out.
-- `data/lines/*.csv` (derived medians only).
+- `data/lines/*.csv` (derived lower-middle book lines only).
 - `data/graded.csv`, `src/data/summary.json`, and `src/data/picks_view.json`.
 - `src/content/games/*.json`.
 
@@ -45,8 +47,8 @@ FTN charting is not loaded in v1. The credits table still names it, because a la
 | `v_qb` | Starter, EPA per dropback, CPOE, time to throw |
 | `v_pass_rush` | Sack rate for (defense sacks per opponent dropback) and sack rate allowed |
 | `v_red_zone_downs` | Red-zone TD rate, third-down rate, fourth-down rate |
-| `v_injuries` | Latest injury-report rows |
-| `v_lines` | Median line and book count for each stored snapshot |
+| `v_injuries` | Latest posted injury-report week |
+| `v_lines` | Lower-middle book line and book count for each stored snapshot |
 | `v_record` | Graded W-L-P, result, and closing-line value |
 | `v_cards` | StatNumber leaves from the committed card JSON |
 
@@ -54,7 +56,11 @@ Every numeric row has `source`, `sample`, and `range`. A null value has a null s
 
 `l4` is the last four games the team played. A season range looks like `2026 wk1–10`. Neutral plays are scrimmage plays on down 1 or 2, with win probability from 0.20 to 0.80, and more than 120 seconds left in the half.
 
-`v_lines` stores the median and `n_books`. It does not store a minimum, a maximum, or a sportsbook name. The source text is `median of N US books (data/lines)`.
+`v_lines` stores the lower-middle book line and `n_books`. `line` is the lower-middle book line, element `floor((n - 1) / 2)` of the sorted book lines. It does not store a minimum, a maximum, or a sportsbook name. The source text is `lower-middle of N US books (data/lines)`.
+
+For `market` `spread`, `line` is the home team's spread. A line of -11.5 for game `2026_11_IND_HOU` means HOU -11.5. The first stored snapshot is our first capture, not the market's true open.
+
+`v_injuries` holds rows for weeks nflverse has posted (the latest report week). A week with no rows yet (Week 11 before the report posts) means not posted yet, and it must never be presented as an earlier week's report.
 
 ## Credits
 

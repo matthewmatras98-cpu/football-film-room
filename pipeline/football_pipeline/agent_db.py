@@ -34,7 +34,7 @@ MAX_AGE = timedelta(hours=24)
 GRADED_SOURCE = "graded.csv"
 SUMMARY_SOURCE = "summary.json"
 INJURY_SOURCE = "nflverse_injuries"
-LINES_SOURCE = "median of {n} US books (data/lines)"
+LINES_SOURCE = "lower-middle of {n} US books (data/lines)"
 PUBLIC_VIEWS = (
     "v_team_epa",
     "v_pass_rate_pace",
@@ -126,7 +126,7 @@ def _columns(connection: duckdb.DuckDBPyConnection, table: str) -> set[str]:
 
 
 def _drop_line_bounds(connection: duckdb.DuckDBPyConnection) -> None:
-    """Keep the median line and the book count.
+    """Keep the lower-middle book line and the book count.
 
     The public file no longer has min or max. A file from before that
     change may still have them. This projection drops both shapes.
@@ -1421,18 +1421,24 @@ def _write_catalog(connection: duckdb.DuckDBPyConnection) -> None:
         ),
         (
             "v_injuries",
-            "Latest injury-report rows for the season.",
+            "Latest injury-report week nflverse has posted.",
             "season, week, team, player, position, status, detail, source, sample, range",
-            f"The latest week present on the report. source {INJURY_SOURCE}. "
+            f"Rows for the latest report week nflverse has posted. source {INJURY_SOURCE}. "
             "sample is the number of listed players for that team. "
-            "detail is the reported body part, or null.",
+            "detail is the reported body part, or null. "
+            "A week with no rows yet, such as Week 11 before the report posts, means not posted yet, "
+            "and it must never be presented as an earlier week's report.",
         ),
         (
             "v_lines",
-            "Derived median line for each stored snapshot.",
+            "Lower-middle book line for each stored snapshot. For a spread, line is the home team's spread.",
             "game_id, snapshot_ts, market, line, n_books, source, sample, range",
-            "market is spread or total. line is the median already stored in data/lines. "
-            "source is median of N US books (data/lines). sample is n_books. "
+            "market is spread or total. For spread, line is the home team's spread "
+            "(a line of -11.5 for game 2026_11_IND_HOU means HOU -11.5). "
+            "line is the lower-middle book line, element floor((n - 1) / 2) of the sorted book lines, "
+            "already stored in data/lines. "
+            "The first stored snapshot is our first capture, not the market's true open. "
+            "source is lower-middle of N US books (data/lines). sample is n_books. "
             "range is the snapshot timestamp. Minimum, maximum, and sportsbook names are not in this view.",
         ),
         (
