@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 import sys
@@ -97,6 +98,87 @@ def test_injuries_do_not_fall_back_and_pending_is_per_game():
     assert home_empty == []
     assert away_empty == []
     assert all(row["player"] != "E. Old" for row in home_empty + away_empty)
+
+
+def test_later_week_card_does_not_carry_an_earlier_injury_report(tmp_path: Path):
+    """A week with no regular-season report stays pending.
+
+    The card uses that game's season, week, and season type. A previous week's
+    report, and a preseason row on the same week, do not fill the list.
+    """
+    root = tmp_path / "repo"
+    games = root / "src" / "content" / "games"
+    games.mkdir(parents=True)
+    fixtures = tmp_path / "fixtures"
+    _copy_tree(CARDS, fixtures)
+    _append_lines(
+        fixtures / "schedules.csv",
+        [
+            "2099_11_DEN_KC,2099,11,REG,2099-11-16,13:00,DEN,KC,,,KAN00,"
+            "GEHA Field at Arrowhead Stadium,grass,7,7"
+        ],
+    )
+    _append_lines(
+        fixtures / "injuries.csv",
+        [
+            "2099,10,REG,DEN,W. Carry,QB,Out,Ankle",
+            "2099,11,PRE,KC,P. Camp,QB,Out,Hamstring",
+        ],
+    )
+    database = tmp_path / "football.duckdb"
+    built = run_cli(
+        [
+            "build-db",
+            "--root",
+            str(root),
+            "--season",
+            "2099",
+            "--out",
+            str(database),
+            "--fixtures",
+            str(fixtures),
+        ]
+    )
+    assert built.returncode == 0, built.stderr
+    import duckdb
+
+    connection = duckdb.connect(str(database), read_only=True)
+    try:
+        stored = connection.execute(
+            "SELECT week, season_type, team, full_name FROM injuries "
+            "WHERE full_name IN ('W. Carry', 'P. Camp') ORDER BY week, full_name"
+        ).fetchall()
+    finally:
+        connection.close()
+    assert stored == [(10, "REG", "DEN", "W. Carry"), (11, "PRE", "KC", "P. Camp")]
+    written = run_cli(
+        [
+            "cards",
+            "--root",
+            str(root),
+            "--db",
+            str(database),
+            "--as-of",
+            "2099-11-15T16:00:00Z",
+            "--nws-fixtures",
+            str(fixtures / "nws"),
+        ]
+    )
+    assert written.returncode == 0, written.stderr + written.stdout
+    assert "injuries 2099 wk11: 0 row(s)" in written.stdout
+    card = json.loads((games / "2099_11_DEN_KC.json").read_text(encoding="utf-8"))
+    assert card["season"] == 2099
+    assert card["week"] == 11
+    assert card["injuries_status"] == "pending"
+    assert card["sections"]["injuries"] == {"home": [], "away": []}
+    text = (games / "2099_11_DEN_KC.json").read_text(encoding="utf-8")
+    assert "W. Carry" not in text
+    assert "P. Camp" not in text
+    assert "E. Old" not in text
+    earlier = json.loads((games / "2099_03_KC_DEN.json").read_text(encoding="utf-8"))
+    assert earlier["week"] == 3
+    assert earlier["injuries_status"] == "pending"
+    assert "W. Carry" not in (games / "2099_03_KC_DEN.json").read_text(encoding="utf-8")
 
 
 def test_weather_modes_and_wind_parse(capsys, tmp_path: Path):
@@ -354,6 +436,14 @@ def _copy_tree(source: Path, dest: Path) -> None:
     import shutil
 
     shutil.copytree(source, dest)
+
+
+def _append_lines(path: Path, lines: list[str]) -> None:
+    text = path.read_text(encoding="utf-8")
+    if text and not text.endswith("\n"):
+        text += "\n"
+    text += "".join(line if line.endswith("\n") else f"{line}\n" for line in lines)
+    path.write_text(text, encoding="utf-8")
 
 
 def _game(game_id: str, kickoff: datetime, week: int, home: str = "DET", away: str = "CHI", scores=None) -> Game:
