@@ -254,7 +254,7 @@ describe('program card markup', () => {
     expect(summary).not.toMatch(/aria-label/);
     expect(asUnpicked(picked)).toBe(compact(unpicked));
     const details = picked.match(/<details\b[\s\S]*?<\/details>/)?.[0] ?? '';
-    expect(details).toContain('Closed DET -6.5 · Status pending');
+    expect(details).toContain('Line at pick DET -3.0 · Pending');
     expect(details.indexOf('class="pick-grade"')).toBeLessThan(details.indexOf('Submitted (server time)'));
     expect(details.indexOf('Submitted (server time)')).toBeLessThan(details.indexOf('Cover the number'));
     expect(details).toContain(`datetime="${row.picked_at}"`);
@@ -285,7 +285,7 @@ describe('program card markup', () => {
     expect(summary).toContain('Pick details');
     expect(summary).toContain('Hide the pick details');
     expect(summary).not.toContain('Read the write-up');
-    expect(html).toContain('Closed DET -6.5 · Status pending');
+    expect(html).toContain('Line at pick DET -3.0 · Pending');
     expect(html).toContain('Submitted (server time)');
     expect(html).toContain(`datetime="${row.picked_at}"`);
     expect(html).not.toContain('Cover the number');
@@ -304,7 +304,10 @@ describe('program card markup', () => {
     });
     const week = await cardHtml([spread, total]);
     const ledger = await ledgerHtml([spread, total]);
-    expect(week.match(/<details\b[\s\S]*?<\/details>/g)).toEqual(
+    const cardFooter = week
+      .replaceAll('Line at pick DET -3.0 · Pending', 'Closed DET -6.5 · Status pending')
+      .replaceAll('Line at pick Over 45.5 · Pending', 'Closed Over 47.0 · Status pending');
+    expect(cardFooter.match(/<details\b[\s\S]*?<\/details>/g)).toEqual(
       ledger.match(/<details\b[\s\S]*?<\/details>/g),
     );
     expect(week).toContain('Over 45.5');

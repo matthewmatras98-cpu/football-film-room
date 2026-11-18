@@ -72,9 +72,9 @@ describe('pending grade line', () => {
     expect(formatPickGrade(row, kickoff, new Date(afterKickoff))).toBe('Closed BUF -6.5 · Status pending');
     expect(closeMarker('odds_api_stale')).toBeNull();
     const html = await renderAt(afterKickoff, [row]);
-    expect(html).toContain('Closed BUF -6.5 · Status pending');
+    expect(html).toContain('Line at pick BUF -3.0 · Pending');
+    expect(html).not.toContain('Closed ');
     expect(html).not.toContain('stale close');
-    expect(html).not.toContain('Line at pick');
   });
 
   it('stays pending after kickoff when no close was captured', async () => {

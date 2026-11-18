@@ -20,7 +20,7 @@ import {
 register(new URL('./ts-resolver.mjs', import.meta.url));
 
 const { formatStatKind } = await import('../src/lib/format-stat.ts');
-const { formatCardPick, formatPickGrade, ledgerPicks, officialCardPicks } = await import('../src/lib/card-pick.ts');
+const { formatCardFooter, formatCardPick, formatPickGrade, ledgerPicks, officialCardPicks } = await import('../src/lib/card-pick.ts');
 const { gameCardSchema } = await import('../src/lib/game-schema.ts');
 const { currentWeek } = await import('../src/lib/current-week.ts');
 const { picksViewSchema, summarySchema } = await import('../src/lib/picks-schema.ts');
@@ -1629,7 +1629,7 @@ function assertOfficialWeekCard(block, rows, where, kickoff = null) {
     if (!block.includes(text)) {
       fail(`${where} is missing ${text} for ${row.pick_id}`);
     }
-    const grade = formatPickGrade(row, kickoff);
+    const grade = formatCardFooter(row, kickoff);
     if (!details.some((item) => item.includes(grade))) {
       fail(`${where} accordion is missing the grade line ${grade}`);
     }
