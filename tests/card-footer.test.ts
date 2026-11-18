@@ -73,7 +73,7 @@ async function surfaces(row: PickView, now: string): Promise<{ home: string; gam
 
 describe('card footer', () => {
   it('stays pending before kickoff, after kickoff with no close, and after kickoff with no result', async () => {
-    const pendingLine = 'Line at pick KC -2.5 · Pending';
+    const pendingLine = 'PICK KC -2.5 · Pending';
     const cases = [
       { now: beforeKickoff, row: base() },
       { now: afterKickoff, row: base({ closing_line: null, close_source: null, clv_pts: null }) },
@@ -99,10 +99,10 @@ describe('card footer', () => {
     for (const item of graded) {
       const row = base({ result: item.result, status: 'graded', units_pl: item.result === 'L' ? -1 : 0.909 });
       expect(formatCardPick(row)).toBe(item.text);
-      expect(formatCardFooter(row, kickoff, new Date(beforeKickoff))).toBe(item.text);
+      expect(formatCardFooter(row, kickoff, new Date(beforeKickoff))).toBe(`PICK ${item.text}`);
       const html = await surfaces(row, afterKickoff);
-      expect(html.home).toContain(item.text);
-      expect(html.game).toContain(item.text);
+      expect(html.home).toContain(`PICK ${item.text}`);
+      expect(html.game).toContain(`PICK ${item.text}`);
       expect(html.home).not.toContain('Result ');
       expect(html.home).not.toContain('stale close');
       expect(html.game).not.toContain('stale close');
@@ -113,7 +113,8 @@ describe('card footer', () => {
     const voided = base({ status: 'void', result: null, voided_at: '2099-09-13T16:00:00Z' });
     const voidHtml = await surfaces(voided, afterKickoff);
     expect(voidHtml.home).toContain('No official pick');
-    expect(voidHtml.home).not.toContain('Line at pick KC -2.5');
+    expect(voidHtml.home).not.toContain('PICK KC');
+    expect(voidHtml.game).not.toContain('PICK KC');
     expect(voidHtml.game).not.toContain('<h2>Official pick</h2>');
     expect(voidHtml.game).not.toContain('stale close');
 
@@ -122,6 +123,7 @@ describe('card footer', () => {
     expect(formatCardFooter(rejected, kickoff, new Date(afterKickoff))).toBe(ledger);
     const rejectedHtml = await surfaces(rejected, afterKickoff);
     expect(rejectedHtml.home).toContain('No official pick');
+    expect(rejectedHtml.home).not.toContain('PICK KC');
     expect(rejectedHtml.game).toContain(ledger);
     expect(rejectedHtml.game).not.toContain('stale close');
   });

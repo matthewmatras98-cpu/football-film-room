@@ -62,7 +62,7 @@ describe('pending grade line', () => {
     const row = pending();
     expect(formatPickGrade(row, kickoff, new Date(beforeKickoff))).toBe('Line at pick BUF -3.0 · Pending');
     const html = await renderAt(beforeKickoff, [row]);
-    expect(html).toContain('Line at pick BUF -3.0 · Pending');
+    expect(html).toContain('PICK BUF -3.0 · Pending');
     expect(html).not.toContain('Closed ');
     expect(html).not.toContain('stale close');
   });
@@ -72,7 +72,7 @@ describe('pending grade line', () => {
     expect(formatPickGrade(row, kickoff, new Date(afterKickoff))).toBe('Closed BUF -6.5 · Status pending');
     expect(closeMarker('odds_api_stale')).toBeNull();
     const html = await renderAt(afterKickoff, [row]);
-    expect(html).toContain('Line at pick BUF -3.0 · Pending');
+    expect(html).toContain('PICK BUF -3.0 · Pending');
     expect(html).not.toContain('Closed ');
     expect(html).not.toContain('stale close');
   });
@@ -81,7 +81,7 @@ describe('pending grade line', () => {
     const row = pending({ closing_line: null, close_source: null, clv_pts: null });
     expect(formatPickGrade(row, kickoff, new Date(afterKickoff))).toBe('Line at pick BUF -3.0 · Pending');
     const html = await renderAt(afterKickoff, [row]);
-    expect(html).toContain('Line at pick BUF -3.0 · Pending');
+    expect(html).toContain('PICK BUF -3.0 · Pending');
     expect(html).not.toContain('Closed ');
     expect(html).not.toContain('stale close');
   });

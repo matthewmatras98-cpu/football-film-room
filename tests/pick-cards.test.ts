@@ -62,7 +62,7 @@ function withoutDetails(html: string): string {
 
 function asUnpicked(html: string): string {
   return compact(withoutDetails(html)).replace(
-    /<span class="badge badge--none pick-line">DET -3\.0(?: · [WL]| · Push)?<\/span>/g,
+    /<span class="badge badge--none pick-line">(?:PICK )?DET -3\.0(?: · (?:[WL]|Push|Pending))?<\/span>/g,
     '<span class="badge badge--none">No official pick</span>',
   );
 }
@@ -243,7 +243,7 @@ describe('program card markup', () => {
     const picked = await cardHtml([row]);
     const openTags = picked.match(/<details\b[^>]*>/g) ?? [];
     expect(openTags).toEqual(['<details class="writeup-details">']);
-    expect(picked).toContain('<span class="badge badge--none pick-line">DET -3.0</span>');
+    expect(picked).toContain('<span class="badge badge--none pick-line">PICK DET -3.0 · Pending</span>');
     expect(picked).not.toContain('Pick:');
     expect(picked).toContain('<span class="visually-hidden"> for NE at DET</span>');
     expect(picked).toMatch(/<summary>[\s\S]*<span class="visually-hidden"> for NE at DET<\/span>[\s\S]*<\/summary>/);
@@ -254,7 +254,7 @@ describe('program card markup', () => {
     expect(summary).not.toMatch(/aria-label/);
     expect(asUnpicked(picked)).toBe(compact(unpicked));
     const details = picked.match(/<details\b[\s\S]*?<\/details>/)?.[0] ?? '';
-    expect(details).toContain('Line at pick DET -3.0 · Pending');
+    expect(details).toContain('PICK DET -3.0 · Pending');
     expect(details.indexOf('class="pick-grade"')).toBeLessThan(details.indexOf('Submitted (server time)'));
     expect(details.indexOf('Submitted (server time)')).toBeLessThan(details.indexOf('Cover the number'));
     expect(details).toContain(`datetime="${row.picked_at}"`);
@@ -280,12 +280,12 @@ describe('program card markup', () => {
   it('uses Pick details when the official pick has no write-up', async () => {
     const row = pick();
     const html = await cardHtml([row], []);
-    expect(html).toContain('<span class="badge badge--none pick-line">DET -3.0</span>');
+    expect(html).toContain('<span class="badge badge--none pick-line">PICK DET -3.0 · Pending</span>');
     const summary = html.match(/<summary>[\s\S]*?<\/summary>/)?.[0] ?? '';
     expect(summary).toContain('Pick details');
     expect(summary).toContain('Hide the pick details');
     expect(summary).not.toContain('Read the write-up');
-    expect(html).toContain('Line at pick DET -3.0 · Pending');
+    expect(html).toContain('PICK DET -3.0 · Pending');
     expect(html).toContain('Submitted (server time)');
     expect(html).toContain(`datetime="${row.picked_at}"`);
     expect(html).not.toContain('Cover the number');
@@ -305,8 +305,8 @@ describe('program card markup', () => {
     const week = await cardHtml([spread, total]);
     const ledger = await ledgerHtml([spread, total]);
     const cardFooter = week
-      .replaceAll('Line at pick DET -3.0 · Pending', 'Closed DET -6.5 · Status pending')
-      .replaceAll('Line at pick Over 45.5 · Pending', 'Closed Over 47.0 · Status pending');
+      .replaceAll('PICK DET -3.0 · Pending', 'Closed DET -6.5 · Status pending')
+      .replaceAll('PICK Over 45.5 · Pending', 'Closed Over 47.0 · Status pending');
     expect(cardFooter.match(/<details\b[\s\S]*?<\/details>/g)).toEqual(
       ledger.match(/<details\b[\s\S]*?<\/details>/g),
     );
@@ -403,8 +403,12 @@ describe('picks page cards', () => {
     const home = await cardHtml([row]);
     const ledger = await ledgerHtml([row]);
     const inner = cardInner(ledger, row.pick_id);
-    expect(compact(withoutDetails(inner))).toBe(compact(withoutDetails(home)));
-    expect(home).toContain('<span class="badge badge--none pick-line">DET -3.0</span>');
+    const homeFoot = compact(withoutDetails(home)).replace(
+      'PICK DET -3.0 · Pending',
+      'DET -3.0',
+    );
+    expect(compact(withoutDetails(inner))).toBe(homeFoot);
+    expect(home).toContain('<span class="badge badge--none pick-line">PICK DET -3.0 · Pending</span>');
     expect(inner).toContain('class="pick-grade"');
     expect(inner).toContain('Closed DET -6.5 · Status pending');
     expect(inner.indexOf('class="pick-grade"')).toBeLessThan(inner.indexOf('Submitted (server time)'));
