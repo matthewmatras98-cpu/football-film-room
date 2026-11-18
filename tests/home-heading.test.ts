@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 const indexSource = readFileSync(new URL('../src/pages/index.astro', import.meta.url), 'utf8');
+const cardSource = readFileSync(new URL('../src/components/ProgramCard.astro', import.meta.url), 'utf8');
 const css = readFileSync(new URL('../src/styles/global.css', import.meta.url), 'utf8');
 
 function mediaBlock(source: string, header: string): string {
@@ -50,6 +51,11 @@ function displayNoneTargets(block: string): string[] {
 }
 
 describe('home h1', () => {
+  it('keeps card titles off h1', () => {
+    expect(cardSource).toMatch(/level\?: 'h2' \| 'h3'/);
+    expect(cardSource).not.toMatch(/<h1\b/);
+  });
+
   it('keeps one h1 and clips it on the small card layout instead of removing it', () => {
     expect(indexSource.match(/<h1\b/g)).toHaveLength(1);
     expect(indexSource).toMatch(/<h1 class:list=\{\[summary && 'visually-hidden'\]\}>/);
