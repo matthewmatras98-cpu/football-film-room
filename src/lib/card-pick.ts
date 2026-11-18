@@ -85,7 +85,23 @@ function kickedOff(kickoff: string | null | undefined, now: Date): boolean {
 }
 
 /**
- * One muted line for a ledger card.
+ * Footer on a home, slate, or matchup card.
+ * A W, L, or Push is the pick line at `line_at_pick`. Anything without a final
+ * result stays `Line at pick … · Pending`, including after kickoff. Rejected-late
+ * rows keep the ledger grade line. `now` defaults to BUILD_NOW, then the build clock.
+ */
+export function formatCardFooter(row: PickGradeRow, kickoff?: string | null, now?: Date): string {
+  if (row.status === 'rejected_late') {
+    return formatPickGrade(row, kickoff, now);
+  }
+  if (hasResult(row)) {
+    return formatCardPick(row);
+  }
+  return `Line at pick ${cardLine(row.market, row.side, row.line_at_pick)} \u00b7 Pending`;
+}
+
+/**
+ * One muted line for a /picks/ ledger card.
  * Before kickoff, and after kickoff with no captured close, an ungraded pick
  * reads `Line at pick … · Pending`. A W, L, or Push keeps the graded line.
  * `now` defaults to BUILD_NOW, then the build clock.

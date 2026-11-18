@@ -6,7 +6,7 @@ import PicksTable from '../../components/PicksTable.astro';
 import StatCell from '../../components/StatCell.astro';
 import StatCompare from '../../components/StatCompare.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { ledgerPicks } from '../../lib/card-pick';
+import { formatCardFooter, ledgerPicks } from '../../lib/card-pick';
 import { formatMst } from '../../lib/format-picks';
 import type { GameCard, LinePoint } from '../../lib/game-schema';
 import { formatEpaStory, formatSpreadTeam, tableSourceNotes } from '../../lib/format-stat';
@@ -231,6 +231,9 @@ const injurySides = [
     gamePicks.length > 0 ? (
       <section class="game-picks">
         <h2>Official pick</h2>
+        {gamePicks.map((pick) => (
+          <p class="pick-grade">{formatCardFooter(pick, game.kickoff_utc)}</p>
+        ))}
         <PicksTable picks={gamePicks} gameIds={new Set([game.game_id])} />
       </section>
     ) : null

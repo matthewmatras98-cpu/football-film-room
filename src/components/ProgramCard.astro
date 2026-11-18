@@ -1,6 +1,6 @@
 ---
 import WriteupAccordion from './WriteupAccordion.astro';
-import { formatCardPick, formatPickGrade, officialCardPicks } from '../lib/card-pick';
+import { formatCardFooter, formatCardPick, formatPickGrade, officialCardPicks } from '../lib/card-pick';
 import { SOURCE_UNAVAILABLE, formatEpaStory, formatSpreadTeam, formatTotalLine } from '../lib/format-stat';
 import { STATUS_LABEL, formatMst, matchupTeams } from '../lib/picks';
 import { slateLine } from '../lib/program';
@@ -129,7 +129,7 @@ function compactKickoff(iso: string): string {
       entry={writeupForPick(row.pick_id, writeups)}
       matchup={matchup}
       pickedAt={row.picked_at}
-      gradeLine={formatPickGrade(row, card?.kickoff_utc ?? null)}
+      gradeLine={(record ? formatPickGrade : formatCardFooter)(row, card?.kickoff_utc ?? null)}
     />
   ))
 }
