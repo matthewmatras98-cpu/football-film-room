@@ -5,6 +5,7 @@ from decimal import Decimal
 
 from football_pipeline.close import BookLine, Game, lower_middle, select_close
 from football_pipeline.lines import cover_result
+from football_pipeline.schema import format_ts
 
 UTC = timezone.utc
 
@@ -192,6 +193,38 @@ def test_snapshot_between_76_and_180_is_a_normal_close():
     assert fresh.close_age_min == Decimal(76)
 
 
+def test_late_group_snapshot_closes_the_late_game_only():
+    """The 2:25 snapshot is that game's close. It is never the 2:05 close.
+
+    L is taken at 21:07 UTC, after the 21:05 anchor kickoff and 18 minutes
+    before 21:25. select_close drops a row at or after that game's kickoff,
+    then keeps the latest snapshot still 5 to 75 minutes before kickoff.
+    """
+    anchor = datetime(2026, 11, 22, 21, 5, tzinfo=UTC)
+    late = datetime(2026, 11, 22, 21, 25, tzinfo=UTC)
+    b_ts = datetime(2026, 11, 22, 20, 37, tzinfo=UTC)
+    l_ts = datetime(2026, 11, 22, 21, 7, tzinfo=UTC)
+    assert l_ts >= anchor
+    assert anchor - b_ts == timedelta(minutes=28)
+    assert late - l_ts == timedelta(minutes=18)
+    early = _game_at("2026_11_NYJ_LAC", anchor, "NYJ", "LAC")
+    later = _game_at("2026_11_LV_DEN", late, "LV", "DEN")
+    rows = [
+        BookLine(early.game_id, "spread", "a", Decimal("-3.5"), b_ts),
+        BookLine(early.game_id, "spread", "a", Decimal("-9"), l_ts),
+        BookLine(later.game_id, "spread", "a", Decimal("-2"), b_ts),
+        BookLine(later.game_id, "spread", "a", Decimal("-6"), l_ts),
+    ]
+    early_close = select_close(early, rows)
+    late_close = select_close(later, rows)
+    assert early_close.close_ts == format_ts(b_ts)
+    assert early_close.line == Decimal("-3.5")
+    assert early_close.close_age_min == Decimal(28)
+    assert late_close.close_ts == format_ts(l_ts)
+    assert late_close.line == Decimal("-6")
+    assert late_close.close_age_min == Decimal(18)
+
+
 def test_only_a_sub_five_minute_snapshot_is_still_used():
     game = _game()
     close = select_close(game, [_book("only", Decimal("-2"), minutes_before=4)])
@@ -228,13 +261,31 @@ def test_stale_snapshot_is_labeled_and_exact_180_is_not():
 
 
 def _game(spread_line: Decimal | None = Decimal("3"), total_line: Decimal | None = None) -> Game:
+    return _game_at(
+        "2099_01_GB_CHI",
+        datetime(2099, 9, 13, 17, 0, tzinfo=UTC),
+        "GB",
+        "CHI",
+        spread_line=spread_line,
+        total_line=total_line,
+    )
+
+
+def _game_at(
+    game_id: str,
+    kickoff: datetime,
+    away: str,
+    home: str,
+    spread_line: Decimal | None = Decimal("3"),
+    total_line: Decimal | None = None,
+) -> Game:
     return Game(
-        game_id="2099_01_GB_CHI",
+        game_id=game_id,
         season=2099,
         week=1,
-        away_team="GB",
-        home_team="CHI",
-        kickoff_utc=datetime(2099, 9, 13, 17, 0, tzinfo=UTC),
+        away_team=away,
+        home_team=home,
+        kickoff_utc=kickoff,
         away_score=21,
         home_score=24,
         spread_line=spread_line,
