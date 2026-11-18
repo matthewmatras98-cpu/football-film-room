@@ -1206,6 +1206,7 @@ async function assertPresentPicks(distDir, summary, view) {
     fail('pick pages show the empty state while picks_view.json has rows');
   }
   await assertPicksPageCards(distDir, picksPage, view);
+  await assertVoidPicksHiddenOnGamePages(distDir, view);
   assertHomeSingleList(home);
   await assertWeekCardAccordions(distDir, view);
   const current = await homePickWeek(view);
@@ -1384,6 +1385,61 @@ async function writeupBody(pickId) {
   }
   const source = await readFile(filePath, 'utf8');
   return source.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '').trim();
+}
+
+/** Void picks, their anchors, and their write-ups stay off matchup pages too. */
+async function assertVoidPicksHiddenOnGamePages(distDir, view) {
+  const visibleByGame = new Map();
+  for (const row of view) {
+    if (row.status === 'void') {
+      continue;
+    }
+    const list = visibleByGame.get(row.game_id) ?? [];
+    list.push(row);
+    visibleByGame.set(row.game_id, list);
+  }
+  for (const row of view) {
+    if (row.status !== 'void') {
+      continue;
+    }
+    const pagePath = path.join(distDir, 'games', row.game_id, 'index.html');
+    if (!(await exists(pagePath))) {
+      continue;
+    }
+    const html = await readFile(pagePath, 'utf8');
+    const where = `/games/${row.game_id}/`;
+    if (html.includes(`id="pick-${row.pick_id}"`) || html.includes(`data-pick-id="${row.pick_id}"`)) {
+      fail(`${where} still shows void pick ${row.pick_id}`);
+    }
+    if (pickIdAppears(html, row.pick_id)) {
+      fail(`${where} still contains void pick ${row.pick_id}`);
+    }
+    const body = await writeupBody(row.pick_id);
+    if (body.length > 0 && html.includes(body)) {
+      fail(`${where} still contains the write-up for void pick ${row.pick_id}`);
+    }
+    if ((visibleByGame.get(row.game_id) ?? []).length === 0) {
+      if (/<table\b[^>]*\bclass="picks"/.test(html) || html.includes('<h2>Official pick</h2>')) {
+        fail(`${where} still renders a pick table for a voided pick`);
+      }
+    }
+  }
+  const cin = view.find((row) => row.pick_id === '2026_11_CIN_WAS-total');
+  if (!cin || cin.status !== 'void') {
+    return;
+  }
+  const cinPage = path.join(distDir, 'games', '2026_11_CIN_WAS', 'index.html');
+  if (!(await exists(cinPage))) {
+    return;
+  }
+  const html = await readFile(cinPage, 'utf8');
+  if (
+    html.includes('2026_11_CIN_WAS-total') ||
+    html.includes('TEST PICK, void test') ||
+    /<table\b[^>]*\bclass="picks"/.test(html)
+  ) {
+    fail('/games/2026_11_CIN_WAS/ still shows the CIN_WAS total void row');
+  }
 }
 
 /** Void picks, their anchors, and their write-ups stay off /picks/. */
@@ -1670,6 +1726,7 @@ async function assertFixturePicks(distDir) {
   }
 
   await assertPicksPageCards(distDir, picksHtml, view);
+  await assertVoidPicksHiddenOnGamePages(distDir, view);
   assertHomeSingleList(homeHtml);
   await assertWeekCardAccordions(distDir, view);
 

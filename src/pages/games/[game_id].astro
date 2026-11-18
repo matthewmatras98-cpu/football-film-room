@@ -6,6 +6,7 @@ import PicksTable from '../../components/PicksTable.astro';
 import StatCell from '../../components/StatCell.astro';
 import StatCompare from '../../components/StatCompare.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import { ledgerPicks } from '../../lib/card-pick';
 import { formatMst } from '../../lib/format-picks';
 import type { GameCard, LinePoint } from '../../lib/game-schema';
 import { formatEpaStory, formatSpreadTeam, tableSourceNotes } from '../../lib/format-stat';
@@ -191,7 +192,7 @@ const downRows = [
   },
 ];
 
-const gamePicks = picksForGame(game.game_id, picks);
+const gamePicks = ledgerPicks(picksForGame(game.game_id, picks));
 const weatherNotes = weatherNumbers
   ? tableSourceNotes([weatherNumbers.temp_f, weatherNumbers.wind_mph, weatherNumbers.precip_prob_pct])
   : [];
