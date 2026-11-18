@@ -502,6 +502,13 @@ async function assertPages(distDir, entries, { requirePublished }) {
     if (/\bsample\b/i.test(html) || relativePath.toLowerCase().includes('sample')) {
       fail(`${relativePath} ships something labeled sample`);
     }
+    const h1Count = html.match(/<h1\b/gi)?.length ?? 0;
+    if (h1Count !== 1) {
+      fail(`${relativePath} has ${h1Count} h1 elements`);
+    }
+    if (/<h1\b[^>]*\bgame-title\b/.test(html)) {
+      fail(`${relativePath} uses an h1 for a card title`);
+    }
   }
 
   await assertGameProgram(distDir, htmlFiles);
