@@ -2,11 +2,13 @@
 import PickCards from '../components/PickCards.astro';
 import SeasonSummary from '../components/SeasonSummary.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { ledgerPicks } from '../lib/card-pick';
 import { getAllGames } from '../lib/games';
 import { byWeek, picks, summary } from '../lib/picks';
 import { getWriteups } from '../lib/writeups';
 
-const weeks = byWeek(picks);
+const shown = ledgerPicks(picks);
+const weeks = byWeek(shown);
 const games = await getAllGames();
 const writeups = await getWriteups();
 const severalSeasons = new Set(weeks.map((group) => group.season)).size > 1;

@@ -20,7 +20,7 @@ import {
 register(new URL('./ts-resolver.mjs', import.meta.url));
 
 const { formatStatKind } = await import('../src/lib/format-stat.ts');
-const { formatCardPick, formatPickGrade, officialCardPicks } = await import('../src/lib/card-pick.ts');
+const { formatCardPick, formatPickGrade, ledgerPicks, officialCardPicks } = await import('../src/lib/card-pick.ts');
 const { gameCardSchema } = await import('../src/lib/game-schema.ts');
 const { currentWeek } = await import('../src/lib/current-week.ts');
 const { picksViewSchema, summarySchema } = await import('../src/lib/picks-schema.ts');
@@ -1205,7 +1205,7 @@ async function assertPresentPicks(distDir, summary, view) {
   if (home.includes('No picks yet this season.') || picksPage.includes('No picks yet this season.')) {
     fail('pick pages show the empty state while picks_view.json has rows');
   }
-  await assertPicksPageCards(picksPage, view);
+  await assertPicksPageCards(distDir, picksPage, view);
   assertHomeSingleList(home);
   await assertWeekCardAccordions(distDir, view);
   const current = await homePickWeek(view);
@@ -1339,22 +1339,91 @@ function cardLineText(row, line) {
   return formatCardPick({ ...row, line_at_pick: line, result: null });
 }
 
-/** /picks/ and the home picks list are one program card per pick row. */
-async function assertPicksPageCards(html, view) {
+/** /picks/ is one program card per non-void pick. Void rows stay out of the page. */
+async function assertPicksPageCards(distDir, html, view) {
   if (/<table\b[^>]*\bclass="picks"/.test(html)) {
     fail('/picks/ still renders the ledger table');
   }
+  const shown = ledgerPicks(view);
   const cards = html.match(/<li\b[^>]*\bclass="game-card"/g) ?? [];
-  if (cards.length !== view.length) {
-    fail(`/picks/ has ${cards.length} cards, expected ${view.length}`);
+  if (cards.length !== shown.length) {
+    fail(`/picks/ has ${cards.length} cards, expected ${shown.length}`);
   }
   const anchors = html.match(/id="pick-[^"]+"/g) ?? [];
-  if (anchors.length !== view.length) {
-    fail(`/picks/ has ${anchors.length} pick anchors, expected ${view.length}`);
+  if (anchors.length !== shown.length) {
+    fail(`/picks/ has ${anchors.length} pick anchors, expected ${shown.length}`);
   }
   const kickoffs = await loadKickoffs();
-  for (const row of view) {
+  for (const row of shown) {
     assertPickCardBlock(rowBlock(html, row.pick_id, '/picks/'), row, '/picks/', kickoffs.get(row.game_id) ?? null);
+  }
+  await assertHiddenVoidPicks(html, view);
+  await assertNoVoidRoutes(distDir, view);
+}
+
+function pickIdAppears(html, pickId) {
+  let from = 0;
+  while (from <= html.length) {
+    const at = html.indexOf(pickId, from);
+    if (at < 0) {
+      return false;
+    }
+    const next = html[at + pickId.length] ?? '';
+    if (!/[A-Za-z0-9_-]/.test(next)) {
+      return true;
+    }
+    from = at + pickId.length;
+  }
+  return false;
+}
+
+async function writeupBody(pickId) {
+  const filePath = path.join(root, 'src/content/picks', `${pickId}.md`);
+  if (!(await exists(filePath))) {
+    return '';
+  }
+  const source = await readFile(filePath, 'utf8');
+  return source.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '').trim();
+}
+
+/** Void picks, their anchors, and their write-ups stay off /picks/. */
+async function assertHiddenVoidPicks(html, view) {
+  for (const row of view) {
+    if (row.status !== 'void') {
+      continue;
+    }
+    if (html.includes(`id="pick-${row.pick_id}"`) || html.includes(`#pick-${row.pick_id}`)) {
+      fail(`/picks/ still shows void pick ${row.pick_id}`);
+    }
+    if (pickIdAppears(html, row.pick_id)) {
+      fail(`/picks/ still contains void pick ${row.pick_id}`);
+    }
+    const body = await writeupBody(row.pick_id);
+    if (body.length > 0 && html.includes(body)) {
+      fail(`/picks/ still contains the write-up for void pick ${row.pick_id}`);
+    }
+  }
+  const cin = view.find((row) => row.pick_id === '2026_11_CIN_WAS-total');
+  if (cin && cin.status === 'void') {
+    if (html.includes('2026_11_CIN_WAS') || html.includes('TEST PICK, void test')) {
+      fail('/picks/ still contains the CIN_WAS void pick or its write-up');
+    }
+  }
+}
+
+/** Write-ups are not their own pages. A void pick must not gain one. */
+async function assertNoVoidRoutes(distDir, view) {
+  const files = await listHtml(distDir);
+  for (const row of view) {
+    if (row.status !== 'void') {
+      continue;
+    }
+    for (const filePath of files) {
+      const relative = path.relative(distDir, filePath);
+      if (relative.split(path.sep).includes(row.pick_id)) {
+        fail(`void pick ${row.pick_id} has a built page at ${relative}`);
+      }
+    }
   }
 }
 
@@ -1600,7 +1669,7 @@ async function assertFixturePicks(distDir) {
     fail(`expected ${rejected.length} "Rejected – late" labels, found ${rejectedLabels}`);
   }
 
-  await assertPicksPageCards(picksHtml, view);
+  await assertPicksPageCards(distDir, picksHtml, view);
   assertHomeSingleList(homeHtml);
   await assertWeekCardAccordions(distDir, view);
 
@@ -1781,7 +1850,7 @@ async function main() {
       await assertNoDollar(picksDist);
       await assertNoStaleClose(picksDist);
       await assertNoSportsbooks(picksDist);
-      console.log('fixture build: /picks/ matches the grader summary and shows one card per pick');
+      console.log('fixture build: /picks/ matches the grader summary and shows one card per non-void pick');
       console.log('fixture build: game cards render every section and stay out of the empty dist');
     } finally {
       await rm(summaryDest, { force: true });

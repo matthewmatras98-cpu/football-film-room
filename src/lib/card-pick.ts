@@ -23,6 +23,14 @@ function pickVersion(row: Pick<CardPickRef, 'pick_id' | 'game_id' | 'market'>): 
 }
 
 /**
+ * Rows rendered on /picks/. A void stays in the ledger file and off the page.
+ * Rejected-late rows stay. This does not change the season summary.
+ */
+export function ledgerPicks<T extends { status: string }>(rows: readonly T[]): T[] {
+  return rows.filter((row) => row.status !== 'void');
+}
+
+/**
  * One official pick per game and market. A later version replaces an earlier one.
  * Void and rejected-late rows are left out, so the card renders as unpicked.
  */
