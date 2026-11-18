@@ -12,15 +12,11 @@ export const STATUS_LABEL = {
 
 export type StatusLabel = keyof typeof STATUS_LABEL;
 
-/** Visible marker text. `odds_api` and a null source have no marker. */
+/** Visible marker text. `odds_api`, a null source, and a stale snapshot have no public marker. */
 export const CLOSE_MARKER: Record<string, { text: string; title: string }> = {
   odds_api_thin: {
     text: 'thin close',
     title: '1-2 books. The lower-middle line of those books is used.',
-  },
-  odds_api_stale: {
-    text: 'stale close',
-    title: 'The snapshot is more than 180 minutes before kickoff.',
   },
   nflverse: {
     text: 'nflverse line',
@@ -29,7 +25,7 @@ export const CLOSE_MARKER: Record<string, { text: string; title: string }> = {
 };
 
 export function closeMarker(source: string | null): { text: string; title: string } | null {
-  if (!source) {
+  if (!source || source === 'odds_api_stale') {
     return null;
   }
   return CLOSE_MARKER[source] ?? null;
