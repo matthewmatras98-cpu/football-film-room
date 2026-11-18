@@ -96,6 +96,21 @@
     ]
   },
   {
+    "id": "qb-l4-epa",
+    "text": "CHI starter A. Home's EPA per dropback is 0.833333 over his last 4 starts (range 2099 wk1–1).",
+    "claims": [
+      {
+        "value": 0.833333,
+        "view": "v_qb",
+        "filter": "team = 'CHI' AND scope = 'l4' AND metric = 'epa_per_dropback'",
+        "column": "value",
+        "source": "nflverse_pbp",
+        "sample": 4,
+        "range": "2099 wk1–1"
+      }
+    ]
+  },
+  {
     "id": "rz-third",
     "text": "DET red zone TD rate is 1 on 2 trips and the third down rate is 1 on 2 tries, over 2099 wk1–2.",
     "claims": [

@@ -151,6 +151,10 @@ def test_agent_db_is_read_only_and_ignores_the_dump(tmp_path: Path):
         assert card[1:] == ("nflverse_pbp", 10, "2099 wk1\u20132")
         catalog = {row[0] for row in connection.execute("SELECT view_name FROM v_catalog").fetchall()}
         assert catalog == set(PUBLIC_VIEWS)
+        qb_note = connection.execute(
+            "SELECT definition_note FROM v_catalog WHERE view_name = 'v_qb'"
+        ).fetchone()
+        assert qb_note is not None and "team's last four" in qb_note[0]
         with pytest.raises(duckdb.Error):
             connection.execute("CREATE TABLE hack(x INTEGER)")
     finally:

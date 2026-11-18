@@ -24,6 +24,12 @@
     "expect": "analysis"
   },
   {
+    "id": "qb-l4-epa",
+    "question": "What is CHI's starter EPA per dropback over the team's last four games?",
+    "kind": "stats",
+    "expect": "analysis"
+  },
+  {
     "id": "rz-third",
     "question": "What are DET's red zone touchdown rate and third down conversion rate?",
     "kind": "stats",
