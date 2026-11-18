@@ -8,6 +8,7 @@ import { siteUrl } from '../src/data/site-url.mjs';
 import {
   CLOSE_MARKER,
   STATUS_LABEL,
+  closeMarker,
   formatClv,
   formatMst,
   formatPct,
@@ -964,7 +965,7 @@ async function assertFixtureCards(distDir, fixtures, picks, knownGameId) {
     if (sameSeasonWeek(card, current)) {
       const item = gameItem(home, card.game_id);
       const matches = picks.filter((row) => row.game_id === card.game_id);
-      assertOfficialWeekCard(item, matches, `home ${card.game_id}`);
+      assertOfficialWeekCard(item, matches, `home ${card.game_id}`, card.kickoff_utc);
     }
 
     const injuries = section(page, 'injuries');
@@ -1204,7 +1205,7 @@ async function assertPresentPicks(distDir, summary, view) {
   if (home.includes('No picks yet this season.') || picksPage.includes('No picks yet this season.')) {
     fail('pick pages show the empty state while picks_view.json has rows');
   }
-  assertPicksPageCards(picksPage, view);
+  await assertPicksPageCards(picksPage, view);
   assertHomeSingleList(home);
   await assertWeekCardAccordions(distDir, view);
   const current = await homePickWeek(view);
@@ -1339,7 +1340,7 @@ function cardLineText(row, line) {
 }
 
 /** /picks/ and the home picks list are one program card per pick row. */
-function assertPicksPageCards(html, view) {
+async function assertPicksPageCards(html, view) {
   if (/<table\b[^>]*\bclass="picks"/.test(html)) {
     fail('/picks/ still renders the ledger table');
   }
@@ -1351,12 +1352,28 @@ function assertPicksPageCards(html, view) {
   if (anchors.length !== view.length) {
     fail(`/picks/ has ${anchors.length} pick anchors, expected ${view.length}`);
   }
+  const kickoffs = await loadKickoffs();
   for (const row of view) {
-    assertPickCardBlock(rowBlock(html, row.pick_id, '/picks/'), row, '/picks/');
+    assertPickCardBlock(rowBlock(html, row.pick_id, '/picks/'), row, '/picks/', kickoffs.get(row.game_id) ?? null);
   }
 }
 
-function assertPickCardBlock(block, row, where) {
+async function loadKickoffs() {
+  const kickoffs = new Map();
+  if (!(await exists(gamesContentDir))) {
+    return kickoffs;
+  }
+  const names = (await readdir(gamesContentDir)).filter((name) => name.endsWith('.json'));
+  for (const name of names) {
+    const data = JSON.parse(await readFile(path.join(gamesContentDir, name), 'utf8'));
+    if (data && typeof data.game_id === 'string' && typeof data.kickoff_utc === 'string') {
+      kickoffs.set(data.game_id, data.kickoff_utc);
+    }
+  }
+  return kickoffs;
+}
+
+function assertPickCardBlock(block, row, where, kickoff = null) {
   if (!block.includes('class="game-card"')) {
     fail(`${where} #pick-${row.pick_id} is not a card`);
   }
@@ -1366,15 +1383,17 @@ function assertPickCardBlock(block, row, where) {
   if (!block.includes(formatMst(row.picked_at))) {
     fail(`${where} ${row.pick_id} is missing picked_at in MST`);
   }
-  if (!block.includes(`Status ${row.status}`)) {
+  const grade = formatPickGrade(row, kickoff);
+  const pending = grade.startsWith('Line at pick ');
+  if (!pending && !block.includes(`Status ${row.status}`)) {
     fail(`${where} ${row.pick_id} is missing status ${row.status}`);
   }
-  if (row.closing_line !== null) {
+  if (!pending && row.closing_line !== null) {
     const closed = cardLineText(row, row.closing_line);
     if (!block.includes(`Closed ${closed}`)) {
       fail(`${where} ${row.pick_id} is missing close ${closed}`);
     }
-    const marker = row.close_source ? CLOSE_MARKER[row.close_source] : undefined;
+    const marker = closeMarker(row.close_source ?? null);
     if (marker && !block.includes(marker.text)) {
       fail(`${where} ${row.pick_id} is missing the ${marker.text} marker`);
     }
@@ -1386,19 +1405,24 @@ function assertPickCardBlock(block, row, where) {
       }
     }
   }
-  if (row.clv_pts !== null && !block.includes(`CLV ${formatClv(row.clv_pts)}`)) {
+  if (pending && (block.includes('Closed ') || block.includes('stale close'))) {
+    fail(`${where} ${row.pick_id} shows a close before one is on the grade line`);
+  }
+  if (!pending && row.clv_pts !== null && !block.includes(`CLV ${formatClv(row.clv_pts)}`)) {
     fail(`${where} ${row.pick_id} is missing CLV ${formatClv(row.clv_pts)}`);
   }
-  if (row.result) {
+  if (!pending && row.result) {
     const word = row.result === 'P' ? 'Push' : row.result;
     if (!block.includes(`Result ${word}`)) {
       fail(`${where} ${row.pick_id} is missing result ${word}`);
     }
   }
   if (row.status === 'void' || row.status === 'rejected_late') {
-    const taken = cardLineText(row, row.line_at_pick);
-    if (!block.includes(`Pick ${taken}`)) {
-      fail(`${where} ${row.pick_id} is missing the original pick ${taken}`);
+    if (!pending) {
+      const taken = cardLineText(row, row.line_at_pick);
+      if (!block.includes(`Pick ${taken}`)) {
+        fail(`${where} ${row.pick_id} is missing the original pick ${taken}`);
+      }
     }
     const label = row.status === 'void' ? STATUS_LABEL.void : STATUS_LABEL.rejected_late;
     if (!block.includes(label)) {
@@ -1407,7 +1431,6 @@ function assertPickCardBlock(block, row, where) {
   } else if (!block.includes(formatCardPick(row))) {
     fail(`${where} ${row.pick_id} is missing ${formatCardPick(row)}`);
   }
-  const grade = formatPickGrade(row);
   if (!block.includes(grade)) {
     fail(`${where} ${row.pick_id} is missing the grade line ${grade}`);
   }
@@ -1445,7 +1468,7 @@ function assertHomeSingleList(html) {
   }
 }
 
-function assertOfficialWeekCard(block, rows, where) {
+function assertOfficialWeekCard(block, rows, where, kickoff = null) {
   if (/id="pick-/.test(block)) {
     fail(`${where} duplicates a pick anchor`);
   }
@@ -1474,7 +1497,7 @@ function assertOfficialWeekCard(block, rows, where) {
     if (!block.includes(text)) {
       fail(`${where} is missing ${text} for ${row.pick_id}`);
     }
-    const grade = formatPickGrade(row);
+    const grade = formatPickGrade(row, kickoff);
     if (!details.some((item) => item.includes(grade))) {
       fail(`${where} accordion is missing the grade line ${grade}`);
     }
@@ -1485,6 +1508,7 @@ function assertOfficialWeekCard(block, rows, where) {
 }
 
 async function assertWeekCardAccordions(distDir, view) {
+  const kickoffs = await loadKickoffs();
   const home = await readHtml(distDir, 'index.html');
   const homeIds = [...weekCardsSection(home).matchAll(/data-game-id="([^"]+)"/g)].map((match) => match[1]);
   for (const gameId of homeIds) {
@@ -1492,6 +1516,7 @@ async function assertWeekCardAccordions(distDir, view) {
       gameItem(home, gameId),
       view.filter((row) => row.game_id === gameId),
       `home ${gameId}`,
+      kickoffs.get(gameId) ?? null,
     );
   }
   const gamesIndex = await readHtml(distDir, 'games', 'index.html');
@@ -1507,7 +1532,17 @@ async function assertWeekCardAccordions(distDir, view) {
       block,
       view.filter((row) => row.game_id === gameId),
       `/games/ ${gameId}`,
+      kickoffs.get(gameId) ?? null,
     );
+  }
+}
+
+async function assertNoStaleClose(distDir) {
+  for (const filePath of await listHtml(distDir)) {
+    const html = await readFile(filePath, 'utf8');
+    if (html.includes('stale close')) {
+      fail(`${path.relative(root, filePath)} contains stale close`);
+    }
   }
 }
 
@@ -1565,7 +1600,7 @@ async function assertFixturePicks(distDir) {
     fail(`expected ${rejected.length} "Rejected – late" labels, found ${rejectedLabels}`);
   }
 
-  assertPicksPageCards(picksHtml, view);
+  await assertPicksPageCards(picksHtml, view);
   assertHomeSingleList(homeHtml);
   await assertWeekCardAccordions(distDir, view);
 
@@ -1653,6 +1688,7 @@ async function main() {
   await assertNoFixtureContent(deployDist);
   await assertNoPublishedFixture(deployDist);
   await assertNoDollar(deployDist);
+  await assertNoStaleClose(deployDist);
   await assertNoSportsbooks(deployDist);
   console.log(`deploy dist: ${committed.length} draft slug(s) absent, footer present on every page`);
 
@@ -1675,6 +1711,7 @@ async function main() {
     await assertNoTemplate(tempDist);
     await assertNoFixtureContent(tempDist);
     await assertNoDollar(tempDist);
+    await assertNoStaleClose(tempDist);
     await assertNoSportsbooks(tempDist);
     console.log(`temporary build: /weeks/${publishedSlug}/ is present and drafts are absent`);
   } finally {
@@ -1695,6 +1732,7 @@ async function main() {
         await assertNoFixtureContent(emptyDist);
         await assertNoPublishedFixture(emptyDist);
         await assertNoDollar(emptyDist);
+        await assertNoStaleClose(emptyDist);
         await assertNoSportsbooks(emptyDist);
         console.log('empty build: grader files and game cards were moved aside');
       } finally {
@@ -1741,6 +1779,7 @@ async function main() {
       await assertFixtureCards(picksDist, gameFixtures, picksForCards, knownCard.card.game_id);
       await assertNoTemplate(picksDist);
       await assertNoDollar(picksDist);
+      await assertNoStaleClose(picksDist);
       await assertNoSportsbooks(picksDist);
       console.log('fixture build: /picks/ matches the grader summary and shows one card per pick');
       console.log('fixture build: game cards render every section and stay out of the empty dist');
