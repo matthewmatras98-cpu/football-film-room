@@ -131,4 +131,4 @@ Files committed before this change still end in `min,max`. They stay in git hist
 
 ### §8 budget skips
 
-A budget skip writes the shot row, prints `::notice::`, appends that same line to the step summary, and exits 0. HTTP errors, D1 errors, and team-mapping errors still exit non-zero.
+A budget skip writes the shot row, prints `::notice::`, appends that same line to the step summary, and exits 0. HTTP errors, D1 errors, and team-mapping errors still exit non-zero. Kind L, the one extra close shot for a window whose latest kickoff is more than 10 minutes after its anchor, is skipped below 150, the same floor as a fixed shot. A window of 10 minutes or less, including one kickoff, has no L. Three or more distinct kickoffs still get one L, keyed to the latest.

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -374,7 +375,8 @@ def test_normal_week_replay_uses_no_extra_odds_calls(capsys):
     """On-time :07/:37 ticks over the week 11 fixture: one A, one B, fixed shots.
 
     Catch-up does not add a call. Each of those shots is inside the first 30
-    minutes of its window, so none of them is a catch-up either.
+    minutes of its window, so none of them is a catch-up either. The one L
+    for the 21:05/21:25 window is inside its first 30 minutes too.
     """
     games, _source = load_games(fixture=FIXTURES / "schedules_2026_reg.csv")
     week = [game for game in games if game.season == 2026 and game.week == 11]
@@ -393,7 +395,9 @@ def test_normal_week_replay_uses_no_extra_odds_calls(capsys):
     taken = [row.shot_key for row in d1.fetch_shots() if row.status == "taken"]
     assert taken == expected_keys
     assert transport.calls.count("odds") == expected_calls
-    assert expected_calls == len(windows) * 2 + 3
+    late_keys = [key for key in expected_keys if key.startswith("L:")]
+    assert late_keys == ["L:2026-11-22T21:25:00Z"]
+    assert expected_calls == len(windows) * 2 + 3 + len(late_keys)
     assert expected_calls == len(expected_keys)
     stamps = [format_ts(window.kickoff) for window in windows]
     assert [key for key in expected_keys if key.startswith("A:")] == [f"A:{stamp}" for stamp in stamps]
@@ -406,6 +410,228 @@ def test_normal_week_replay_uses_no_extra_odds_calls(capsys):
     assert "catch-up" not in captured.out
     assert "::warning::" not in captured.out
     assert all(row.status == "taken" for row in d1.fetch_shots())
+
+
+def test_split_window_takes_b_then_one_late_close_on_cron_ticks(capsys):
+    """2:05 and 2:25 PM Phoenix, on the real :07/:37 cron.
+
+    B is the tick about 28 minutes before 2:05. L is the :07 tick about 18
+    minutes before 2:25. Both are stored once. The window spends three
+    /odds calls: A, B, and L.
+    """
+    phoenix = ZoneInfo("America/Phoenix")
+    anchor = datetime(2026, 11, 22, 14, 5, tzinfo=phoenix)
+    late = datetime(2026, 11, 22, 14, 25, tzinfo=phoenix)
+    assert anchor.astimezone(UTC) == datetime(2026, 11, 22, 21, 5, tzinfo=UTC)
+    assert late.astimezone(UTC) == datetime(2026, 11, 22, 21, 25, tzinfo=UTC)
+    games = [
+        _game("2026_11_NYJ_LAC", anchor, "LAC", "NYJ"),
+        _game("2026_11_LV_DEN", late, "DEN", "LV"),
+        _game("2026_11_PIT_PHI", late, "PHI", "PIT"),
+    ]
+    assert len(group_windows(games)) == 1
+    ticks = _cron_ticks(
+        datetime(2026, 11, 22, 12, 7, tzinfo=UTC),
+        datetime(2026, 11, 23, 3, 37, tzinfo=UTC),
+    )
+    transport = None
+    d1 = None
+    taken_at: dict[str, datetime] = {}
+    for tick in ticks:
+        before = {row.shot_key for row in d1.fetch_shots()} if d1 is not None else set()
+        code, transport, d1 = _run(games, tick, 5000, d1=d1, transport=transport)
+        assert code == 0
+        for row in d1.fetch_shots():
+            if row.status == "taken" and row.shot_key not in before:
+                taken_at[row.shot_key] = tick
+    capsys.readouterr()
+    anchor_stamp = format_ts(anchor)
+    late_stamp = format_ts(late)
+    b_tick = datetime(2026, 11, 22, 20, 37, tzinfo=UTC)
+    l_tick = datetime(2026, 11, 22, 21, 7, tzinfo=UTC)
+    assert taken_at == {
+        f"A:{anchor_stamp}": datetime(2026, 11, 22, 20, 7, tzinfo=UTC),
+        f"B:{anchor_stamp}": b_tick,
+        f"L:{late_stamp}": l_tick,
+    }
+    assert anchor.astimezone(UTC) - b_tick == timedelta(minutes=28)
+    assert late.astimezone(UTC) - l_tick == timedelta(minutes=18)
+    assert transport.calls.count("odds") == 3
+    assert [row.shot_key for row in d1.fetch_shots()] == list(taken_at)
+
+
+def test_short_windows_get_no_late_close():
+    anchor = datetime(2026, 11, 22, 21, 5, tzinfo=UTC)
+    # 20:37 is 28 min before the anchor and 38 min before a +10 kickoff, so
+    # an L would be due here if the span rule allowed it.
+    now = datetime(2026, 11, 22, 20, 37, tzinfo=UTC)
+    single = plan_shots([_game("2026_11_NYJ_LAC", anchor, "LAC", "NYJ")], now, set())
+    assert [shot.kind for shot in single] == ["B"]
+
+    same_kick = plan_shots(
+        [
+            _game("2026_11_NYJ_LAC", anchor, "LAC", "NYJ"),
+            _game("2026_11_LV_DEN", anchor, "DEN", "LV"),
+        ],
+        now,
+        set(),
+    )
+    assert [shot.kind for shot in same_kick] == ["B"]
+
+    ten = anchor + timedelta(minutes=10)
+    assert close_kind(now, ten, False) == "B"
+    spanned = plan_shots(
+        [
+            _game("2026_11_NYJ_LAC", anchor, "LAC", "NYJ"),
+            _game("2026_11_LV_DEN", ten, "DEN", "LV"),
+        ],
+        now,
+        set(),
+    )
+    assert [shot.kind for shot in spanned] == ["B"]
+
+    just_over = anchor + timedelta(minutes=10, seconds=1)
+    longer = plan_shots(
+        [
+            _game("2026_11_NYJ_LAC", anchor, "LAC", "NYJ"),
+            _game("2026_11_LV_DEN", just_over, "DEN", "LV"),
+        ],
+        now,
+        set(),
+    )
+    assert [(shot.kind, shot.shot_key) for shot in longer] == [
+        ("B", f"B:{format_ts(anchor)}"),
+        ("L", f"L:{format_ts(just_over)}"),
+    ]
+
+    # Three distinct kickoffs still produce one L, keyed to the latest.
+    mid = anchor + timedelta(minutes=12)
+    latest = anchor + timedelta(minutes=22)
+    late_now = latest - timedelta(minutes=18)
+    assert close_kind(late_now, mid, False) == "B"
+    triple = plan_shots(
+        [
+            _game("2026_11_NYJ_LAC", anchor, "LAC", "NYJ"),
+            _game("2026_11_LV_DEN", mid, "DEN", "LV"),
+            _game("2026_11_PIT_PHI", latest, "PHI", "PIT"),
+        ],
+        late_now,
+        set(),
+    )
+    late_key = f"L:{format_ts(latest)}"
+    assert [shot.shot_key for shot in triple] == [late_key]
+    assert plan_shots(
+        [
+            _game("2026_11_NYJ_LAC", anchor, "LAC", "NYJ"),
+            _game("2026_11_LV_DEN", mid, "DEN", "LV"),
+            _game("2026_11_PIT_PHI", latest, "PHI", "PIT"),
+        ],
+        late_now,
+        {late_key},
+    ) == []
+
+
+def test_late_close_is_skipped_below_150(tmp_path, capsys, monkeypatch):
+    summary = tmp_path / "summary.md"
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
+    now = datetime(2026, 11, 22, 18, 0, tzinfo=UTC)
+    anchor = now + timedelta(minutes=15)
+    late = anchor + timedelta(minutes=20)
+    other = now + timedelta(minutes=60)
+    games = [
+        _game("2026_11_NYJ_LAC", anchor, "LAC", "NYJ"),
+        _game("2026_11_LV_DEN", late, "DEN", "LV"),
+        _game("2026_11_GB_CHI", other),
+    ]
+    assert {shot.kind for shot in plan_shots(games, now, set())} == {"A", "B", "L"}
+    assert shot_allowed(150, "L") is True
+    assert shot_allowed(149, "L") is False
+    assert shot_allowed(149, "B") is True
+    assert shot_allowed(149, "A") is True
+    assert shot_allowed(49, "A") is False
+    assert shot_allowed(49, "B") is True
+    assert shot_allowed(149, "fixed") is False
+    late_key = f"L:{format_ts(late)}"
+
+    code, transport, d1 = _run(games, now, 149)
+    captured = capsys.readouterr()
+    assert code == 0
+    assert {row.kind: row.status for row in d1.fetch_shots()} == {
+        "A": "taken",
+        "B": "taken",
+        "L": "skipped",
+    }
+    skipped = next(row for row in d1.fetch_shots() if row.kind == "L")
+    assert skipped.shot_key == late_key
+    assert skipped.credits_remaining == 149
+    assert f"::notice::skipped {late_key} x-requests-remaining=149" in captured.out
+    assert f"skipped {late_key} x-requests-remaining=149" in summary.read_text(encoding="utf-8")
+    assert transport.calls.count("odds") == 1
+
+    code, transport, d1 = _run(games, now, 49)
+    captured = capsys.readouterr()
+    assert code == 0
+    assert {row.kind: row.status for row in d1.fetch_shots()} == {
+        "A": "skipped",
+        "B": "taken",
+        "L": "skipped",
+    }
+    assert f"::notice::skipped {late_key} x-requests-remaining=49" in captured.out
+    assert f"::notice::skipped A:{format_ts(other)} x-requests-remaining=49" in captured.out
+    text = summary.read_text(encoding="utf-8")
+    assert f"skipped {late_key} x-requests-remaining=49" in text
+    assert f"skipped A:{format_ts(other)} x-requests-remaining=49" in text
+    assert transport.calls.count("odds") == 1
+    assert next(row for row in d1.fetch_shots() if row.kind == "B").status == "taken"
+
+
+def test_delayed_late_close_emits_catchup_and_a_miss_does_not_fail(tmp_path, capsys, monkeypatch):
+    summary = tmp_path / "summary.md"
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
+    anchor = datetime(2026, 11, 22, 21, 5, tzinfo=UTC)
+    late = datetime(2026, 11, 22, 21, 25, tzinfo=UTC)
+    games = [
+        _game("2026_11_NYJ_LAC", anchor, "LAC", "NYJ"),
+        _game("2026_11_LV_DEN", late, "DEN", "LV"),
+    ]
+    stamp = format_ts(late)
+    assert is_catchup(late - timedelta(minutes=18), late, "L") is False
+    assert is_catchup(late - timedelta(minutes=10), late, "L") is False
+    assert is_catchup(late - timedelta(minutes=10) + timedelta(seconds=1), late, "L") is True
+    delayed = late - timedelta(minutes=4)
+    assert is_catchup(delayed, late, "L") is True
+
+    b_tick = anchor - timedelta(minutes=28)
+    code, transport, d1 = _run(games, b_tick, 400)
+    assert code == 0
+    code, transport, d1 = _run(games, late + timedelta(minutes=1), 400, d1=d1, transport=transport)
+    missed_out = capsys.readouterr().out
+    assert code == 0
+    assert transport.calls.count("odds") == 1
+    assert [row.kind for row in d1.fetch_shots()] == ["B"]
+    assert "::warning::" not in missed_out
+    assert "::error::" not in missed_out
+    assert missed_window_messages(games, d1.fetch_shots(), late + timedelta(minutes=1)) == []
+
+    code, transport, d1 = _run(games, b_tick, 400)
+    assert code == 0
+    code, transport, d1 = _run(games, delayed, 400, d1=d1, transport=transport)
+    caught = capsys.readouterr().out
+    assert code == 0
+    assert f"::notice::catch-up L:{stamp}" in caught
+    assert f"catch-up L:{stamp}" in summary.read_text(encoding="utf-8")
+    assert "::warning::" not in caught
+    assert [(row.shot_key, row.status) for row in d1.fetch_shots()] == [
+        (f"B:{format_ts(anchor)}", "taken"),
+        (f"L:{stamp}", "taken"),
+    ]
+    assert transport.calls.count("odds") == 2
+    still_open = delayed + timedelta(minutes=2)
+    assert timedelta(0) < late - still_open <= timedelta(minutes=5)
+    code, transport, d1 = _run(games, still_open, 400, d1=d1, transport=transport)
+    assert code == 0
+    assert transport.calls.count("odds") == 2
+    assert capsys.readouterr().out.count(f"catch-up L:{stamp}") == 0
 
 
 def _cron_ticks(start: datetime, end: datetime) -> list[datetime]:
