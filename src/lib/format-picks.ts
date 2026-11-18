@@ -31,34 +31,43 @@ export function closeMarker(source: string | null): { text: string; title: strin
   return CLOSE_MARKER[source] ?? null;
 }
 
-/** +0.909u, −1.000u, 0.000u. Null stays an em dash and is never shown as zero. */
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+/** +1.73u, −1.00u, 0.00u. Two decimals. A rounded zero has no sign. Null stays an em dash. */
 export function formatUnits(value: number | null): string {
   if (value === null) {
     return EM_DASH;
   }
-  const fixed = value.toFixed(3);
-  if (value > 0) {
+  const rounded = round2(value);
+  const fixed = Math.abs(rounded).toFixed(2);
+  if (rounded > 0) {
     return `+${fixed}u`;
   }
-  if (value < 0) {
-    return `\u2212${fixed.slice(1)}u`;
+  if (rounded < 0) {
+    return `\u2212${fixed}u`;
   }
-  return '0.000u';
+  return '0.00u';
 }
 
-/** Signed CLV with three decimal places. Null stays an em dash. */
+/** Signed CLV to at most two decimals, trailing zeros trimmed. A rounded zero is 0.00. Null stays an em dash. */
 export function formatClv(value: number | null): string {
   if (value === null) {
     return EM_DASH;
   }
-  const fixed = value.toFixed(3);
-  if (value > 0) {
-    return `+${fixed}`;
+  const rounded = round2(value);
+  if (rounded === 0) {
+    return '0.00';
   }
-  if (value < 0) {
-    return `\u2212${fixed.slice(1)}`;
+  const trimmed = Math.abs(rounded)
+    .toFixed(2)
+    .replace(/0+$/, '')
+    .replace(/\.$/, '');
+  if (rounded > 0) {
+    return `+${trimmed}`;
   }
-  return '0.000';
+  return `\u2212${trimmed}`;
 }
 
 /** A ratio from summary.json, such as 0.429, shown as 42.9%. Null stays an em dash. */

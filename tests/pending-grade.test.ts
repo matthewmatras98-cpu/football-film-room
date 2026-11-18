@@ -91,9 +91,9 @@ describe('pending grade line', () => {
     const loss = fixtureRow('2099_01_DET_PHI-total');
     const push = fixtureRow('2099_01_KC_BUF-spread');
     const expected = {
-      win: 'Closed DET +3.0 · nflverse line · CLV \u22120.500 · Result W · Status graded',
-      loss: 'Closed Over 47.5 · nflverse line · CLV +1.000 · Result L · Status graded',
-      push: 'Closed KC -3.0 · nflverse line · CLV +0.500 · Result Push · Status graded',
+      win: 'Closed DET +3.0 · nflverse line · CLV \u22120.5 · Result W · Status graded',
+      loss: 'Closed Over 47.5 · nflverse line · CLV +1 · Result L · Status graded',
+      push: 'Closed KC -3.0 · nflverse line · CLV +0.5 · Result Push · Status graded',
     };
     for (const now of [beforeKickoff, afterKickoff]) {
       const at = new Date(now);

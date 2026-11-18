@@ -14,9 +14,13 @@ import { byWeek, currentWeekPicks, picksForWeek, weekPickEntries } from '../src/
 
 describe('formatUnits', () => {
   it('shows wins, losses, and pushes in units', () => {
-    expect(formatUnits(0.909)).toBe('+0.909u');
-    expect(formatUnits(-1)).toBe('\u22121.000u');
-    expect(formatUnits(0)).toBe('0.000u');
+    expect(formatUnits(0.909)).toBe('+0.91u');
+    expect(formatUnits(1.727)).toBe('+1.73u');
+    expect(formatUnits(-1)).toBe('\u22121.00u');
+    expect(formatUnits(-0.25)).toBe('\u22120.25u');
+    expect(formatUnits(0)).toBe('0.00u');
+    expect(formatUnits(0.004)).toBe('0.00u');
+    expect(formatUnits(-0.004)).toBe('0.00u');
   });
 
   it('shows null as an em dash and never as zero', () => {
@@ -56,11 +60,16 @@ describe('formatWinPct', () => {
 });
 
 describe('formatClv', () => {
-  it('signs CLV and keeps three decimal places', () => {
-    expect(formatClv(0.5)).toBe('+0.500');
-    expect(formatClv(-0.5)).toBe('\u22120.500');
-    expect(formatClv(1)).toBe('+1.000');
-    expect(formatClv(0)).toBe('0.000');
+  it('keeps at most two decimals and trims trailing zeros', () => {
+    expect(formatClv(0.5)).toBe('+0.5');
+    expect(formatClv(1.5)).toBe('+1.5');
+    expect(formatClv(-0.5)).toBe('\u22120.5');
+    expect(formatClv(-0.25)).toBe('\u22120.25');
+    expect(formatClv(-0.2500000001)).toBe('\u22120.25');
+    expect(formatClv(1)).toBe('+1');
+    expect(formatClv(0)).toBe('0.00');
+    expect(formatClv(0.004)).toBe('0.00');
+    expect(formatClv(-0.004)).toBe('0.00');
   });
 });
 
