@@ -5,14 +5,14 @@ import { formatSeasonLine, homeEmptyNote } from '../src/lib/home';
 describe('formatSeasonLine', () => {
   it('builds one compact line from the summary record and units', () => {
     expect(formatSeasonLine({ w: 0, l: 0, p: 0, units: 0 })).toBe(`0-0-0 · ${formatUnits(0)}`);
-    expect(formatSeasonLine({ w: 0, l: 0, p: 0, units: 0 })).toBe('0-0-0 · 0.000u');
-    expect(formatSeasonLine({ w: 3, l: 1, p: 1, units: 1.727 })).toBe('3-1-1 · +1.727u');
-    expect(formatSeasonLine({ w: 0, l: 2, p: 0, units: -2 })).toBe('0-2-0 · \u22122.000u');
+    expect(formatSeasonLine({ w: 0, l: 0, p: 0, units: 0 })).toBe('0-0-0 · 0.00u');
+    expect(formatSeasonLine({ w: 3, l: 1, p: 1, units: 1.727 })).toBe('3-1-1 · +1.73u');
+    expect(formatSeasonLine({ w: 0, l: 2, p: 0, units: -2 })).toBe('0-2-0 · \u22122.00u');
   });
 
   it('stays in units and does not print a dollar amount', () => {
     const line = formatSeasonLine({ w: 1, l: 0, p: 0, units: 0.909 });
-    expect(line).toBe('1-0-0 · +0.909u');
+    expect(line).toBe('1-0-0 · +0.91u');
     expect(line).not.toContain('$');
   });
 });

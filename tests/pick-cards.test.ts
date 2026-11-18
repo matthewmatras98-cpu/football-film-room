@@ -172,7 +172,7 @@ describe('official card picks', () => {
         kickoff,
         new Date('2026-11-15T12:00:00Z'),
       ),
-    ).toBe('Closed DET -4.5 · CLV +1.500 · Result W · Status graded');
+    ).toBe('Closed DET -4.5 · CLV +1.5 · Result W · Status graded');
     expect(
       formatPickGrade(
         pick({
