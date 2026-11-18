@@ -2,11 +2,13 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { activePicks } from '../../lib/admin/active-pick';
 import { buildAdminData } from '../../lib/admin/admin-data';
+import { voidsByWeek } from '../../lib/admin/voids';
 import { getAllGames } from '../../lib/games';
 import { picks } from '../../lib/picks';
 
 const data = buildAdminData(await getAllGames(), picks);
 const openPicks = activePicks(data.picks);
+const voidWeeks = Object.entries(voidsByWeek(picks));
 ---
 
 <BaseLayout noindex title="Enter a pick" description="Owner pick entry for the open week.">
@@ -61,6 +63,34 @@ const openPicks = activePicks(data.picks);
 
   <p id="pick-message" role="status"></p>
   <p id="pick-poll" class="meta"></p>
+
+  <h2>Voided picks</h2>
+  <p id="voids-empty" hidden={voidWeeks.length > 0}>No voided picks.</p>
+  {
+    voidWeeks.map(([week, rows]) => (
+      <section>
+        <h3>Week {week}</h3>
+        <ul class="open-picks">
+          {rows.map((row) => (
+            <li data-void-game={row.game_id} data-void-market={row.pick.market} data-repick={row.repick?.pick_id ?? ''}>
+              <p>
+                {row.game_id} · {row.pick.side} · {row.pick.market} · {row.pick.line_at_pick}
+              </p>
+              <p class="meta">Picked {row.pick.picked_at}</p>
+              <p class="meta">Voided {row.voided_at ?? '—'}</p>
+              {row.repick ? (
+                <p>
+                  Re-pick {row.repick.pick_id} · {row.repick.side} · {row.repick.line_at_pick} · {row.repick.picked_at}
+                </p>
+              ) : (
+                <p class="meta">No re-pick</p>
+              )}
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))
+  }
 
   <h2>Your open picks</h2>
   <p id="open-empty" hidden={openPicks.length > 0}>No open picks.</p>

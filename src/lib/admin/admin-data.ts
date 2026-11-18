@@ -1,4 +1,5 @@
 import { currentSeasonWeek } from '../current-week';
+import { voidsByWeek, type SlateVoid } from './voids';
 
 export interface AdminGame {
   game_id: string;
@@ -27,6 +28,8 @@ export interface AdminData {
   open_week: { season: number; week: number } | null;
   games: AdminGame[];
   picks: AdminPick[];
+  /** Counted voids from `picks_view.json`, grouped by week. Absent on older snapshots. */
+  voids?: Record<string, SlateVoid[]>;
 }
 
 export interface ScheduleGameInput {
@@ -81,7 +84,28 @@ export function buildAdminData(games: readonly ScheduleGameInput[], picks: reado
       status: pick.status,
       kickoff_utc: kickoffs.get(pick.game_id) ?? null,
     })),
+    voids: voidsByWeek(picks.filter(isViewRow)),
   };
+}
+
+function isViewRow(pick: LedgerPickInput): pick is LedgerPickInput & {
+  week: number;
+  line_at_pick: number;
+  picked_at: string;
+  voided_at: string | null;
+} {
+  const row = pick as LedgerPickInput & {
+    week?: unknown;
+    line_at_pick?: unknown;
+    picked_at?: unknown;
+    voided_at?: unknown;
+  };
+  return (
+    typeof row.week === 'number' &&
+    typeof row.line_at_pick === 'number' &&
+    typeof row.picked_at === 'string' &&
+    (typeof row.voided_at === 'string' || row.voided_at === null)
+  );
 }
 
 function asGame(value: unknown): AdminGame | null {
@@ -169,5 +193,100 @@ export function parseAdminData(value: unknown): AdminData | null {
       openWeek = { season: week.season, week: week.week };
     }
   }
-  return { open_week: openWeek, games, picks };
+  const voids = parseVoids(record.voids);
+  if (!voids) {
+    return null;
+  }
+  return { open_week: openWeek, games, picks, voids };
+}
+
+function parseVoids(value: unknown): Record<string, SlateVoid[]> | null {
+  if (value === undefined) {
+    return {};
+  }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  const grouped: Record<string, SlateVoid[]> = {};
+  for (const [week, rows] of Object.entries(value)) {
+    if (!Array.isArray(rows)) {
+      return null;
+    }
+    const parsed: SlateVoid[] = [];
+    for (const row of rows) {
+      const entry = asVoid(row);
+      if (!entry) {
+        return null;
+      }
+      parsed.push(entry);
+    }
+    grouped[week] = parsed;
+  }
+  return grouped;
+}
+
+function asVoid(value: unknown): SlateVoid | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+  const row = value as Record<string, unknown>;
+  const pick = asPickCells(row.pick);
+  if (typeof row.game_id !== 'string' || typeof row.week !== 'number' || !pick) {
+    return null;
+  }
+  if (row.voided_at !== null && typeof row.voided_at !== 'string') {
+    return null;
+  }
+  if (row.repick !== null && !asRepick(row.repick)) {
+    return null;
+  }
+  return {
+    game_id: row.game_id,
+    week: row.week,
+    pick,
+    voided_at: row.voided_at,
+    repick: row.repick === null ? null : asRepick(row.repick),
+  };
+}
+
+function asPickCells(value: unknown): SlateVoid['pick'] | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+  const row = value as Record<string, unknown>;
+  if (
+    typeof row.side !== 'string' ||
+    typeof row.market !== 'string' ||
+    typeof row.line_at_pick !== 'number' ||
+    typeof row.picked_at !== 'string'
+  ) {
+    return null;
+  }
+  return {
+    side: row.side,
+    market: row.market,
+    line_at_pick: row.line_at_pick,
+    picked_at: row.picked_at,
+  };
+}
+
+function asRepick(value: unknown): SlateVoid['repick'] {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+  const row = value as Record<string, unknown>;
+  if (
+    typeof row.pick_id !== 'string' ||
+    typeof row.side !== 'string' ||
+    typeof row.line_at_pick !== 'number' ||
+    typeof row.picked_at !== 'string'
+  ) {
+    return null;
+  }
+  return {
+    pick_id: row.pick_id,
+    side: row.side,
+    line_at_pick: row.line_at_pick,
+    picked_at: row.picked_at,
+  };
 }
