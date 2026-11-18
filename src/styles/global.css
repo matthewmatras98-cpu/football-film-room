@@ -1488,21 +1488,23 @@ tbody.is-rejected .record {
     flex-wrap: nowrap;
     min-width: 0;
     margin-bottom: 0;
-    font-size: 0.625rem;
+    font-size: 0;
     letter-spacing: 0.02em;
     white-space: nowrap;
   }
 
+  .game-card-foot .badge,
+  .game-card-foot .section-link {
+    font-size: 0.75rem;
+    letter-spacing: 0.02em;
+  }
+
   .game-card-foot .badge {
-    font-size: 0.625rem;
-    letter-spacing: 0.04em;
     padding: 0.05em 0.35em;
   }
 
   .game-card-foot .section-link {
     flex: 0 0 auto;
-    font-size: 0.625rem;
-    letter-spacing: 0.02em;
     white-space: nowrap;
   }
 
@@ -1559,9 +1561,7 @@ tbody.is-rejected .record {
   }
 
   .brand-dek {
-    margin-top: var(--space-4);
-    font-size: var(--text-caption);
-    line-height: 1.35;
+    display: none;
   }
 
   .site-nav-inner {

@@ -49,7 +49,12 @@ describe('compact phone card', () => {
     expect(pick).toMatch(/white-space:\s*nowrap/);
     expect(pick).not.toMatch(/display:\s*none/);
     expect(phoneRule('.brand')).toMatch(/padding:\s*var\(--space-8\)/);
-    expect(phoneRule('.brand-dek')).toMatch(/font-size:\s*var\(--text-caption\)/);
+    expect(phoneRule('.brand-dek')).toMatch(/display:\s*none/);
+    expect(remSize(phoneRule('.game-card-foot .badge'))).toBeGreaterThanOrEqual(0.75);
+    expect(remSize(phoneRule('.game-card-foot .section-link'))).toBeGreaterThanOrEqual(0.75);
+    expect(phoneRule('.game-card-foot .badge')).toMatch(/letter-spacing:\s*0\.02em/);
+    expect(phoneRule('.game-card-foot .section-link')).toMatch(/letter-spacing:\s*0\.02em/);
+    expect(remSize(phoneRule('.site-nav a'))).toBeGreaterThanOrEqual(0.6875);
     expect(phoneRule('.game-card .game-title')).toMatch(/clip:\s*rect\(0,\s*0,\s*0,\s*0\)/);
     for (const selector of [
       '.game-card-link',
@@ -86,6 +91,11 @@ describe('compact phone card', () => {
     expect(html).toContain('Read matchup notes');
   });
 });
+
+function remSize(rule: string): number {
+  const match = rule.match(/font-size:\s*([0-9.]+)rem/);
+  return match ? Number(match[1]) : 0;
+}
 
 function phoneRule(selector: string): string {
   return phoneRules(phone).find((rule) => rule.selectors.includes(selector))?.body ?? '';
