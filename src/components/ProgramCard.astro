@@ -1,7 +1,7 @@
 ---
 import WriteupAccordion from './WriteupAccordion.astro';
 import { formatCardPick, formatPickGrade, officialCardPicks } from '../lib/card-pick';
-import { SOURCE_UNAVAILABLE, formatEpaStory } from '../lib/format-stat';
+import { SOURCE_UNAVAILABLE, formatEpaStory, formatSpreadTeam, formatTotalLine } from '../lib/format-stat';
 import { STATUS_LABEL, formatMst, matchupTeams } from '../lib/picks';
 import { slateLine } from '../lib/program';
 import type { GameCard } from '../lib/game-schema';
@@ -32,8 +32,55 @@ const home = card?.home ?? parsed?.home ?? '';
 const matchup = home ? `${away} at ${home}` : away;
 const title = home ? `${away} @ ${home}` : away;
 const gameHref = card ? `/games/${card.game_id}/` : null;
+const latest = card?.line_latest ?? null;
+const hasLine = latest !== null && (latest.home_spread !== null || latest.total !== null);
+
+function compactKickoff(iso: string): string {
+  const formatted = new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: 'America/Phoenix',
+  }).format(new Date(iso));
+  return `${formatted.replace(/[\u00a0\u202f]/g, ' ')} MST`;
+}
 ---
 
+<p class="card-compact">
+  <span class="card-compact-match">
+    {
+      gameHref ? (
+        <a class="game-card-link" href={gameHref}>{title}</a>
+      ) : (
+        <span class="game-card-link">{title}</span>
+      )
+    }
+    <span class="card-compact-kick">
+      <span aria-hidden="true"> · </span>
+      {
+        card ? (
+          <time datetime={card.kickoff_utc}>{compactKickoff(card.kickoff_utc)}</time>
+        ) : (
+          <span>{SOURCE_UNAVAILABLE}</span>
+        )
+      }
+    </span>
+  </span>
+  <span class="card-compact-line nums">
+    {
+      hasLine && latest ? (
+        <>
+          <span class="card-compact-spread">{formatSpreadTeam(home, latest.home_spread)}</span>
+          <span aria-hidden="true"> · </span>
+          <span class="card-compact-total">{formatTotalLine(latest.total)}</span>
+        </>
+      ) : (
+        slateLine(latest, home)
+      )
+    }
+  </span>
+</p>
 <div class="game-card-meta">
   <span class="when">
     {
