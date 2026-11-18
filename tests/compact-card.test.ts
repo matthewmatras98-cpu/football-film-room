@@ -39,6 +39,32 @@ describe('compact phone card', () => {
     }
   });
 
+  it('keeps the phone nav and the pick footer on one row', () => {
+    const base = css.slice(0, css.indexOf('@media (max-width: 30rem)'));
+    expect(base).toMatch(/\.site-nav\s*\{[^}]*flex-wrap:\s*wrap/);
+    expect(phoneRule('.site-nav')).toMatch(/flex-wrap:\s*nowrap/);
+    expect(phoneRule('.game-card-foot')).toMatch(/flex-wrap:\s*nowrap/);
+    const pick = phoneRule('.game-card-foot .program-pick');
+    expect(pick).toMatch(/flex-wrap:\s*nowrap/);
+    expect(pick).toMatch(/white-space:\s*nowrap/);
+    expect(pick).not.toMatch(/display:\s*none/);
+    expect(phoneRule('.brand')).toMatch(/padding:\s*var\(--space-8\)/);
+    expect(phoneRule('.brand-dek')).toMatch(/font-size:\s*var\(--text-caption\)/);
+    expect(phoneRule('.game-card .game-title')).toMatch(/clip:\s*rect\(0,\s*0,\s*0,\s*0\)/);
+    for (const selector of [
+      '.game-card-link',
+      '.game-card-foot a',
+      '.section-link',
+      '.chip',
+      '.btn',
+      '.wordmark',
+      '.ledger-chip',
+      '.writeup-details > summary',
+    ]) {
+      expect(phoneRule(selector), selector).toMatch(/min-height:\s*44px/);
+    }
+  });
+
   it('renders matchup and kickoff on one line and spread and total on the next', async () => {
     const container = await AstroContainer.create();
     const html = await container.renderToString(ProgramCard, {

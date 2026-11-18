@@ -1485,16 +1485,25 @@ tbody.is-rejected .record {
 
   .game-card-foot .program-pick {
     flex: 1 1 auto;
+    flex-wrap: nowrap;
     min-width: 0;
     margin-bottom: 0;
-    font-size: 0.6875rem;
+    font-size: 0.625rem;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+
+  .game-card-foot .badge {
+    font-size: 0.625rem;
     letter-spacing: 0.04em;
+    padding: 0.05em 0.35em;
   }
 
   .game-card-foot .section-link {
     flex: 0 0 auto;
-    font-size: 0.6875rem;
-    letter-spacing: 0.04em;
+    font-size: 0.625rem;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
   }
 
   .slate-card .program-pick {
@@ -1537,5 +1546,39 @@ tbody.is-rejected .record {
 
   .wordmark {
     justify-content: center;
+    font-size: 1.75rem;
+    line-height: 1;
+  }
+
+  .brand {
+    padding: var(--space-8) 0 var(--space-4);
+  }
+
+  .brand-eyebrow {
+    margin-bottom: var(--space-4);
+  }
+
+  .brand-dek {
+    margin-top: var(--space-4);
+    font-size: var(--text-caption);
+    line-height: 1.35;
+  }
+
+  .site-nav-inner {
+    align-items: center;
+    gap: var(--space-8);
+    padding: var(--space-8) 0;
+  }
+
+  .site-nav {
+    flex-wrap: nowrap;
+    gap: var(--space-4);
+    width: 100%;
+  }
+
+  .site-nav a {
+    padding-inline: var(--space-4);
+    font-size: 0.6875rem;
+    letter-spacing: 0.02em;
   }
 }
