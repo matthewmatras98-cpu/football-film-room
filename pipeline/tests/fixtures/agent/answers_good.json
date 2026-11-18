@@ -128,7 +128,7 @@
         "view": "v_lines",
         "filter": "game_id = '2099_03_CHI_DET' AND market = 'spread' AND snapshot_ts = '2099-09-18T12:00:00Z'",
         "column": "line",
-        "source": "median of 5 US books (data/lines)",
+        "source": "lower-middle of 5 US books (data/lines)",
         "sample": 5,
         "range": "2099-09-18T12:00:00Z"
       }

@@ -120,9 +120,16 @@ def test_agent_db_is_read_only_and_ignores_the_dump(tmp_path: Path):
         ).fetchone()
         assert latest[0] == -2.5
         assert latest[1] == 5
-        assert latest[2] == "median of 5 US books (data/lines)"
+        assert latest[2] == "lower-middle of 5 US books (data/lines)"
         assert latest[3] == 5
         assert latest[4] == "2099-09-18T12:00:00Z"
+        lines_desc = connection.execute(
+            "SELECT description FROM v_catalog WHERE view_name = 'v_lines'"
+        ).fetchone()
+        assert lines_desc is not None
+        assert "home" in lines_desc[0].lower()
+        assert "lower-middle" in lines_desc[0].lower()
+        assert "median" not in lines_desc[0].lower()
         players = {row[0] for row in connection.execute("SELECT player FROM v_injuries").fetchall()}
         assert "A. Tackle" in players
         assert "E. Old" not in players
