@@ -1,3 +1,4 @@
+import type { PickView } from '../picks-schema';
 import { parseAdminData, type AdminData } from './admin-data';
 import { clearCookie, setCookie, timingSafeEqualString } from './cookie';
 import { csrfForSession, csrfMatches, issueState, originAllowed, readState, stateCookie, STATE_COOKIE, STATE_TTL_SEC } from './csrf';
@@ -17,12 +18,15 @@ import { isOwner } from './owner';
 import { issueSession, sessionFromRequest, SESSION_COOKIE, SESSION_TTL_SEC } from './session';
 import { selectableGames } from './open-week';
 import { validatePick, validateVoid } from './validate';
+import { voidsByWeek } from './voids';
 
 export interface HandlerDeps {
   fetch: typeof fetch;
   now: () => Date;
   uuid: () => string;
   loadAdminData: (request: Request, env: PagesEnv) => Promise<AdminData | null>;
+  /** View rows for `voids`. Defaults to the published `picks_view.json`. */
+  loadPicksView?: () => Promise<readonly PickView[]> | readonly PickView[];
 }
 
 export function defaultDeps(env: PagesEnv): HandlerDeps {
@@ -249,7 +253,8 @@ export async function handleSlate(
     if (!data) {
       return json({ error: 'Schedule unavailable.' }, 500);
     }
-    return json({ games: selectableGames(data.games, now) }, 200);
+    const voids = deps.loadPicksView ? voidsByWeek(await deps.loadPicksView()) : (data.voids ?? {});
+    return json({ games: selectableGames(data.games, now), voids }, 200);
   } catch {
     return json({ error: 'internal error' }, 500);
   }
