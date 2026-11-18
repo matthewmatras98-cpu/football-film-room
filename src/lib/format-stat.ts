@@ -60,26 +60,46 @@ export function formatStat(stat: { value: number | null } | null | undefined): s
   if (stat.value === 0) {
     return '0';
   }
-  const text = Number.isInteger(stat.value) ? String(stat.value) : String(Number(stat.value.toFixed(3)));
+  const text = Number.isInteger(stat.value) ? String(stat.value) : String(Number(stat.value.toFixed(2)));
   return assertReal(text);
 }
 
-/** Signed EPA to three decimals. Negatives use a real minus, the same as a line. */
+/** Signed EPA to two decimals. Negatives use a real minus, the same as a line. */
 export function formatEpaValue(value: number): string {
   return formatStatKind({ value }, 'epa');
 }
 
-const EPA_DECIMAL = /-?\d+\.\d+/g;
+const STORY_DECIMAL = /-?\d+\.\d+/g;
+
+function storyKind(title: string): 'epa' | 'rate' | 'plain' {
+  if (/epa|per play/i.test(title)) {
+    return 'epa';
+  }
+  if (/rate|percent|%/i.test(title)) {
+    return 'rate';
+  }
+  return 'plain';
+}
+
+function formatStoryNumber(value: number, kind: 'epa' | 'rate' | 'plain'): string {
+  if (kind === 'epa') {
+    return formatEpaValue(value);
+  }
+  if (kind === 'rate') {
+    const percent = Math.abs(value) <= 1 ? value * 100 : value;
+    return alreadyPercent(percent);
+  }
+  const rounded = Math.round(value * 100) / 100;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2);
+}
 
 /**
- * Rounds EPA figures inside a story sentence. Other prompts stay as written.
- * The stored card is not changed.
+ * Display rounding for a story sentence. EPA and per-play figures use two
+ * decimals. Rates become a whole percent or one decimal. The stored card is unchanged.
  */
 export function formatEpaStory(title: string, body: string): string {
-  if (!/epa/i.test(title)) {
-    return body;
-  }
-  return body.replace(EPA_DECIMAL, (token) => formatEpaValue(Number(token)));
+  const kind = storyKind(title);
+  return body.replace(STORY_DECIMAL, (token) => formatStoryNumber(Number(token), kind));
 }
 
 export function formatStatKind(stat: { value: number | null } | null | undefined, kind: StatKind): string {
@@ -89,7 +109,7 @@ export function formatStatKind(stat: { value: number | null } | null | undefined
   const value = stat.value;
   switch (kind) {
     case 'epa':
-      return signed(value, 3);
+      return signed(value, 2);
     case 'rate':
       return percentFromFraction(value);
     case 'cpoe':
