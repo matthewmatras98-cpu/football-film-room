@@ -37,7 +37,7 @@ def test_banned_phrases_use_word_boundaries():
 
 def test_question_set_uses_fixture_teams():
     questions = json.loads(questions_path().read_text(encoding="utf-8"))
-    assert len(questions) == 10
+    assert len(questions) == 11
     by_id = {item["id"]: item for item in questions}
     s9 = by_id["s9-pass-rush"]["question"]
     assert "CHI" in s9 and "DET" in s9
@@ -61,7 +61,7 @@ def test_good_answers_pass_and_bad_answers_hit_every_check(tmp_path):
     build_agent_db(root, 2099, database, fixtures=fixtures)
     good = score_answers(database, AGENT / "answers_good.json")
     assert good["ok"] is True, good
-    assert good["passed"] == 10 and good["failed"] == 0
+    assert good["passed"] == 11 and good["failed"] == 0
     bad = score_answers(database, AGENT / "answers_bad.json")
     assert bad["ok"] is False
     checks = {item["check"] for question in bad["questions"] for item in question["failures"]}
@@ -73,7 +73,7 @@ def test_good_answers_pass_and_bad_answers_hit_every_check(tmp_path):
 
     passed = run_cli(["agent-eval", "--db", str(database), "--answers", str(AGENT / "answers_good.json")])
     assert passed.returncode == 0, passed.stderr + passed.stdout
-    assert "10 passed, 0 failed" in passed.stdout
+    assert "11 passed, 0 failed" in passed.stdout
     failed = run_cli(["agent-eval", "--db", str(database), "--answers", str(AGENT / "answers_bad.json")])
     assert failed.returncode == 1
     assert "banned_phrase" in failed.stdout

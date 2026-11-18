@@ -44,7 +44,7 @@ FTN charting is not loaded in v1. The credits table still names it, because a la
 | `v_team_epa` | EPA per play and success rate, offense (`for`) and defense (`allowed`), `season` and `l4` |
 | `v_pass_rate_pace` | Neutral early-down pass rate and seconds between snaps |
 | `v_explosives` | Explosive rate for and allowed (rush of 10+ yards, pass of 20+) |
-| `v_qb` | Starter, EPA per dropback, CPOE, time to throw |
+| `v_qb` | Starter, EPA per dropback, CPOE, time to throw. `l4` is the team's last four played games, not the quarterback's last four starts |
 | `v_pass_rush` | Sack rate for (defense sacks per opponent dropback) and sack rate allowed |
 | `v_red_zone_downs` | Red-zone TD rate, third-down rate, fourth-down rate |
 | `v_injuries` | Latest posted injury-report week |
@@ -55,6 +55,8 @@ FTN charting is not loaded in v1. The credits table still names it, because a la
 Every numeric row has `source`, `sample`, and `range`. A null value has a null sample and a null range. Rates are fractions from 0 to 1. CPOE is in percentage points. Time to throw and pace are seconds.
 
 `l4` is the last four games the team played. A season range looks like `2026 wk1–10`. Neutral plays are scrimmage plays on down 1 or 2, with win probability from 0.20 to 0.80, and more than 120 seconds left in the half.
+
+On `v_qb`, `l4` is the team's last four played games, not the quarterback's last four starts. `range` is that team week window, even when the starter did not play every one of those games. `player` is the starter, the dropback leader in the team's most recent played game. `sample` is that starter's dropbacks inside the window, so it can be smaller if he missed games or shared snaps. Cite the stat as "over the team's last four games (range …)". When the sample looks low, do not call it "his last four starts".
 
 `v_lines` stores the lower-middle book line and `n_books`. `line` is the lower-middle book line, element `floor((n - 1) / 2)` of the sorted book lines. It does not store a minimum, a maximum, or a sportsbook name. The source text is `lower-middle of N US books (data/lines)`.
 

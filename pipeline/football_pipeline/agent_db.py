@@ -1399,6 +1399,9 @@ def _write_catalog(connection: duckdb.DuckDBPyConnection) -> None:
             "season, team, scope, player, metric, value, source, sample, range",
             "The starter is the dropback leader in the team's most recent played game. "
             "epa_per_dropback and cpoe cover that player's dropbacks in the scope. "
+            "scope l4 is the team's last four played games, not the quarterback's last four starts. "
+            "range is that team window, and sample is the current starter's dropbacks within it, "
+            "so the sample can be smaller if he missed games or shared snaps. "
             "cpoe is in percentage points. time_to_throw is seconds, weighted by NGS attempts, "
             f"source {NGS_SOURCE}. The other two metrics use {PBP_SOURCE}. "
             "A missing starter leaves player and the numbers null.",
