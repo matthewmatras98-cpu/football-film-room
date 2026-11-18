@@ -115,7 +115,9 @@ function compactKickoff(iso: string): string {
           record && (row.status === 'void' || row.status === 'rejected_late') ? (
             <span class="badge badge--none badge--quiet">{STATUS_LABEL[row.status]}</span>
           ) : (
-            <span class="badge badge--none pick-line">{formatCardPick(row)}</span>
+            <span class="badge badge--none pick-line">
+              {record ? formatCardPick(row) : formatCardFooter(row, card?.kickoff_utc ?? null)}
+            </span>
           ),
         )
       )

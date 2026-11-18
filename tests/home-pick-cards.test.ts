@@ -182,7 +182,7 @@ describe('home single list', () => {
     const official = officialCardPicks(weekPicks.filter((row) => row.game_id === pickedGameId));
     expect(official).toHaveLength(1);
     const item = gameItem(home, pickedGameId);
-    expect(item).toContain('<span class="badge badge--none pick-line">BUF -6.0</span>');
+    expect(item).toContain('<span class="badge badge--none pick-line">PICK BUF -6.0 · Pending</span>');
     expect(item).toContain('Read matchup notes');
     expect(item).toContain('<details class="writeup-details">');
     expect(item).not.toMatch(/<details[^>]*\bopen\b/);

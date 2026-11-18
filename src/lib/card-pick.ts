@@ -86,18 +86,20 @@ function kickedOff(kickoff: string | null | undefined, now: Date): boolean {
 
 /**
  * Footer on a home, slate, or matchup card.
- * A W, L, or Push is the pick line at `line_at_pick`. Anything without a final
- * result stays `Line at pick … · Pending`, including after kickoff. Rejected-late
- * rows keep the ledger grade line. `now` defaults to BUILD_NOW, then the build clock.
+ * A real pick is marked `PICK` so the line is not read as a second market line.
+ * A W, L, or Push keeps that result. Anything without a final result stays
+ * `PICK … · Pending`, including after kickoff. Rejected-late rows keep the ledger
+ * grade line. `now` defaults to BUILD_NOW, then the build clock.
  */
 export function formatCardFooter(row: PickGradeRow, kickoff?: string | null, now?: Date): string {
   if (row.status === 'rejected_late') {
     return formatPickGrade(row, kickoff, now);
   }
+  const line = cardLine(row.market, row.side, row.line_at_pick);
   if (hasResult(row)) {
-    return formatCardPick(row);
+    return `PICK ${formatCardPick(row)}`;
   }
-  return `Line at pick ${cardLine(row.market, row.side, row.line_at_pick)} \u00b7 Pending`;
+  return `PICK ${line} \u00b7 Pending`;
 }
 
 /**
