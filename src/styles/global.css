@@ -1448,14 +1448,25 @@ tbody.is-rejected .record {
   }
 
   .game-card .game-card-meta,
-  .game-card .game-title,
   .game-card .game-angle,
   .game-card .game-story,
   .slate-card .game-card-meta,
-  .slate-card .game-title,
   .slate-card .game-angle,
   .slate-card .game-story {
     display: none;
+  }
+
+  .game-card .game-title,
+  .slate-card .game-title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 
   .game-card,
@@ -1499,14 +1510,20 @@ tbody.is-rejected .record {
     padding-bottom: var(--space-4);
   }
 
-  a,
+  .game-card-link,
+  .game-card-foot a,
+  .section-link,
   .chip,
   .btn,
+  .wordmark,
+  .ledger-chip,
   .writeup-details > summary {
     min-height: 44px;
   }
 
-  a,
+  .game-card-link,
+  .game-card-foot a,
+  .section-link,
   .chip,
   .btn {
     display: inline-flex;

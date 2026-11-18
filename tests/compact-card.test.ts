@@ -19,6 +19,24 @@ describe('compact phone card', () => {
     expect(phone).toMatch(/min-height:\s*44px/);
     expect(phone).toContain('.game-card .game-title');
     expect(phone).toContain('.slate-card .game-story');
+    const title = phoneRule('.game-card .game-title');
+    expect(title).toMatch(/position:\s*absolute/);
+    expect(title).toMatch(/clip:\s*rect\(0,\s*0,\s*0,\s*0\)/);
+    expect(title).not.toMatch(/display:\s*none/);
+    expect(phoneRule('.slate-card .game-title')).toBe(title);
+  });
+
+  it('does not size every anchor in the phone block', () => {
+    for (const rule of phoneRules(phone)) {
+      const setsBox = /min-height\s*:|display\s*:/.test(rule.body);
+      if (!setsBox) {
+        continue;
+      }
+      for (const selector of rule.selectors) {
+        expect(selector, rule.body).not.toMatch(/^(?:a|a[:[][^\s,+>~]*)(?:\s*,|$)/);
+        expect(isElementOnlyAnchor(selector), selector).toBe(false);
+      }
+    }
   });
 
   it('renders matchup and kickoff on one line and spread and total on the next', async () => {
@@ -37,7 +55,45 @@ describe('compact phone card', () => {
     expect(compact).toContain('class="card-compact-total"');
     expect(compact).toContain('47.0');
     expect(html).toContain('class="game-title"');
+    expect(html).toMatch(/<h3 class="game-title">/);
     expect(html).toContain('No official pick');
     expect(html).toContain('Read matchup notes');
   });
 });
+
+function phoneRule(selector: string): string {
+  return phoneRules(phone).find((rule) => rule.selectors.includes(selector))?.body ?? '';
+}
+
+function phoneRules(block: string): { selectors: string[]; body: string }[] {
+  const open = block.indexOf('{');
+  const inner = open === -1 ? block : block.slice(open + 1);
+  const rules: { selectors: string[]; body: string }[] = [];
+  let cursor = 0;
+  while (cursor < inner.length) {
+    const brace = inner.indexOf('{', cursor);
+    if (brace === -1) {
+      break;
+    }
+    const selectors = inner
+      .slice(cursor, brace)
+      .split(',')
+      .map((selector) => selector.trim())
+      .filter((selector) => selector.length > 0 && !selector.startsWith('@'));
+    const end = inner.indexOf('}', brace);
+    if (end === -1) {
+      break;
+    }
+    rules.push({ selectors, body: inner.slice(brace + 1, end) });
+    cursor = end + 1;
+  }
+  return rules;
+}
+
+/** A selector whose subject is the `a` element, with no class, id, or attribute. */
+function isElementOnlyAnchor(selector: string): boolean {
+  if (/[.#\[]/.test(selector)) {
+    return false;
+  }
+  return /(?:^|[\s>+~])a(?:::[\w-]+|:[\w-]+(?:\([^)]*\))?)*$/.test(selector);
+}
