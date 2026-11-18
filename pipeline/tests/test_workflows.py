@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
-from tests.conftest import FIXTURES, run_cli
+from football_pipeline.__main__ import main
+from football_pipeline.odds import OddsClient
+from tests.conftest import FIXTURES, grade_args, prepare_repo, run_cli
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOWS = ROOT / ".github" / "workflows"
@@ -86,10 +89,11 @@ def test_odds_dispatch_reads_the_repo_and_does_not_push():
         assert expr in text
 
 
-def test_only_weekly_and_the_ledger_push_and_they_use_the_helper():
+def test_only_weekly_the_ledger_and_grade_only_push_and_they_use_the_helper():
     weekly = (WORKFLOWS / "weekly.yml").read_text(encoding="utf-8")
     ledger = (WORKFLOWS / "pick-ledger.yml").read_text(encoding="utf-8")
-    for text in (weekly, ledger):
+    grade_only = (WORKFLOWS / "grade-only.yml").read_text(encoding="utf-8")
+    for text in (weekly, ledger, grade_only):
         assert "bash scripts/push_with_retry.sh" in text
         assert "git push" not in text
     assert "pull-snapshots" in weekly
@@ -101,6 +105,7 @@ def test_only_weekly_and_the_ledger_push_and_they_use_the_helper():
     assert "${{ vars.CF_ACCOUNT_ID }}" in weekly
     assert "${{ vars.D1_DATABASE_ID }}" in weekly
     assert "${{ secrets.ODDS_API_KEY }}" not in weekly
+    assert "${{ secrets.ODDS_API_KEY }}" not in grade_only
 
 
 def test_deploy_key_pushes_are_read_only_and_cannot_stage_picks():
@@ -108,9 +113,10 @@ def test_deploy_key_pushes_are_read_only_and_cannot_stage_picks():
     ledger_path = WORKFLOWS / "pick-ledger.yml"
     weekly = weekly_path.read_text(encoding="utf-8")
     ledger = ledger_path.read_text(encoding="utf-8")
+    grade_only = (WORKFLOWS / "grade-only.yml").read_text(encoding="utf-8")
     for path in sorted(WORKFLOWS.glob("*.yml")):
         assert "contents: write" not in path.read_text(encoding="utf-8"), path.name
-    for text in (weekly, ledger):
+    for text in (weekly, ledger, grade_only):
         assert len(re.findall(r"(?m)^permissions:\n  contents: read\n", text)) == 1
         assert len(re.findall(r"(?m)^    permissions:\n      contents: read\n", text)) == 1
         assert text.count("LEDGER_DEPLOY_KEY") == 1
@@ -119,6 +125,7 @@ def test_deploy_key_pushes_are_read_only_and_cannot_stage_picks():
         assert "pull_request" not in text
         assert "fetch-depth: 0" in text
     assert "push:" not in _top_block(weekly, "on")
+    assert "push:" not in _top_block(grade_only, "on")
     assert 'cron: "7 11 * * 4"' in weekly
     assert 'cron: "7 13 * * 2"' in weekly
     for command in ("refresh", "pull-snapshots", "grade", "lines-export", "build-db", "cards"):
@@ -132,6 +139,7 @@ def test_deploy_key_pushes_are_read_only_and_cannot_stage_picks():
     ]
     weekly_specs = _git_add_pathspecs(weekly)
     ledger_specs = _git_add_pathspecs(ledger)
+    grade_only_specs = _git_add_pathspecs(grade_only)
     assert weekly_specs == [
         "data/graded.csv",
         "src/data/summary.json",
@@ -139,15 +147,20 @@ def test_deploy_key_pushes_are_read_only_and_cannot_stage_picks():
         "data/lines/*.csv",
         "src/content/games/*.json",
     ]
+    assert grade_only_specs == [
+        "data/graded.csv",
+        "src/data/summary.json",
+        "src/data/picks_view.json",
+    ]
     assert ledger_specs == [
         "data/pick_ledger.csv",
         "src/data/summary.json",
         "src/data/picks_view.json",
         "data/pick_ledger.csv",
     ]
-    allowed = set(weekly_specs) | set(ledger_specs)
+    allowed = set(weekly_specs) | set(ledger_specs) | set(grade_only_specs)
     forbidden = {".", "-A", "--all", "-u", "data/", "data/*"}
-    for spec in weekly_specs + ledger_specs:
+    for spec in weekly_specs + ledger_specs + grade_only_specs:
         assert spec in allowed
         assert spec not in forbidden
         assert not _matches_picks(spec)
@@ -427,3 +440,95 @@ def _run_blocks(text: str) -> list[str]:
             blocks.append(inline.group(1))
         index += 1
     return blocks
+
+
+def test_grade_only_runs_friday_and_monday_without_odds_or_dispatch():
+    """Monday 4:07 AM Phoenix is before MNF. Tuesday's full run still grades it."""
+    import inspect
+
+    from football_pipeline.__main__ import _grade, _pull_snapshots
+
+    weekly = (WORKFLOWS / "weekly.yml").read_text(encoding="utf-8")
+    grade_only = (WORKFLOWS / "grade-only.yml").read_text(encoding="utf-8")
+    assert 'cron: "7 11 * * 5"' in grade_only
+    assert 'cron: "7 11 * * 1"' in grade_only
+    assert 'cron: "7 11 * * 5"' not in weekly
+    assert 'cron: "7 11 * * 1"' not in weekly
+    assert 'cron: "7 13 * * 2"' in weekly
+    assert grade_only.count("Phoenix does not observe DST") == 2
+    assert grade_only.count("4:07 AM MST") == 2
+    assert "group: weekly-grade" in grade_only
+    assert "group: weekly-grade" in weekly
+    assert "cancel-in-progress: false" in grade_only
+    assert _on_keys(grade_only) == ["schedule"]
+    assert "workflow_dispatch" not in grade_only
+    assert "dispatch" not in grade_only.lower()
+    assert "ODDS_API_KEY" not in grade_only
+    assert "odds" not in grade_only.lower()
+    for command in ("lines-export", "build-db", "cards"):
+        assert command not in grade_only
+    for command in ("refresh", "pull-snapshots", "grade"):
+        assert f"football_pipeline {command}" in grade_only
+    assert grade_only.count('echo "no grader changes"') == 2
+    assert "generated_at" in grade_only
+    assert "OddsClient" not in inspect.getsource(_pull_snapshots)
+    assert "D1Client" in inspect.getsource(_pull_snapshots)
+    assert "OddsClient" not in inspect.getsource(_grade)
+    assert "ODDS_API_KEY" not in inspect.getsource(_pull_snapshots)
+    # Tuesday still runs the full chain, so MNF finals still land on Tuesday.
+    for command in ("refresh", "pull-snapshots", "grade", "lines-export", "build-db", "cards"):
+        assert command in weekly
+
+
+def test_grade_rerun_is_byte_identical_and_a_missing_final_stays_pending(tmp_path: Path):
+    """generated_at is included in summary.json and stable when --as-of is unchanged."""
+    root = prepare_repo(tmp_path)
+    as_of = "2099-09-21T11:07:00Z"
+    first = run_cli(grade_args(root, as_of))
+    assert first.returncode == 0, first.stderr + first.stdout
+    assert "Traceback" not in first.stderr
+    paths = [
+        root / "data" / "graded.csv",
+        root / "src" / "data" / "summary.json",
+        root / "src" / "data" / "picks_view.json",
+    ]
+    before = [path.read_bytes() for path in paths]
+    assert b"2099-09-21T11:07:00Z" in before[1]
+
+    second = run_cli(grade_args(root, as_of))
+    assert second.returncode == 0, second.stderr + second.stdout
+    assert [path.read_bytes() for path in paths] == before
+
+    view = json.loads(paths[2].read_text(encoding="utf-8"))
+    pending = [row for row in view if row["game_id"] == "2099_02_NE_MIA"]
+    assert len(pending) == 1
+    assert pending[0]["status"] == "pending"
+    assert pending[0]["final_home"] is None
+    assert pending[0]["final_away"] is None
+    assert pending[0]["result"] is None
+
+    later = run_cli(grade_args(root, "2099-09-22T11:07:00Z"))
+    assert later.returncode == 0, later.stderr + later.stdout
+    assert paths[0].read_bytes() == before[0]
+    assert paths[2].read_bytes() == before[2]
+    summary = json.loads(paths[1].read_text(encoding="utf-8"))
+    previous = json.loads(before[1])
+    assert summary.pop("generated_at") == "2099-09-22T11:07:00Z"
+    assert previous.pop("generated_at") == "2099-09-21T11:07:00Z"
+    assert summary == previous
+    again = [row for row in json.loads(paths[2].read_text(encoding="utf-8")) if row["game_id"] == "2099_02_NE_MIA"]
+    assert again[0]["status"] == "pending"
+
+
+def test_grade_does_not_call_the_odds_transport(tmp_path: Path, monkeypatch):
+    calls: list[str] = []
+
+    def transport(self, endpoint, path, params):
+        calls.append(endpoint)
+        raise AssertionError(f"odds transport called: {endpoint}")
+
+    monkeypatch.setattr(OddsClient, "_call", transport)
+    root = prepare_repo(tmp_path)
+    code = main(grade_args(root, "2099-09-21T11:07:00Z"))
+    assert code == 0
+    assert calls == []
