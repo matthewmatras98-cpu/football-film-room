@@ -1,3 +1,4 @@
+import { buildTime } from './current-week';
 import { closeMarker, formatClv } from './format-picks';
 import { formatSpreadTeam, formatTotalLine } from './format-stat';
 
@@ -70,16 +71,36 @@ export interface PickGradeRow extends CardPickRef {
   close_source?: string | null;
 }
 
+function hasResult(row: PickGradeRow): boolean {
+  return row.result === 'W' || row.result === 'L' || row.result === 'P';
+}
+
+/** Kickoff has passed on the build clock. A missing kickoff has not. */
+function kickedOff(kickoff: string | null | undefined, now: Date): boolean {
+  if (!kickoff) {
+    return false;
+  }
+  const at = Date.parse(kickoff);
+  return Number.isFinite(at) && now.getTime() >= at;
+}
+
 /**
- * One muted line for a ledger card. Null grades are left out.
- * Void and rejected rows keep the original pick, because the badge no longer shows it.
+ * One muted line for a ledger card.
+ * Before kickoff, and after kickoff with no captured close, an ungraded pick
+ * reads `Line at pick … · Pending`. A W, L, or Push keeps the graded line.
+ * `now` defaults to BUILD_NOW, then the build clock.
  */
-export function formatPickGrade(row: PickGradeRow): string {
+export function formatPickGrade(row: PickGradeRow, kickoff?: string | null, now?: Date): string {
+  const at = buildTime(now);
+  const showClose = row.closing_line !== null && (hasResult(row) || kickedOff(kickoff, at));
+  if (!showClose && !hasResult(row)) {
+    return `Line at pick ${cardLine(row.market, row.side, row.line_at_pick)} \u00b7 Pending`;
+  }
   const parts: string[] = [];
   if (row.status === 'void' || row.status === 'rejected_late') {
     parts.push(`Pick ${cardLine(row.market, row.side, row.line_at_pick)}`);
   }
-  if (row.closing_line !== null) {
+  if (showClose && row.closing_line !== null) {
     parts.push(`Closed ${cardLine(row.market, row.side, row.closing_line)}`);
     const marker = closeMarker(row.close_source ?? null);
     if (marker) {

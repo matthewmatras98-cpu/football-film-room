@@ -6,6 +6,17 @@ off. Close shots group kickoffs within 25 minutes. Shot A is [K-75, K-40)
 and shot B is [K-40, K-5). A run that lands in [K-5, K) still takes B when
 B has not been stored yet. One /odds call covers every game in the response.
 
+Any tick can take a close shot whose kickoff is still ahead, at most once
+per shot_key. Once B's slot has arrived (until <= 40 min) a missed A is not
+taken, and one tick never takes both A and B for the same window. After
+kickoff the window is left alone.
+
+A close shot is a catch-up when its window started more than 30 minutes
+before now. A's window starts at K-75 and B's at K-40, so the normal
+scheduled tick is the one in the first 30 minutes of that window. Catch-up
+shots keep the same shot_key and the same 150/50/20 credit guard, and they
+emit ::notice::catch-up <shot_key>.
+
 Budget skips write a shots row, emit ::notice::, append a step-summary line,
 and exit 0. HTTP, D1, and mapping errors propagate and exit non-zero.
 """
@@ -31,6 +42,10 @@ FIXED_SLOTS: tuple[tuple[str, int, int, int], ...] = (
 FIXED_DUE = timedelta(minutes=30)
 WINDOW_GAP = timedelta(minutes=25)
 MISSED_FOR = timedelta(hours=18)
+# A close shot taken after this, measured from its own window start, is a
+# catch-up: the cron tick that belongs to the shot is the one in the first
+# 30 minutes. A starts at K-75; B starts at K-40.
+CATCHUP_AFTER = timedelta(minutes=30)
 
 
 @dataclass(frozen=True)
@@ -78,6 +93,23 @@ def close_kind(now: datetime, kickoff: datetime, b_taken: bool) -> str | None:
     if timedelta(0) < until <= timedelta(minutes=5) and not b_taken:
         return "B"
     return None
+
+
+def is_catchup(now: datetime, kickoff: datetime, kind: str) -> bool:
+    """True when this close shot is past the normal 30-minute tick.
+
+    The window start is K-75 for A and K-40 for B. A shot taken more than
+    30 minutes after that start is a catch-up (for example A at K-41, or B
+    inside the last 10 minutes). Fixed shots are never catch-ups. Exactly
+    30 minutes is still the normal tick.
+    """
+    if kind == "A":
+        start = kickoff - timedelta(minutes=75)
+    elif kind == "B":
+        start = kickoff - timedelta(minutes=40)
+    else:
+        return False
+    return now - start > CATCHUP_AFTER
 
 
 def due_fixed_slots(now: datetime) -> list[tuple[str, datetime]]:
@@ -193,6 +225,7 @@ def run_dispatch(
             )
         )
         _notice(f"skipped {shot.shot_key} x-requests-remaining={remaining}")
+        _catchup_notice(now, shot)
     if not take:
         return 0
     odds_payload, odds_headers = odds.get_odds()
@@ -214,6 +247,7 @@ def run_dispatch(
                 status="taken",
             )
         )
+        _catchup_notice(now, shot)
     print(f"d1 shots: wrote {len(take)} row(s)")
     print(f"dispatch took {len(take)} shot(s), skipped {len(skip)}")
     return 0
@@ -275,6 +309,11 @@ def _kind_for(games: list[Game], take: list[PlannedShot]):
         return default
 
     return kind_for
+
+
+def _catchup_notice(now: datetime, shot: PlannedShot) -> None:
+    if is_catchup(now, shot.window_kickoff, shot.kind):
+        _notice(f"catch-up {shot.shot_key}")
 
 
 def _notice(message: str) -> None:

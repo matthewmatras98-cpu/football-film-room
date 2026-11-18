@@ -13,15 +13,19 @@ from football_pipeline.d1 import D1Client
 from football_pipeline.dispatch import (
     close_kind,
     due_fixed_slots,
+    group_windows,
+    is_catchup,
     missed_window_messages,
     plan_shots,
     run_dispatch,
     shot_allowed,
 )
 from football_pipeline.lines_export import book_lines_from_snapshots, export_lines
+from football_pipeline.nflv import load_games
 from football_pipeline.odds import OddsClient
 from football_pipeline.schema import format_ts
 from football_pipeline.teams import name_for
+from tests.conftest import FIXTURES
 from tests.fakes import SqliteD1
 
 UTC = timezone.utc
@@ -236,6 +240,197 @@ def test_dry_run_checks_mapping_and_does_not_spend_a_shot(capsys):
     created = " ".join(json.loads(call["body"])["sql"] for call in d1_calls(d1))
     assert "CREATE TABLE IF NOT EXISTS snapshots" in created
     assert "CREATE TABLE IF NOT EXISTS shots" in created
+
+
+def test_catchup_is_a_window_older_than_30_minutes():
+    kickoff = datetime(2026, 11, 15, 18, 0, tzinfo=UTC)
+    # A starts at K-75, so K-45 is exactly 30 minutes in and still on time.
+    assert is_catchup(kickoff - timedelta(minutes=45), kickoff, "A") is False
+    assert is_catchup(kickoff - timedelta(minutes=45) + timedelta(seconds=1), kickoff, "A") is True
+    assert is_catchup(kickoff - timedelta(minutes=41), kickoff, "A") is True
+    assert is_catchup(kickoff - timedelta(minutes=60), kickoff, "A") is False
+    # B starts at K-40, so K-10 is the last on-time moment.
+    assert is_catchup(kickoff - timedelta(minutes=10), kickoff, "B") is False
+    assert is_catchup(kickoff - timedelta(minutes=10) + timedelta(seconds=1), kickoff, "B") is True
+    assert is_catchup(kickoff - timedelta(minutes=4), kickoff, "B") is True
+    assert is_catchup(kickoff - timedelta(minutes=28), kickoff, "B") is False
+    assert is_catchup(kickoff - timedelta(minutes=41), kickoff, "fixed") is False
+
+
+def test_delayed_a_stays_a_until_b_slot_then_b_only(capsys):
+    kickoff = datetime(2026, 11, 15, 18, 0, tzinfo=UTC)
+    game = _game("2026_11_GB_CHI", kickoff)
+    stamp = format_ts(kickoff)
+
+    code, transport, d1 = _run([game], kickoff - timedelta(minutes=41), 400)
+    captured = capsys.readouterr()
+    assert code == 0
+    assert transport.calls == ["events", "odds"]
+    assert [(row.shot_key, row.status) for row in d1.fetch_shots()] == [(f"A:{stamp}", "taken")]
+    assert f"::notice::catch-up A:{stamp}" in captured.out
+
+    delayed = kickoff - timedelta(minutes=28)
+    code, transport, d1 = _run([game], delayed, 400)
+    captured = capsys.readouterr()
+    assert code == 0
+    assert transport.calls == ["events", "odds"]
+    assert [(row.shot_key, row.status) for row in d1.fetch_shots()] == [(f"B:{stamp}", "taken")]
+    assert f"A:{stamp}" not in captured.out
+    assert "catch-up" not in captured.out
+    for later in (
+        kickoff - timedelta(minutes=10),
+        kickoff - timedelta(minutes=4),
+        kickoff + timedelta(minutes=1),
+    ):
+        code, transport, d1 = _run([game], later, 400, d1=d1, transport=transport)
+        assert code == 0
+    assert transport.calls.count("odds") == 1
+    assert [row.shot_key for row in d1.fetch_shots()] == [f"B:{stamp}"]
+    assert f"::warning::window {stamp} got no shot" not in capsys.readouterr().out
+
+
+def test_b_delayed_past_kickoff_warns_and_does_not_call_odds(capsys):
+    kickoff = datetime(2026, 11, 15, 18, 0, tzinfo=UTC)
+    code, transport, d1 = _run(
+        [_game("2026_11_GB_CHI", kickoff)],
+        kickoff + timedelta(minutes=1),
+        400,
+    )
+    captured = capsys.readouterr()
+    assert code == 0
+    assert transport.calls == []
+    assert d1.fetch_shots() == []
+    assert f"::warning::window {format_ts(kickoff)} got no shot" in captured.out
+    assert "catch-up" not in captured.out
+
+
+def test_two_ticks_in_one_close_shot_do_not_double(capsys):
+    kickoff = datetime(2026, 11, 15, 18, 20, tzinfo=UTC)
+    game = _game("2026_11_GB_CHI", kickoff)
+    first = kickoff - timedelta(minutes=73)
+    second = kickoff - timedelta(minutes=43)
+    assert close_kind(first, kickoff, False) == "A"
+    assert close_kind(second, kickoff, False) == "A"
+    code, transport, d1 = _run([game], first, 400)
+    assert code == 0
+    assert transport.calls.count("odds") == 1
+    code, transport, d1 = _run([game], second, 400, d1=d1, transport=transport)
+    captured = capsys.readouterr()
+    assert code == 0
+    assert transport.calls.count("odds") == 1
+    assert [row.shot_key for row in d1.fetch_shots()] == [f"A:{format_ts(kickoff)}"]
+    assert "catch-up" not in captured.out
+    assert "no shot due" in captured.out
+
+
+def test_catchup_a_uses_the_same_credit_guard(tmp_path, capsys, monkeypatch):
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(tmp_path / "summary.md"))
+    kickoff = datetime(2026, 11, 15, 18, 0, tzinfo=UTC)
+    now = kickoff - timedelta(minutes=41)
+    game = _game("2026_11_GB_CHI", kickoff)
+    stamp = format_ts(kickoff)
+    summary = tmp_path / "summary.md"
+
+    code, transport, d1 = _run([game], now, 49)
+    captured = capsys.readouterr()
+    assert code == 0
+    assert transport.calls == ["events"]
+    row = d1.fetch_shots()[0]
+    assert (row.shot_key, row.status, row.credits_remaining) == (f"A:{stamp}", "skipped", 49)
+    assert f"::notice::skipped A:{stamp} x-requests-remaining=49" in captured.out
+    assert f"::notice::catch-up A:{stamp}" in captured.out
+    assert f"catch-up A:{stamp}" in summary.read_text(encoding="utf-8")
+    later = kickoff - timedelta(minutes=40, seconds=1)
+    code, transport, d1 = _run([game], later, 49, d1=d1, transport=transport)
+    assert code == 0
+    assert transport.calls == ["events"]
+    assert len(d1.fetch_shots()) == 1
+
+    stopped, stopped_transport, stopped_d1 = _run(
+        [game, _game("2026_11_DET_PHI", now + timedelta(minutes=10), "PHI", "DET")],
+        now,
+        19,
+    )
+    stopped_out = capsys.readouterr().out
+    assert stopped == 0
+    assert "odds" not in stopped_transport.calls
+    assert {row.kind: row.status for row in stopped_d1.fetch_shots()} == {
+        "A": "skipped",
+        "B": "skipped",
+    }
+    assert "::notice::" in stopped_out
+    assert f"::notice::catch-up A:{stamp}" in stopped_out
+
+    taken, taken_transport, taken_d1 = _run([game], now, 150)
+    taken_out = capsys.readouterr().out
+    assert taken == 0
+    assert taken_transport.calls == ["events", "odds"]
+    assert [(row.shot_key, row.status) for row in taken_d1.fetch_shots()] == [(f"A:{stamp}", "taken")]
+    assert f"::notice::catch-up A:{stamp}" in taken_out
+    assert "::notice::skipped" not in taken_out
+
+
+def test_normal_week_replay_uses_no_extra_odds_calls(capsys):
+    """On-time :07/:37 ticks over the week 11 fixture: one A, one B, fixed shots.
+
+    Catch-up does not add a call. Each of those shots is inside the first 30
+    minutes of its window, so none of them is a catch-up either.
+    """
+    games, _source = load_games(fixture=FIXTURES / "schedules_2026_reg.csv")
+    week = [game for game in games if game.season == 2026 and game.week == 11]
+    windows = group_windows(week)
+    ticks = _cron_ticks(
+        datetime(2026, 11, 17, 0, 7, tzinfo=UTC),
+        datetime(2026, 11, 24, 3, 37, tzinfo=UTC),
+    )
+    expected_calls, expected_keys = _on_time_shots(week, ticks)
+    transport = None
+    d1 = None
+    for tick in ticks:
+        code, transport, d1 = _run(week, tick, 5000, d1=d1, transport=transport)
+        assert code == 0
+    captured = capsys.readouterr()
+    taken = [row.shot_key for row in d1.fetch_shots() if row.status == "taken"]
+    assert taken == expected_keys
+    assert transport.calls.count("odds") == expected_calls
+    assert expected_calls == len(windows) * 2 + 3
+    assert expected_calls == len(expected_keys)
+    stamps = [format_ts(window.kickoff) for window in windows]
+    assert [key for key in expected_keys if key.startswith("A:")] == [f"A:{stamp}" for stamp in stamps]
+    assert [key for key in expected_keys if key.startswith("B:")] == [f"B:{stamp}" for stamp in stamps]
+    assert [key for key in expected_keys if key.startswith("fixed:")] == [
+        "fixed:2026:11:tue",
+        "fixed:2026:11:wed",
+        "fixed:2026:11:sat",
+    ]
+    assert "catch-up" not in captured.out
+    assert "::warning::" not in captured.out
+    assert all(row.status == "taken" for row in d1.fetch_shots())
+
+
+def _cron_ticks(start: datetime, end: datetime) -> list[datetime]:
+    ticks: list[datetime] = []
+    cursor = start
+    while cursor <= end:
+        if cursor.minute in (7, 37) and (cursor.hour <= 3 or cursor.hour >= 12):
+            ticks.append(cursor)
+        cursor += timedelta(minutes=30)
+    return ticks
+
+
+def _on_time_shots(games, ticks: list[datetime]) -> tuple[int, list[str]]:
+    """Shots today's planner takes when every cron tick lands on time."""
+    seen: set[str] = set()
+    calls = 0
+    keys: list[str] = []
+    for tick in ticks:
+        due = [shot.shot_key for shot in plan_shots(games, tick, seen)]
+        if not due:
+            continue
+        calls += 1
+        seen.update(due)
+        keys.extend(due)
+    return calls, keys
 
 
 def test_missed_window_is_a_warning_and_exits_zero(capsys):

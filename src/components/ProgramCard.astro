@@ -82,7 +82,7 @@ const gameHref = card ? `/games/${card.game_id}/` : null;
       entry={writeupForPick(row.pick_id, writeups)}
       matchup={matchup}
       pickedAt={row.picked_at}
-      gradeLine={formatPickGrade(row)}
+      gradeLine={formatPickGrade(row, card?.kickoff_utc ?? null)}
     />
   ))
 }

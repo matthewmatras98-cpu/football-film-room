@@ -141,7 +141,12 @@ describe('official card picks', () => {
   });
 
   it('keeps a short grade line and drops fields that are missing', () => {
-    expect(formatPickGrade(pick())).toBe('Closed DET -6.5 · Status pending');
+    const kickoff = '2026-11-15T14:30:00Z';
+    const after = new Date('2026-11-18T12:00:00Z');
+    expect(formatPickGrade(pick(), kickoff, after)).toBe('Closed DET -6.5 · Status pending');
+    expect(formatPickGrade(pick(), kickoff, new Date('2026-11-15T12:00:00Z'))).toBe(
+      'Line at pick DET -3.0 · Pending',
+    );
     expect(
       formatPickGrade(
         pick({
@@ -150,8 +155,10 @@ describe('official card picks', () => {
           result: null,
           close_source: null,
         }),
+        kickoff,
+        after,
       ),
-    ).toBe('Status pending');
+    ).toBe('Line at pick DET -3.0 · Pending');
     expect(
       formatPickGrade(
         pick({
@@ -162,6 +169,8 @@ describe('official card picks', () => {
           units_pl: 0.909,
           close_source: 'odds_api',
         }),
+        kickoff,
+        new Date('2026-11-15T12:00:00Z'),
       ),
     ).toBe('Closed DET -4.5 · CLV +1.500 · Result W · Status graded');
     expect(
@@ -174,8 +183,10 @@ describe('official card picks', () => {
           clv_pts: null,
           result: null,
         }),
+        kickoff,
+        after,
       ),
-    ).toBe('Pick DET -3.0 · Closed DET -4.5 · stale close · Status void');
+    ).toBe('Pick DET -3.0 · Closed DET -4.5 · Status void');
     expect(
       formatPickGrade(
         pick({
@@ -185,8 +196,10 @@ describe('official card picks', () => {
           result: null,
           close_source: null,
         }),
+        kickoff,
+        after,
       ),
-    ).toBe('Pick DET -3.0 · Status rejected_late');
+    ).toBe('Line at pick DET -3.0 · Pending');
   });
 
   it('appends a grade only when one is already on the row', () => {
@@ -437,7 +450,9 @@ describe('picks page cards', () => {
     expect(summary).toContain('<span class="visually-hidden"> for NE at DET</span>');
     expect(summary).not.toContain('Read the write-up');
     expect(html).toContain('Submitted (server time)');
-    expect(html).toContain('Status pending');
+    expect(html).toContain('Line at pick DET -3.0 · Pending');
+    expect(html).not.toContain('Closed ');
+    expect(html).not.toContain('stale close');
     expect(html).not.toContain('Cover the number');
     expect(html).not.toContain('<writeup');
     expect(html.match(/<details\b[^>]*>/g)).toEqual(['<details class="writeup-details">']);
@@ -462,7 +477,9 @@ describe('picks page cards', () => {
     expect(block).not.toContain('game-angle');
     expect(block).not.toContain('href="/games/2026_11_BUF_KC/"');
     expect(block).toContain('Submitted (server time)');
-    expect(block).toContain('Status pending');
+    expect(block).toContain('Line at pick BUF -2.5 · Pending');
+    expect(block).not.toContain('Closed ');
+    expect(block).not.toContain('stale close');
   });
 });
 
