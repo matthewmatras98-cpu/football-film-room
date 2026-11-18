@@ -4,13 +4,10 @@ The stats teammate reads one DuckDB file. The build uses public inputs only. It 
 
 ## Path and build
 
-On the shared box the file is `/workspace/football-app/data/football.duckdb`, outside the repo. `*.duckdb` and `*.duckdb.wal` are gitignored. Update the checkout with an anonymous `git pull` before building. This command does not pull.
+On the shared box the file is `/workspace/football-app/data/football.duckdb`, outside the repo. `*.duckdb` and `*.duckdb.wal` are gitignored. `--root` is the repo clone. On the shared box that clone is `/workspace/football-film-room-ro`, an anonymous read-only checkout. Update that checkout with an anonymous `git pull` before building. This command does not pull.
 
 ```bash
-python -m football_pipeline agent-db \
-  --root /workspace/football-app \
-  --season 2026 \
-  --out /workspace/football-app/data/football.duckdb
+cd pipeline && uv sync --frozen && uv run --frozen python -m football_pipeline agent-db --root /workspace/football-film-room-ro --season 2026 --out /workspace/football-app/data/football.duckdb
 ```
 
 `--season` is a single season, the same as `build-db`. The command prints row counts and nothing from the files.
