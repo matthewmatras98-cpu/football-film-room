@@ -108,11 +108,11 @@
     "week": 10
   },
   {
-    "close_age_min": null,
-    "close_books": null,
-    "close_source": null,
-    "close_ts": null,
-    "closing_line": null,
+    "close_age_min": 9290.083,
+    "close_books": 8,
+    "close_source": "odds_api_stale",
+    "close_ts": "2026-11-17T14:24:55Z",
+    "closing_line": 52.5,
     "clv_pts": null,
     "confidence": 1,
     "final_away": null,

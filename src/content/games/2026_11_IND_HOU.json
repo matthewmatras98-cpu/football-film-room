@@ -18,8 +18,8 @@
     "n_books": 6
   },
   "line_latest": {
-    "ts": "2026-11-17T01:09:12Z",
-    "home_spread": -11.5,
+    "ts": "2026-11-17T14:24:55Z",
+    "home_spread": -12.5,
     "total": 44.5,
     "n_books": 9
   },
@@ -53,18 +53,25 @@
       "home_spread": -11.5,
       "total": 44.5,
       "n_books": 9
+    },
+    {
+      "ts": "2026-11-17T14:24:55Z",
+      "home_spread": -12.5,
+      "total": 44.5,
+      "n_books": 9
     }
   ],
-  "generated_at": "2026-11-17T14:23:10Z",
+  "generated_at": "2026-11-19T11:59:22Z",
   "data_through_week": 10,
   "sources": [
     "nflverse_pbp",
     "nflverse_schedules",
+    "nflverse_injuries",
     "ngs_via_nflverse",
     "odds_api",
     "nws"
   ],
-  "injuries_status": "pending",
+  "injuries_status": "reported",
   "sections": {
     "epa": {
       "home": {
@@ -357,13 +364,111 @@
       }
     },
     "injuries": {
-      "home": [],
-      "away": []
+      "home": [
+        {
+          "player": "Brevin Jordan",
+          "position": "TE",
+          "status": "Out",
+          "detail": "Foot"
+        },
+        {
+          "player": "Danielle Hunter",
+          "position": "DE",
+          "status": "Out",
+          "detail": "Hamstring"
+        },
+        {
+          "player": "Jacob Hummel",
+          "position": "LB",
+          "status": "Questionable",
+          "detail": "Groin"
+        },
+        {
+          "player": "Jaylin Smith",
+          "position": "CB",
+          "status": "Questionable",
+          "detail": "Hamstring"
+        },
+        {
+          "player": "Marvin Harrison Jr.",
+          "position": "WR",
+          "status": "Out",
+          "detail": "Hamstring"
+        },
+        {
+          "player": "Woody Marks",
+          "position": "RB",
+          "status": "Out",
+          "detail": "Concussion"
+        },
+        {
+          "player": "Wyatt Teller",
+          "position": "G",
+          "status": "Questionable",
+          "detail": "Back"
+        }
+      ],
+      "away": [
+        {
+          "player": "Anthony Gould",
+          "position": "WR",
+          "status": "Questionable",
+          "detail": "Toe"
+        },
+        {
+          "player": "Bernhard Raimann",
+          "position": "T",
+          "status": "Out",
+          "detail": "Concussion"
+        },
+        {
+          "player": "Charlie Heck",
+          "position": "T",
+          "status": "Questionable",
+          "detail": "Not injury related - personal matter"
+        },
+        {
+          "player": "Charvarius Ward",
+          "position": "CB",
+          "status": "Out",
+          "detail": "Knee"
+        },
+        {
+          "player": "Jalen Travis",
+          "position": "T",
+          "status": "Out",
+          "detail": "Knee"
+        },
+        {
+          "player": "Jerry Tillery",
+          "position": "DT",
+          "status": "Out",
+          "detail": "Calf"
+        },
+        {
+          "player": "Luke Rhodes",
+          "position": "LS",
+          "status": "Questionable",
+          "detail": "Hamstring"
+        },
+        {
+          "player": "Sauce Gardner",
+          "position": "CB",
+          "status": "Questionable",
+          "detail": "Calf"
+        },
+        {
+          "player": "Will Mallory",
+          "position": "TE",
+          "status": "Out",
+          "detail": "Hamstring"
+        }
+      ]
     },
     "weather": {
       "mode": "retractable",
       "temp_f": {
-        "value": 69,
+        "value": 66,
         "source": "nws",
         "sample": null,
         "range": "2026-11-19T19:00:00-06:00/2026-11-19T20:00:00-06:00"

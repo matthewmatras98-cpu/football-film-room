@@ -18,7 +18,7 @@
     "n_books": 6
   },
   "line_latest": {
-    "ts": "2026-11-17T01:09:12Z",
+    "ts": "2026-11-17T14:24:55Z",
     "home_spread": -10,
     "total": 40,
     "n_books": 9
@@ -53,9 +53,15 @@
       "home_spread": -10,
       "total": 40,
       "n_books": 9
+    },
+    {
+      "ts": "2026-11-17T14:24:55Z",
+      "home_spread": -10,
+      "total": 40,
+      "n_books": 9
     }
   ],
-  "generated_at": "2026-11-17T14:23:10Z",
+  "generated_at": "2026-11-19T11:59:22Z",
   "data_through_week": 10,
   "sources": [
     "nflverse_pbp",
@@ -363,7 +369,7 @@
     "weather": {
       "mode": "outdoor",
       "temp_f": {
-        "value": 47,
+        "value": 48,
         "source": "nws",
         "sample": null,
         "range": "2026-11-22T14:00:00-07:00/2026-11-22T15:00:00-07:00"
@@ -380,7 +386,7 @@
         "sample": null,
         "range": "2026-11-22T14:00:00-07:00/2026-11-22T15:00:00-07:00"
       },
-      "summary": "Mostly Sunny"
+      "summary": "Sunny"
     },
     "story_prompts": [
       {
