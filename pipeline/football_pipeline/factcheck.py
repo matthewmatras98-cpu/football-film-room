@@ -7,7 +7,8 @@ either sign. Display rounding is 6 decimal places.
 
 status is confirmed, corrected, or unverifiable. corrected carries the
 database value. Anything unmapped or missing is unverifiable and still has
-a source, "no matching view".
+a source, "no matching view". A stored null is missing. When pushes are 0,
+W-L confirms against the stored W-L-0.
 """
 
 from __future__ import annotations
@@ -110,6 +111,8 @@ def _check_line(connection: duckdb.DuckDBPyConnection, line: str) -> dict:
     if row is None:
         return _unverifiable(line, team, metric, _claimed_number(number), "no row for this team")
     actual, source, sample, span = row
+    if actual is None:
+        return _unverifiable(line, team, metric, _claimed_number(number), "null value")
     shown = _shown(actual)
     if _close_enough(number, actual):
         status = "confirmed"
@@ -141,13 +144,16 @@ def _check_record(connection: duckdb.DuckDBPyConnection, line: str) -> dict:
     if len(rows) != 1:
         return _unverifiable(line, None, "record", claimed, "no row for this team")
     wins, losses, pushes, source, sample, span = rows[0]
-    actual = f"{int(wins)}-{int(losses)}-{int(pushes)}"
+    push_count = int(pushes)
+    actual = f"{int(wins)}-{int(losses)}-{push_count}"
+    short = f"{int(wins)}-{int(losses)}"
+    matched = claimed == actual or (push_count == 0 and claimed == short)
     return {
         "text": line,
         "team": None,
         "stat": "record",
         "claimed": claimed,
-        "status": "confirmed" if claimed == actual else "corrected",
+        "status": "confirmed" if matched else "corrected",
         "actual": actual,
         "source": None if source is None else str(source),
         "sample": None if sample is None else int(sample),

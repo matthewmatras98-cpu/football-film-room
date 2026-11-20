@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
+import duckdb
 import pytest
 
 from football_pipeline.agent_db import build_agent_db
@@ -147,3 +149,103 @@ def test_factcheck_fixture_cli(tmp_path):
     cli = run_cli(["agent-factcheck", "--db", str(database), "--mdx", str(draft)])
     assert cli.returncode == 0, cli.stderr + cli.stdout
     assert json.loads(cli.stdout) == _fixture_expected(draft.name)
+
+
+def test_null_view_row_is_unverifiable(tmp_path):
+    root, fixtures = prepare_agent_root(tmp_path)
+    database = tmp_path / "football.duckdb"
+    build_agent_db(root, 2099, database, fixtures=fixtures)
+    connection = duckdb.connect(str(database), read_only=True)
+    try:
+        stored = connection.execute(
+            """
+            SELECT value FROM v_pass_rush
+            WHERE team = 'KC' AND scope = 'season'
+              AND side = 'for' AND metric = 'sack_rate'
+            """
+        ).fetchone()
+    finally:
+        connection.close()
+    assert stored == (None,)
+    row = factcheck(database, FACTCHECK / "draft_null.mdx")[0]
+    assert row["team"] == "KC"
+    assert row["stat"] == "sack_rate"
+    assert row["status"] == "unverifiable"
+    assert row["source"] == "no matching view"
+    assert row["actual"] is None
+
+
+def _write_record_db(path: Path, wins: int, losses: int, pushes: int) -> None:
+    sample = wins + losses + pushes
+    connection = duckdb.connect(str(path))
+    try:
+        connection.execute(
+            f"""
+            CREATE VIEW v_record AS
+            SELECT
+              {wins} AS w,
+              {losses} AS l,
+              {pushes} AS p,
+              'graded.csv' AS source,
+              {sample} AS sample,
+              '2099' AS "range"
+            """
+        )
+    finally:
+        connection.close()
+
+
+def _stored_record(database: Path) -> dict:
+    connection = duckdb.connect(str(database), read_only=True)
+    try:
+        wins, losses, pushes, source, sample, span = connection.execute(
+            'SELECT w, l, p, source, sample, "range" FROM v_record'
+        ).fetchone()
+    finally:
+        connection.close()
+    return {
+        "actual": f"{int(wins)}-{int(losses)}-{int(pushes)}",
+        "source": None if source is None else str(source),
+        "sample": None if sample is None else int(sample),
+        "range": None if span is None else str(span),
+    }
+
+
+def _draft_records(path: Path, claims: list[str]) -> None:
+    lines = [f"The record is {claim}." for claim in claims]
+    path.write_text("\n\n".join(lines) + "\n", encoding="utf-8")
+
+
+def test_record_with_a_push_rejects_wl(tmp_path):
+    root, fixtures = prepare_agent_root(tmp_path)
+    database = tmp_path / "football.duckdb"
+    build_agent_db(root, 2099, database, fixtures=fixtures)
+    stored = _stored_record(database)
+    assert stored["actual"] == "2-1-1"
+    draft = tmp_path / "mismatch.mdx"
+    _draft_records(draft, ["2-1", "3-1"])
+    found = factcheck(database, draft)
+    assert [row["claimed"] for row in found] == ["2-1", "3-1"]
+    assert [row["status"] for row in found] == ["corrected", "corrected"]
+    for row in found:
+        assert row["actual"] == stored["actual"]
+        assert row["source"] == stored["source"]
+        assert row["sample"] == stored["sample"]
+        assert row["range"] == stored["range"]
+
+
+def test_record_without_pushes_confirms_wl(tmp_path):
+    database = tmp_path / "zero.duckdb"
+    _write_record_db(database, 2, 1, 0)
+    stored = _stored_record(database)
+    assert stored["actual"] == "2-1-0"
+    draft = tmp_path / "zero.mdx"
+    _draft_records(draft, ["2-1", "2-1-0"])
+    found = factcheck(database, draft)
+    assert [row["claimed"] for row in found] == ["2-1", "2-1-0"]
+    assert [row["status"] for row in found] == ["confirmed", "confirmed"]
+    for row in found:
+        assert row["actual"] == stored["actual"]
+        assert row["source"] == stored["source"]
+        assert row["sample"] == stored["sample"]
+        assert row["range"] == stored["range"]

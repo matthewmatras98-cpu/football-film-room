@@ -18,7 +18,7 @@ cd pipeline && uv run --frozen python -m football_pipeline agent-factcheck --db 
 
 `unverifiable` means the line was extracted and could not be checked. `actual` is null. `source` is `no matching view`. `reason` says why. The reply leaves the number blank.
 
-A view can return one row whose value is null. `_close_enough` rejects a null, so the current code marks that claim `corrected` with `actual` null, and it keeps the view's source. Sample and range are null. That row has no replacement number. Leave it blank. KC sack rate on side `for` is one of these rows in the 2099 fixture database.
+A matching view row whose value is null is unverifiable. `actual` is null and `source` is `no matching view`. There is no replacement number. Leave it blank. KC sack rate on side `for` is one of these rows in the 2099 fixture database.
 
 ## Tolerance
 
@@ -27,12 +27,12 @@ A view can return one row whose value is null. `_close_enough` rejects a null, s
 - A plain number matches that rounded value.
 - A `±` number matches either sign. The `claimed` field stores the absolute value.
 - A percent matches the written number, or that number divided by 100, both at 6 decimals. `33.3333%` matches a stored sack rate of `0.333333`. The unscaled number is tried as well, so `6%` also matches a stored CPOE of `6` (CPOE is already in percentage points).
-- A null stored value does not match.
+- A null stored value does not match. The claim is unverifiable, with source `no matching view`.
 - A value that cannot be read as a float does not match.
 
 `actual` uses the same 6-decimal display rounding as the cards. A rounded whole number is an integer, so `6.0` is `6`. `claimed` uses that rounding too. A whole number is an integer, except a whole percent, which stays a float: `75%` is claimed as `75.0`.
 
-The graded record does not use `_close_enough`. The first `W-L` or `W-L-P` token on the line must equal `{wins}-{losses}-{pushes}` from `v_record`. The stored form always includes pushes, so `2-1` and `2-1-1` are different strings.
+The graded record does not use `_close_enough`. The first `W-L` or `W-L-P` token on the line is the claim. `actual` is `{wins}-{losses}-{pushes}` from `v_record`. Pushes are optional when they are zero: a draft `2-1` confirms against a stored `2-1-0`, and `2-1-0` confirms as well. A mismatch stays corrected. `2-1` against a stored `2-1-1` is corrected, and `3-1` against `2-1-1` is corrected.
 
 ## What is recognized
 
@@ -77,6 +77,7 @@ These lines are extracted and come back unverifiable. `source` is `no matching v
 | A team and a number, and no known phrase | `no mapped stat phrase` | null |
 | A known phrase and no number | `no number` | null |
 | A known phrase and a number, but no team, or the view does not have exactly one row | `no row for this team` | the metric |
+| A matching row whose value is null | `null value` | the metric |
 | The record query does not return exactly one row | `no row for this team` | `record` |
 
 A missing team uses the same reason as a team with no row: `no row for this team`.
@@ -103,6 +104,6 @@ Film follows these on every fact-check reply.
 1. Open the database read-only. The checker connects with `read_only=True`. Leave the file as it is. The box file is mode `444`, as in [agent-data.md](agent-data.md).
 2. No Odds API and no D1. This command does not import those clients and does not call them. A spread, a total, or a book count is not confirmed from `v_lines`.
 3. No betting advice and no fantasy advice. The reply is the table. No bet size, no bankroll, no sportsbook name, no wagering link, and no start, sit, or lineup talk.
-4. Never invent a number. `confirmed` and `corrected` use `actual` from the row. `unverifiable` has no actual. A `corrected` row whose `actual` is null is missing data.
+4. Never invent a number. `confirmed` and `corrected` use `actual` from the row. `unverifiable` has no actual. A null stored value is unverifiable.
 5. Keep the citation. Pass `source`, `sample`, and `range` through. A null sample or a null range stays null.
 6. Leave the MDX, `data/picks.csv`, and the graded file unchanged.
