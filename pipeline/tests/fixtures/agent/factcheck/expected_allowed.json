@@ -1,0 +1,38 @@
+[
+  {
+    "text": "CHI EPA per play allowed is 0.35.",
+    "team": "CHI",
+    "stat": "epa_per_play",
+    "claimed": 0.35,
+    "status": "confirmed",
+    "actual": 0.35,
+    "source": "nflverse_pbp",
+    "sample": 8,
+    "range": "2099 wk1–2",
+    "reason": null
+  },
+  {
+    "text": "CHI success rate against is 0.75.",
+    "team": "CHI",
+    "stat": "success_rate",
+    "claimed": 0.75,
+    "status": "confirmed",
+    "actual": 0.75,
+    "source": "nflverse_pbp",
+    "sample": 8,
+    "range": "2099 wk1–2",
+    "reason": null
+  },
+  {
+    "text": "CHI is allowing an explosive rate of 0.5.",
+    "team": "CHI",
+    "stat": "explosive_rate",
+    "claimed": 0.5,
+    "status": "confirmed",
+    "actual": 0.5,
+    "source": "nflverse_pbp",
+    "sample": 8,
+    "range": "2099 wk1–2",
+    "reason": null
+  }
+]

@@ -1,0 +1,26 @@
+[
+  {
+    "text": "The record is 3-1.",
+    "team": null,
+    "stat": "record",
+    "claimed": "3-1",
+    "status": "corrected",
+    "actual": "2-1-1",
+    "source": "graded.csv",
+    "sample": 4,
+    "range": "2099",
+    "reason": null
+  },
+  {
+    "text": "The W-L record is 2-1-1.",
+    "team": null,
+    "stat": "record",
+    "claimed": "2-1-1",
+    "status": "confirmed",
+    "actual": "2-1-1",
+    "source": "graded.csv",
+    "sample": 4,
+    "range": "2099",
+    "reason": null
+  }
+]

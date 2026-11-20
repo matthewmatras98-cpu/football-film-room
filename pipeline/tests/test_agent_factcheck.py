@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from football_pipeline.agent_db import build_agent_db
 from football_pipeline.cards import EN_DASH
 from football_pipeline.factcheck import factcheck
@@ -11,6 +13,8 @@ from tests.agent_support import AGENT, prepare_agent_root
 from tests.conftest import run_cli
 
 SPAN = f"2099 wk1{EN_DASH}2"
+FACTCHECK = AGENT / "factcheck"
+DRAFTS = sorted(path.name for path in FACTCHECK.glob("draft_*.mdx"))
 
 
 def _expected() -> list[dict]:
@@ -118,3 +122,28 @@ def test_factcheck_exact_list(tmp_path):
     )
     assert cli.returncode == 0, cli.stderr + cli.stdout
     assert json.loads(cli.stdout) == _expected()
+
+
+def _fixture_expected(draft_name: str) -> list[dict]:
+    name = draft_name.removeprefix("draft_").removesuffix(".mdx")
+    path = FACTCHECK / f"expected_{name}.json"
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize("draft_name", DRAFTS)
+def test_factcheck_fixtures(tmp_path, draft_name):
+    root, fixtures = prepare_agent_root(tmp_path)
+    database = tmp_path / "football.duckdb"
+    build_agent_db(root, 2099, database, fixtures=fixtures)
+    found = factcheck(database, FACTCHECK / draft_name)
+    assert found == _fixture_expected(draft_name)
+
+
+def test_factcheck_fixture_cli(tmp_path):
+    root, fixtures = prepare_agent_root(tmp_path)
+    database = tmp_path / "football.duckdb"
+    build_agent_db(root, 2099, database, fixtures=fixtures)
+    draft = FACTCHECK / "draft_confirmed.mdx"
+    cli = run_cli(["agent-factcheck", "--db", str(database), "--mdx", str(draft)])
+    assert cli.returncode == 0, cli.stderr + cli.stdout
+    assert json.loads(cli.stdout) == _fixture_expected(draft.name)

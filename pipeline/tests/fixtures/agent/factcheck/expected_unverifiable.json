@@ -1,0 +1,50 @@
+[
+  {
+    "text": "CHI pressure rate is 0.3.",
+    "team": "CHI",
+    "stat": null,
+    "claimed": 0.3,
+    "status": "unverifiable",
+    "actual": null,
+    "source": "no matching view",
+    "sample": null,
+    "range": null,
+    "reason": "no mapped stat phrase"
+  },
+  {
+    "text": "EPA per play is 0.56.",
+    "team": null,
+    "stat": "epa_per_play",
+    "claimed": 0.56,
+    "status": "unverifiable",
+    "actual": null,
+    "source": "no matching view",
+    "sample": null,
+    "range": null,
+    "reason": "no row for this team"
+  },
+  {
+    "text": "CHI closed at -2.5.",
+    "team": "CHI",
+    "stat": null,
+    "claimed": -2.5,
+    "status": "unverifiable",
+    "actual": null,
+    "source": "no matching view",
+    "sample": null,
+    "range": null,
+    "reason": "no mapped stat phrase"
+  },
+  {
+    "text": "CHI EPA per play stands out.",
+    "team": "CHI",
+    "stat": null,
+    "claimed": null,
+    "status": "unverifiable",
+    "actual": null,
+    "source": "no matching view",
+    "sample": null,
+    "range": null,
+    "reason": "no number"
+  }
+]
