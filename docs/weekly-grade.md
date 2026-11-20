@@ -8,6 +8,12 @@ Phoenix does not observe DST. Times below are MST, which is Phoenix local time (
 
 pull-snapshots reads D1. Neither run calls the Odds API. The grade-only job has no dispatch step and no `ODDS_API_KEY`, so it makes 0 Odds API requests.
 
+## Saturday and Sunday cards
+
+`cards-refresh.yml` runs Saturday at 11:07 UTC and Sunday at 11:07 UTC, both 4:07 AM Phoenix. Phoenix does not observe DST. It uses the same `weekly-grade` concurrency group, so it never overlaps a full run or a grade-only run. It runs refresh, pull-snapshots, lines-export, build-db, and cards. It does not grade. `lines-export` rebuilds `data/lines` from the D1 snapshot so the cards match the Tuesday and Thursday chain, and those CSV files are not committed. The commit stages only `src/content/games/*.json`. A diff that is only `generated_at` is restored and not committed. pull-snapshots reads D1. The job has no `ODDS_API_KEY`, so it makes 0 Odds API requests.
+
+nflverse `report_status` for Sunday teams arrives Friday, and for Monday Night Football teams Saturday. Saturday is the first card rebuild after the Sunday report. Sunday is the first card rebuild after the Monday report. Thursday is before either report. Tuesday is after those games have kicked off.
+
 `grade` rewrites `data/graded.csv` for every pick, including rows whose status is `void`. That is already what the Tuesday and Thursday grade step does. `grade --no-fetch`, which pick-ledger uses, leaves `graded.csv` as the last full grade wrote it.
 
 A second grade with the same inputs rewrites the same bytes. The commit step then logs `no grader changes` and does not commit, so a result is not counted twice against a later Tuesday or Thursday run. `generated_at` in `summary.json` is included, not excluded. It stays put when `--as-of` is unchanged. The workflow passes the current UTC time, so a later run whose grades did not change moves only `generated_at`. That timestamp is not committed. Tuesday and Thursday do the same for game cards. `scripts/only_generated_at_changed.py` compares the index to HEAD, ignores `generated_at` keys and a `generated_at` CSV column, and the workflow restores those files and logs `no grader changes`.
