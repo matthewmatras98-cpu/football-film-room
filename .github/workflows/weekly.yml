@@ -76,5 +76,13 @@ jobs:
             echo "no grader changes"
             exit 0
           fi
+          # --as-of is the clock, so generated_at moves on every run. summary.json
+          # and game cards carry that field. graded.csv, picks_view.json, and
+          # data/lines do not. A timestamp-only diff is not a commit.
+          if python3 scripts/only_generated_at_changed.py; then
+            git diff --cached --name-only -z | xargs -0 git restore --source=HEAD --staged --worktree --
+            echo "no grader changes"
+            exit 0
+          fi
           git commit -m "Grade picks, publish derived lines, and write game cards"
           bash scripts/push_with_retry.sh
