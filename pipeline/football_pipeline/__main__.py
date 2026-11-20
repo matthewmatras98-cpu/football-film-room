@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from football_pipeline.agent_db import build_agent_db
@@ -163,14 +163,18 @@ def _dispatch(args: argparse.Namespace) -> int:
         "CF_ACCOUNT_ID",
         "D1_DATABASE_ID",
     )
+    if args.wait_max_minutes < 0:
+        raise PipelineError("--wait-max-minutes must be >= 0")
     now = parse_ts(args.now) if args.now else datetime.now(timezone.utc)
     games, _source = load_games(fixture=args.schedules)
+    wait_max = timedelta(minutes=args.wait_max_minutes) if args.wait_max_minutes else None
     return run_dispatch(
         now=now,
         games=games,
         odds=OddsClient(key),
         d1=D1Client(account, database, token),
         dry_run=args.dry_run,
+        wait_max=None if args.dry_run else wait_max,
     )
 
 
@@ -343,6 +347,12 @@ def _parser() -> argparse.ArgumentParser:
         "--dry-run",
         action="store_true",
         help="check secrets, apply the D1 schema, and map /events; do not call /odds",
+    )
+    dispatch.add_argument(
+        "--wait-max-minutes",
+        type=int,
+        default=0,
+        help="sleep until the next close-shot aim when it falls inside this cap (scheduled runs use 45)",
     )
     pull.add_argument("--out", type=Path, required=True, help="gitignored close-table path")
     lines.add_argument("--as-of", dest="as_of", default=None, help="ISO-8601 timestamp with offset")

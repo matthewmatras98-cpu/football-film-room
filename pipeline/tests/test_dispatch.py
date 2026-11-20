@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -32,6 +34,8 @@ from tests.fakes import SqliteD1
 UTC = timezone.utc
 SENTINEL = "SENTINEL_KEY_do_not_leak_9f3a"
 TUESDAY = datetime(2026, 11, 10, 14, 7, tzinfo=UTC)
+DISPATCH_YML = Path(__file__).resolve().parents[2] / ".github" / "workflows" / "odds-dispatch.yml"
+WAIT_CAP = timedelta(minutes=45)
 
 
 def test_window_edge_and_shot_boundaries():
@@ -668,7 +672,18 @@ def test_missed_window_is_a_warning_and_exits_zero(capsys):
     assert f"::warning::window {format_ts(kickoff)} got no shot" in captured.out
 
 
-def _run(games, now, remaining, d1=None, transport=None, price=-110, dry_run=False):
+def _run(
+    games,
+    now,
+    remaining,
+    d1=None,
+    transport=None,
+    price=-110,
+    dry_run=False,
+    wait_max=None,
+    clock=None,
+    sleep=None,
+):
     if d1 is None:
         fake = SqliteD1()
         d1 = D1Client("acct-1", "db-1", "cf-token", transport=fake)
@@ -680,6 +695,9 @@ def _run(games, now, remaining, d1=None, transport=None, price=-110, dry_run=Fal
         odds=OddsClient(SENTINEL, transport=transport),
         d1=d1,
         dry_run=dry_run,
+        wait_max=wait_max,
+        clock=clock,
+        sleep=sleep,
     )
     return code, transport, d1
 
@@ -767,3 +785,447 @@ def _game(game_id, kickoff, home="CHI", away="GB", week=11) -> Game:
         spread_line=Decimal("3"),
         total_line=Decimal("47"),
     )
+
+
+class _Clock:
+    """Injectable clock. sleep moves the clock and never blocks."""
+
+    def __init__(self, start: datetime):
+        self.now = start
+        self.slept = 0.0
+        self.naps: list[float] = []
+
+    def __call__(self) -> datetime:
+        return self.now
+
+    def sleep(self, seconds: float) -> None:
+        self.naps.append(seconds)
+        self.slept += seconds
+        self.now += timedelta(seconds=seconds)
+
+
+@pytest.mark.parametrize(
+    ("before", "taken", "sleep_min", "catchup"),
+    [
+        (90, (("A", 60),), 30, False),
+        (50, (("A", 50), ("B", 15)), 35, False),
+        (20, (("B", 15),), 5, False),
+        (6, (("B", 6),), 0, True),
+        (2, (("B", 2),), 0, True),
+        (-5, (), 0, False),
+    ],
+)
+def test_single_window_waits_for_the_aim_or_takes_the_open_shot(before, taken, sleep_min, catchup, capsys):
+    """K-90 sleeps to A at K-60. A start already past the aim takes that shot now.
+
+    K-20 is inside B and the aim K-15 is still ahead, so the cap reaches it.
+    K-6 and K-2 are past the aim (catch-up). After kickoff there is nothing to take.
+    """
+    kickoff = datetime(2026, 11, 15, 18, 0, tzinfo=UTC)
+    start = kickoff - timedelta(minutes=before)
+    clock = _Clock(start)
+    code, transport, d1 = _run(
+        [_game("2026_11_GB_CHI", kickoff)],
+        start,
+        400,
+        wait_max=WAIT_CAP,
+        clock=clock,
+        sleep=clock.sleep,
+    )
+    captured = capsys.readouterr()
+    assert code == 0
+    rows = [(row.kind, row.snapshot_ts, row.status) for row in d1.fetch_shots()]
+    assert rows == [
+        (kind, format_ts(kickoff - timedelta(minutes=mins)), "taken") for kind, mins in taken
+    ]
+    assert transport.calls.count("odds") == len(taken)
+    assert captured.out.count("x-requests-last=2") == len(taken)
+    assert clock.slept == sleep_min * 60
+    if not taken:
+        assert clock.naps == []
+        assert transport.calls == []
+        assert f"::warning::window {format_ts(kickoff)} got no shot" in captured.out
+        assert "catch-up" not in captured.out
+    elif catchup:
+        assert "::notice::catch-up B:" in captured.out
+    else:
+        assert "catch-up" not in captured.out
+
+
+def test_sleeper_and_queued_run_take_one_a_and_one_b(capsys):
+    """The sleeper holds the lock. The queued run starts when it finishes."""
+    kickoff = datetime(2026, 11, 15, 18, 0, tzinfo=UTC)
+    game = _game("2026_11_GB_CHI", kickoff)
+    stamp = format_ts(kickoff)
+    clock = _Clock(kickoff - timedelta(minutes=90))
+    code, transport, d1 = _run([game], clock.now, 400, wait_max=WAIT_CAP, clock=clock, sleep=clock.sleep)
+    assert code == 0
+    assert clock.slept == 30 * 60
+    assert [(row.shot_key, row.snapshot_ts) for row in d1.fetch_shots()] == [
+        (f"A:{stamp}", format_ts(kickoff - timedelta(minutes=60)))
+    ]
+    assert transport.calls.count("odds") == 1
+
+    follow = _Clock(clock.now)
+    code, transport, d1 = _run(
+        [game],
+        follow.now,
+        400,
+        d1=d1,
+        transport=transport,
+        wait_max=WAIT_CAP,
+        clock=follow,
+        sleep=follow.sleep,
+    )
+    assert code == 0
+    assert follow.slept == 45 * 60
+    assert [(row.shot_key, row.snapshot_ts, row.status) for row in d1.fetch_shots()] == [
+        (f"A:{stamp}", format_ts(kickoff - timedelta(minutes=60)), "taken"),
+        (f"B:{stamp}", format_ts(kickoff - timedelta(minutes=15)), "taken"),
+    ]
+    assert transport.calls.count("odds") == 2
+
+    queued = _Clock(follow.now)
+    code, transport, d1 = _run(
+        [game],
+        queued.now,
+        400,
+        d1=d1,
+        transport=transport,
+        wait_max=WAIT_CAP,
+        clock=queued,
+        sleep=queued.sleep,
+    )
+    captured = capsys.readouterr()
+    assert code == 0
+    assert queued.naps == []
+    assert transport.calls.count("odds") == 2
+    assert [row.shot_key for row in d1.fetch_shots()] == [f"A:{stamp}", f"B:{stamp}"]
+    assert "catch-up" not in captured.out
+    assert "::warning::" not in captured.out
+
+
+def test_nothing_inside_the_wait_cap_sleeps_zero_and_calls_no_odds(capsys):
+    kickoff = datetime(2026, 11, 15, 18, 0, tzinfo=UTC)
+    aim = kickoff - timedelta(minutes=60)
+    on_cap = _Clock(aim - WAIT_CAP)
+    code, transport, d1 = _run(
+        [_game("2026_11_GB_CHI", kickoff)],
+        on_cap.now,
+        400,
+        wait_max=WAIT_CAP,
+        clock=on_cap,
+        sleep=on_cap.sleep,
+    )
+    assert code == 0
+    assert on_cap.slept == WAIT_CAP.total_seconds()
+    assert [row.snapshot_ts for row in d1.fetch_shots()] == [format_ts(aim)]
+    assert transport.calls.count("odds") == 1
+    capsys.readouterr()
+
+    outside = _Clock(aim - WAIT_CAP - timedelta(minutes=1))
+    code, transport, d1 = _run(
+        [_game("2026_11_GB_CHI", kickoff)],
+        outside.now,
+        400,
+        wait_max=WAIT_CAP,
+        clock=outside,
+        sleep=outside.sleep,
+    )
+    captured = capsys.readouterr()
+    assert code == 0
+    assert outside.naps == []
+    assert transport.calls == []
+    assert d1.fetch_shots() == []
+    assert "no shot due" in captured.out
+    assert "x-requests-last=2" not in captured.out
+
+
+def test_short_cap_inside_the_window_takes_the_shot_now(capsys):
+    kickoff = datetime(2026, 11, 15, 18, 0, tzinfo=UTC)
+    start = kickoff - timedelta(minutes=20)
+    clock = _Clock(start)
+    code, transport, d1 = _run(
+        [_game("2026_11_GB_CHI", kickoff)],
+        start,
+        400,
+        wait_max=timedelta(minutes=3),
+        clock=clock,
+        sleep=clock.sleep,
+    )
+    assert code == 0
+    assert clock.naps == []
+    assert [(row.kind, row.snapshot_ts) for row in d1.fetch_shots()] == [
+        ("B", format_ts(start))
+    ]
+    assert transport.calls.count("odds") == 1
+    assert "catch-up" not in capsys.readouterr().out
+
+
+def test_wait_keeps_the_credit_gate_and_the_catchup_notice(tmp_path, capsys, monkeypatch):
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(tmp_path / "summary.md"))
+    kickoff = datetime(2026, 11, 15, 18, 0, tzinfo=UTC)
+    stamp = format_ts(kickoff)
+    start = kickoff - timedelta(minutes=90)
+    clock = _Clock(start)
+    code, transport, d1 = _run(
+        [_game("2026_11_GB_CHI", kickoff)],
+        start,
+        49,
+        wait_max=WAIT_CAP,
+        clock=clock,
+        sleep=clock.sleep,
+    )
+    captured = capsys.readouterr()
+    assert code == 0
+    assert clock.slept == 30 * 60
+    assert transport.calls == ["events"]
+    row = d1.fetch_shots()[0]
+    assert (row.shot_key, row.status, row.credits_remaining) == (f"A:{stamp}", "skipped", 49)
+    assert f"::notice::skipped A:{stamp} x-requests-remaining=49" in captured.out
+    assert "catch-up" not in captured.out
+    assert "x-requests-last=2" not in captured.out
+
+    late = kickoff - timedelta(minutes=6)
+    late_clock = _Clock(late)
+    code, transport, _d1 = _run(
+        [_game("2026_11_GB_CHI", kickoff)],
+        late,
+        19,
+        wait_max=WAIT_CAP,
+        clock=late_clock,
+        sleep=late_clock.sleep,
+    )
+    captured = capsys.readouterr()
+    assert code == 0
+    assert late_clock.naps == []
+    assert transport.calls == ["events"]
+    skipped = _d1.fetch_shots()[0]
+    assert (skipped.shot_key, skipped.status) == (f"B:{stamp}", "skipped")
+    assert f"::notice::catch-up B:{stamp}" in captured.out
+    assert f"catch-up B:{stamp}" in (tmp_path / "summary.md").read_text(encoding="utf-8")
+    assert "x-requests-last=2" not in captured.out
+
+
+def test_dry_run_does_not_wait(capsys):
+    kickoff = datetime(2026, 11, 15, 18, 0, tzinfo=UTC)
+    clock = _Clock(kickoff - timedelta(minutes=90))
+    code, transport, d1 = _run(
+        [_game("2026_11_GB_CHI", kickoff)],
+        clock.now,
+        400,
+        dry_run=True,
+        wait_max=WAIT_CAP,
+        clock=clock,
+        sleep=clock.sleep,
+    )
+    assert code == 0
+    assert clock.naps == []
+    assert transport.calls == ["events"]
+    assert d1.fetch_shots() == []
+    assert "dry_run ok" in capsys.readouterr().out
+
+
+def test_grouped_window_waits_for_a_then_b_then_l(capsys):
+    anchor = datetime(2026, 11, 22, 21, 5, tzinfo=UTC)
+    late = anchor + timedelta(minutes=20)
+    games = [
+        _game("2026_11_NYJ_LAC", anchor, "LAC", "NYJ"),
+        _game("2026_11_LV_DEN", late, "DEN", "LV"),
+    ]
+    anchor_stamp = format_ts(anchor)
+    late_stamp = format_ts(late)
+    clock = _Clock(anchor - timedelta(minutes=90))
+    code, transport, d1 = _run(games, clock.now, 400, wait_max=WAIT_CAP, clock=clock, sleep=clock.sleep)
+    assert code == 0
+    assert [(row.shot_key, row.snapshot_ts) for row in d1.fetch_shots()] == [
+        (f"A:{anchor_stamp}", format_ts(anchor - timedelta(minutes=60)))
+    ]
+
+    follow = _Clock(clock.now)
+    code, transport, d1 = _run(
+        games,
+        follow.now,
+        400,
+        d1=d1,
+        transport=transport,
+        wait_max=WAIT_CAP,
+        clock=follow,
+        sleep=follow.sleep,
+    )
+    assert code == 0
+    assert [(row.shot_key, row.snapshot_ts) for row in d1.fetch_shots()] == [
+        (f"A:{anchor_stamp}", format_ts(anchor - timedelta(minutes=60))),
+        (f"B:{anchor_stamp}", format_ts(anchor - timedelta(minutes=15))),
+    ]
+
+    later = _Clock(follow.now)
+    code, transport, d1 = _run(
+        games,
+        later.now,
+        400,
+        d1=d1,
+        transport=transport,
+        wait_max=WAIT_CAP,
+        clock=later,
+        sleep=later.sleep,
+    )
+    captured = capsys.readouterr()
+    assert code == 0
+    assert [(row.shot_key, row.snapshot_ts, row.status) for row in d1.fetch_shots()] == [
+        (f"A:{anchor_stamp}", format_ts(anchor - timedelta(minutes=60)), "taken"),
+        (f"B:{anchor_stamp}", format_ts(anchor - timedelta(minutes=15)), "taken"),
+        (f"L:{late_stamp}", format_ts(late - timedelta(minutes=15)), "taken"),
+    ]
+    assert transport.calls.count("odds") == 3
+    assert captured.out.count("x-requests-last=2") == 3
+    assert "catch-up" not in captured.out
+
+    done = _Clock(later.now)
+    code, transport, d1 = _run(
+        games,
+        done.now,
+        400,
+        d1=d1,
+        transport=transport,
+        wait_max=WAIT_CAP,
+        clock=done,
+        sleep=done.sleep,
+    )
+    assert code == 0
+    assert done.naps == []
+    assert transport.calls.count("odds") == 3
+    assert len(d1.fetch_shots()) == 3
+
+
+def test_fixed_slot_stays_on_its_clock_when_a_close_aim_is_later(capsys):
+    kickoff = datetime(2026, 11, 10, 15, 30, tzinfo=UTC)
+    start = TUESDAY - timedelta(minutes=17)
+    clock = _Clock(start)
+    code, transport, d1 = _run(
+        [_game("2026_11_GB_CHI", kickoff)],
+        start,
+        400,
+        wait_max=WAIT_CAP,
+        clock=clock,
+        sleep=clock.sleep,
+    )
+    capsys.readouterr()
+    assert code == 0
+    assert [(row.shot_key, row.snapshot_ts) for row in d1.fetch_shots()] == [
+        ("fixed:2026:11:tue", format_ts(TUESDAY)),
+        (f"A:{format_ts(kickoff)}", format_ts(kickoff - timedelta(minutes=60))),
+    ]
+    assert transport.calls.count("odds") == 2
+    assert clock.slept == 40 * 60
+
+
+def test_week_with_wait_takes_each_on_time_shot_once(capsys):
+    games, _source = load_games(fixture=FIXTURES / "schedules_2026_reg.csv")
+    week = [game for game in games if game.season == 2026 and game.week == 11]
+    ticks = _cron_ticks(
+        datetime(2026, 11, 17, 0, 7, tzinfo=UTC),
+        datetime(2026, 11, 24, 3, 37, tzinfo=UTC),
+    )
+    _expected_calls, expected_keys = _on_time_shots(week, ticks)
+    fires = _fires_from_workflow(
+        DISPATCH_YML.read_text(encoding="utf-8"),
+        datetime(2026, 11, 17, 0, 0, tzinfo=UTC),
+        datetime(2026, 11, 24, 3, 37, tzinfo=UTC),
+    )
+    transport = _Odds(week, 5000, -110)
+    d1 = None
+    busy: datetime | None = None
+    for scheduled in fires:
+        start = scheduled if busy is None else max(scheduled, busy)
+        clock = _Clock(start)
+        code, transport, d1 = _run(
+            week,
+            start,
+            5000,
+            d1=d1,
+            transport=transport,
+            wait_max=WAIT_CAP,
+            clock=clock,
+            sleep=clock.sleep,
+        )
+        assert code == 0
+        busy = clock.now
+    captured = capsys.readouterr()
+    taken = [row.shot_key for row in d1.fetch_shots() if row.status == "taken"]
+    assert sorted(taken) == sorted(expected_keys)
+    assert len(taken) == len(expected_keys)
+    assert transport.calls.count("odds") == len(expected_keys)
+    assert captured.out.count("x-requests-last=2") == len(expected_keys)
+    assert all(row.status == "taken" for row in d1.fetch_shots())
+    assert "catch-up" not in captured.out
+    assert "::warning::" not in captured.out
+
+
+def test_odds_dispatch_workflow_waits_and_keeps_the_crons():
+    text = DISPATCH_YML.read_text(encoding="utf-8")
+    old = [
+        'cron: "7,37 12-23 * * *"',
+        'cron: "7,37 0-3 * * *"',
+    ]
+    added = [
+        'cron: "3,13,23,33,43,53 23 * * 4"',
+        'cron: "3,13,23,33,43,53 0-1 * * 5"',
+        'cron: "3,13,23,33,43,53 12-23 * * 0"',
+        'cron: "3,13,23,33,43,53 0-1 * * 1"',
+        'cron: "3,13,23,33,43,53 23 * * 1"',
+        'cron: "3,13,23,33,43,53 0-1 * * 2"',
+        'cron: "3,13,23,33,43,53 18-23 * * 6"',
+        'cron: "3,13,23,33,43,53 0-1 * * 0"',
+    ]
+    for line in old + added:
+        assert line in text
+    assert "timeout-minutes: 60" in text
+    assert "group: odds-dispatch" in text
+    assert "cancel-in-progress: false" in text
+    assert "Phoenix does not observe DST" in text
+    assert "--wait-max-minutes 45" in text
+    assert "dispatch --dry-run" in text
+    for line in text.splitlines():
+        if "--dry-run" in line:
+            assert "--wait-max-minutes" not in line
+    assert text.count("--wait-max-minutes 45") == 1
+    assert "${{ secrets.ODDS_API_KEY }}" in text
+    assert "echo" not in text
+
+
+def _fires_from_workflow(text: str, start: datetime, end: datetime) -> list[datetime]:
+    crons = re.findall(r'cron: "([^"]+)"', text)
+    fires: list[datetime] = []
+    cursor = start.replace(second=0, microsecond=0)
+    while cursor <= end:
+        if any(_cron_matches(cron, cursor) for cron in crons):
+            fires.append(cursor)
+        cursor += timedelta(minutes=1)
+    return fires
+
+
+def _cron_matches(cron: str, moment: datetime) -> bool:
+    minute, hour, day, month, dow = cron.split()
+    # GitHub's day-of-week is 0 on Sunday. Python's weekday is 0 on Monday.
+    cron_dow = (moment.weekday() + 1) % 7
+    return (
+        _cron_field(minute, moment.minute)
+        and _cron_field(hour, moment.hour)
+        and _cron_field(day, moment.day)
+        and _cron_field(month, moment.month)
+        and _cron_field(dow, cron_dow)
+    )
+
+
+def _cron_field(field: str, value: int) -> bool:
+    if field == "*":
+        return True
+    for part in field.split(","):
+        if "-" in part:
+            lo, hi = (int(piece) for piece in part.split("-"))
+            if lo <= value <= hi:
+                return True
+        elif int(part) == value:
+            return True
+    return False

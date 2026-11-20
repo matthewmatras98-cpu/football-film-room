@@ -2,8 +2,24 @@ name: odds-dispatch
 
 on:
   schedule:
+    # Half-hour ticks every day. GitHub may delay or drop these; the job waits
+    # inside the run so a close shot does not depend on the tick landing in the window.
     - cron: "7,37 12-23 * * *"
     - cron: "7,37 0-3 * * *"
+    # Game days, every 10 minutes, offset off :00. Phoenix does not observe DST,
+    # so the late Sunday kickoffs stay at 21:05 and 21:25 UTC.
+    # Thursday night (K about 01:15 UTC Friday): Thu 23 and Fri 00-01.
+    - cron: "3,13,23,33,43,53 23 * * 4"
+    - cron: "3,13,23,33,43,53 0-1 * * 5"
+    # Sunday: London ~13:30 UTC, early 18:00, late 21:05/21:25, SNF 01:20 Monday.
+    - cron: "3,13,23,33,43,53 12-23 * * 0"
+    - cron: "3,13,23,33,43,53 0-1 * * 1"
+    # Monday night (K about 01:20 UTC Tuesday): Mon 23 and Tue 00-01.
+    - cron: "3,13,23,33,43,53 23 * * 1"
+    - cron: "3,13,23,33,43,53 0-1 * * 2"
+    # Saturday late season: Sat 18-23 and Sun 00-01.
+    - cron: "3,13,23,33,43,53 18-23 * * 6"
+    - cron: "3,13,23,33,43,53 0-1 * * 0"
   workflow_dispatch:
     inputs:
       dry_run:
@@ -21,6 +37,7 @@ concurrency:
 jobs:
   dispatch:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -50,6 +67,8 @@ jobs:
           set -euo pipefail
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "true" ]; then
             uv run --frozen python -m football_pipeline dispatch --dry-run
+          elif [ "${{ github.event_name }}" = "schedule" ]; then
+            uv run --frozen python -m football_pipeline dispatch --wait-max-minutes 45
           else
             uv run --frozen python -m football_pipeline dispatch
           fi
