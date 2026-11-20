@@ -26,6 +26,12 @@ K_late-40, the same as B. The normal scheduled tick is the one in the first
 30 minutes of that window. Catch-up shots keep the same shot_key and the
 same credit guard, and they emit ::notice::catch-up <shot_key>.
 
+A scheduled run may wait, under a cap, for the next untaken close aim:
+A at K-60, B at K-15, and L at K_late-15. A shot whose aim is already
+behind us and still inside its window is taken on this tick. Fixed shots
+stay on their own clock. The windows above, the credit gates, the catch-up
+rule, and the one-row-per-key dedupe do not change. A dry run does not wait.
+
 Budget skips write a shots row, emit ::notice::, append a step-summary line,
 and exit 0. HTTP, D1, and mapping errors propagate and exit non-zero.
 """
@@ -33,6 +39,8 @@ and exit 0. HTTP, D1, and mapping errors propagate and exit non-zero.
 from __future__ import annotations
 
 import os
+import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
@@ -57,6 +65,10 @@ MISSED_FOR = timedelta(hours=18)
 # catch-up: the cron tick that belongs to the shot is the one in the first
 # 30 minutes. A starts at K-75; B starts at K-40; L starts at K_late-40.
 CATCHUP_AFTER = timedelta(minutes=30)
+# On-time aims. A at K-60 is the middle of A's first 30 minutes. B at K-15
+# and L at K_late-15 are inside (K-40, K-5] and still before the catch-up
+# line at K-10. Fixed shots have no aim.
+CLOSE_AIM_BEFORE = {"A": timedelta(minutes=60), "B": timedelta(minutes=15), "L": timedelta(minutes=15)}
 
 
 @dataclass(frozen=True)
@@ -229,9 +241,23 @@ def run_dispatch(
     odds: OddsClient,
     d1: D1Client,
     dry_run: bool = False,
+    wait_max: timedelta | None = None,
+    clock: Callable[[], datetime] | None = None,
+    sleep: Callable[[float], None] | None = None,
+    ready_keys: set[str] | None = None,
 ) -> int:
     if now.tzinfo is None:
         raise PipelineError("dispatch now must include a timezone")
+    if wait_max is not None and wait_max > timedelta(0) and not dry_run:
+        return _dispatch_waiting(
+            now=now,
+            games=games,
+            odds=odds,
+            d1=d1,
+            wait_max=wait_max,
+            clock=clock,
+            sleep=sleep,
+        )
     now = now.astimezone(timezone.utc).replace(microsecond=0)
     d1.apply_schema()
     stored = d1.fetch_shots()
@@ -243,6 +269,8 @@ def run_dispatch(
         print("dry_run ok")
         return 0
     due = plan_shots(games, now, {shot.shot_key for shot in stored})
+    if ready_keys is not None:
+        due = [shot for shot in due if shot.shot_key in ready_keys]
     if not due:
         print("no shot due")
         return 0
@@ -289,6 +317,170 @@ def run_dispatch(
     print(f"d1 shots: wrote {len(take)} row(s)")
     print(f"dispatch took {len(take)} shot(s), skipped {len(skip)}")
     return 0
+
+
+# GitHub's docs say scheduled workflows can be delayed or dropped under high
+# load. On Nov 19, odds-dispatch ran about once an hour (13:16, 14:33,
+# 15:33, ... 23:45, 01:05 UTC) instead of at :07/:37. TNF IND@HOU (K=01:15
+# UTC) missed Shot A entirely, and Shot B fired as a catch-up at K-8.7m.
+# Cron alone can't hit a 35-minute window, so waiting inside the job removes
+# the dependency on cron timing.
+def _dispatch_waiting(
+    *,
+    now: datetime,
+    games: list[Game],
+    odds: OddsClient,
+    d1: D1Client,
+    wait_max: timedelta,
+    clock: Callable[[], datetime] | None,
+    sleep: Callable[[float], None] | None,
+) -> int:
+    """Sleep to close-shot aims that fall inside ``wait_max``, then dispatch.
+
+    Aims are K-60, K-15, and K_late-15. A shot whose aim is already behind
+    us is taken on this tick. A due shot whose aim is still ahead is taken
+    now only when it sits past the cap; otherwise this run sleeps to it, or
+    leaves it for a later run that still has room. Each wake re-reads D1
+    and calls the normal dispatch. Fixed slots inside the cap are wakes too,
+    so a sleep does not skip Tuesday, Wednesday, or Saturday.
+    """
+    current = now.astimezone(timezone.utc).replace(microsecond=0)
+    deadline = current + wait_max
+    clock_fn = clock or _wall_clock
+    sleep_fn = sleep or time.sleep
+    dispatched_at: set[datetime] = set()
+    d1.apply_schema()
+    while True:
+        keys = _shot_keys(d1)
+        ready = _ready_shot_keys(games, current, keys, deadline, wait_max)
+        if ready and current not in dispatched_at:
+            dispatched_at.add(current)
+            code = run_dispatch(
+                now=current,
+                games=games,
+                odds=odds,
+                d1=d1,
+                ready_keys=ready,
+            )
+            if code != 0:
+                return code
+            keys = _shot_keys(d1)
+        wake = _next_wake(games, current, keys, deadline)
+        if wake is None:
+            # A due shot left unready is being held for a later run. Do not
+            # fall through to an unfiltered dispatch and take it early.
+            if current in dispatched_at or plan_shots(games, current, keys):
+                return 0
+            return run_dispatch(now=current, games=games, odds=odds, d1=d1)
+        delay = (wake - current).total_seconds()
+        if delay > 0:
+            print(f"wait {int(delay)}s until {format_ts(wake)}")
+            sleep_fn(delay)
+        landed = clock_fn().astimezone(timezone.utc).replace(microsecond=0)
+        current = landed if landed >= wake else wake
+
+
+def _wall_clock() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _shot_keys(d1: D1Client) -> set[str]:
+    return {shot.shot_key for shot in d1.fetch_shots()}
+
+
+def _aim_at(shot: PlannedShot) -> datetime | None:
+    offset = CLOSE_AIM_BEFORE.get(shot.kind)
+    if offset is None:
+        return None
+    return shot.window_kickoff - offset
+
+
+def _ready_shot_keys(
+    games: list[Game],
+    now: datetime,
+    keys: set[str],
+    deadline: datetime,
+    wait_max: timedelta,
+) -> set[str]:
+    """Shot keys the normal dispatch should take at ``now``.
+
+    A close shot already inside its window is held when its aim is still
+    ahead and either this run or a fresh run under the same cap can reach
+    it. Holding L at B's aim keeps the second /odds call. Fixed shots are
+    ready whenever they are due.
+    """
+    ready: set[str] = set()
+    for shot in plan_shots(games, now, keys):
+        aim = _aim_at(shot)
+        if aim is None or aim <= now:
+            ready.add(shot.shot_key)
+            continue
+        if aim > deadline and aim - now > wait_max:
+            ready.add(shot.shot_key)
+    return ready
+
+
+def _next_wake(games: list[Game], now: datetime, keys: set[str], deadline: datetime) -> datetime | None:
+    candidates = [
+        moment
+        for moment in (*_future_close_aims(games, now, keys), *_future_fixed_slots(games, now, keys, deadline))
+        if now < moment <= deadline
+    ]
+    if not candidates:
+        return None
+    return min(candidates)
+
+
+def _future_close_aims(games: list[Game], now: datetime, keys: set[str]) -> list[datetime]:
+    aims: list[datetime] = []
+    for window in group_windows(games):
+        stamp = format_ts(window.kickoff)
+        if window.kickoff > now and f"A:{stamp}" not in keys:
+            aim = window.kickoff - CLOSE_AIM_BEFORE["A"]
+            if aim > now:
+                aims.append(aim)
+        if window.kickoff > now and f"B:{stamp}" not in keys:
+            aim = window.kickoff - CLOSE_AIM_BEFORE["B"]
+            if aim > now:
+                aims.append(aim)
+        late = _late_kickoff(window)
+        if late is None or late <= now:
+            continue
+        late_key = f"L:{format_ts(late)}"
+        if late_key in keys:
+            continue
+        aim = late - CLOSE_AIM_BEFORE["L"]
+        if aim > now:
+            aims.append(aim)
+    return aims
+
+
+def _future_fixed_slots(
+    games: list[Game],
+    now: datetime,
+    keys: set[str],
+    deadline: datetime,
+) -> list[datetime]:
+    slots: list[datetime] = []
+    day = now.date()
+    while day <= deadline.date():
+        for name, weekday, hour, minute in FIXED_SLOTS:
+            if day.weekday() != weekday:
+                continue
+            slot = datetime(day.year, day.month, day.day, hour, minute, tzinfo=timezone.utc)
+            if not (now < slot <= deadline):
+                continue
+            target = _target_week(games, slot)
+            if target is None:
+                continue
+            season, week = target
+            if f"fixed:{season}:{week}:{name}" in keys:
+                continue
+            if _earliest_remaining(games, season, week, slot) is None:
+                continue
+            slots.append(slot)
+        day += timedelta(days=1)
+    return slots
 
 
 def _target_week(games: list[Game], now: datetime) -> tuple[int, int] | None:
