@@ -3,4 +3,4 @@ pick_id,closing_line,close_source,close_ts,close_books,close_age_min,final_home,
 2026_10_CAR_NO-total,49.00,odds_api,2026-11-15T17:38:48Z,9,21.20,17,20,L,-1.000,0.00,graded
 2026_10_JAX_TEN-spread,-10.50,odds_api,2026-11-15T17:38:48Z,9,21.20,23,40,W,0.909,0.00,graded
 2026_10_NE_DET-spread,-2.50,odds_api,2026-11-15T13:55:03Z,9,34.95,35,10,W,0.909,-0.50,graded
-2026_11_CIN_WAS-total,52.50,odds_api_stale,2026-11-17T14:24:55Z,8,9290.08,,,,,,void
+2026_11_CIN_WAS-total,54.00,odds_api_stale,2026-11-20T01:05:58Z,9,5769.03,,,,,,void
