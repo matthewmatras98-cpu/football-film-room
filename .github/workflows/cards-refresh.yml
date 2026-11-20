@@ -1,0 +1,84 @@
+name: cards-refresh
+
+on:
+  schedule:
+    # Saturday 11:07 UTC is 4:07 AM Phoenix. Phoenix does not observe DST.
+    - cron: "7 11 * * 6"
+    # Sunday 11:07 UTC is 4:07 AM Phoenix. Phoenix does not observe DST.
+    - cron: "7 11 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Same group as weekly.yml and grade-only.yml, so these runs never overlap.
+concurrency:
+  group: weekly-grade
+  cancel-in-progress: false
+
+jobs:
+  cards:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          ssh-key: ${{ secrets.LEDGER_DEPLOY_KEY }}
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.13.7"
+
+      - name: Sync
+        working-directory: pipeline
+        run: uv sync --frozen
+
+      - name: Refresh, pull snapshots, export lines, and build cards
+        working-directory: pipeline
+        env:
+          NFLREADPY_CACHE: "off"
+          NFLREADPY_CACHE_DURATION: "0"
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ vars.CF_ACCOUNT_ID }}
+          D1_DATABASE_ID: ${{ vars.D1_DATABASE_ID }}
+        run: |
+          set -euo pipefail
+          uv run --frozen python -m football_pipeline refresh
+          uv run --frozen python -m football_pipeline pull-snapshots --out ../data/.cache/week.d1dump.csv
+          as_of="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          uv run --frozen python -m football_pipeline lines-export --as-of "$as_of" --snapshots ../data/.cache/week.d1dump.csv
+          season="$(uv run --frozen python -c 'from nflreadpy.utils_date import get_current_season; print(get_current_season())')"
+          uv run --frozen python -m football_pipeline build-db --season "$season" --out ../data/.cache/football.duckdb
+          uv run --frozen python -m football_pipeline cards --db ../data/.cache/football.duckdb --as-of "$as_of"
+
+      - name: Commit game cards if they changed
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # The deploy key pushes this commit. Only game cards are staged.
+          # lines-export output stays unstaged. data/picks.csv is not staged,
+          # so pick-ledger does not run. ci and pipeline re-check the commit.
+          if compgen -G "src/content/games/*.json" > /dev/null; then
+            git add -- src/content/games/*.json
+          fi
+          if git diff --cached --quiet; then
+            echo "no card changes"
+            exit 0
+          fi
+          # --as-of is the clock, so generated_at moves on every run.
+          # A timestamp-only diff is not a commit.
+          if python3 scripts/only_generated_at_changed.py; then
+            git diff --cached --name-only -z | xargs -0 -r git restore --source=HEAD --staged --worktree --
+            echo "no card changes"
+            exit 0
+          fi
+          git commit -m "Refresh game cards (injuries)"
+          bash scripts/push_with_retry.sh
