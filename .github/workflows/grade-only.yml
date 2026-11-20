@@ -68,12 +68,10 @@ jobs:
           fi
           # --as-of is the clock, so generated_at moves on every run. When the
           # grades did not change, that timestamp is not a commit.
-          if git diff --cached --quiet -- data/graded.csv src/data/picks_view.json; then
-            if python3 -c 'import json,subprocess,sys; old=json.loads(subprocess.check_output(["git","show","HEAD:src/data/summary.json"])); new=json.loads(subprocess.check_output(["git","show",":src/data/summary.json"])); old.pop("generated_at",None); new.pop("generated_at",None); sys.exit(0 if old==new else 1)'; then
-              git restore --source=HEAD --staged --worktree -- src/data/summary.json
-              echo "no grader changes"
-              exit 0
-            fi
+          if python3 scripts/only_generated_at_changed.py; then
+            git diff --cached --name-only -z | xargs -0 git restore --source=HEAD --staged --worktree --
+            echo "no grader changes"
+            exit 0
           fi
           git commit -m "Grade picks"
           bash scripts/push_with_retry.sh
