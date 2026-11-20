@@ -1,0 +1,14 @@
+[
+  {
+    "text": "KC sack rate is 0.2.",
+    "team": "KC",
+    "stat": "sack_rate",
+    "claimed": 0.2,
+    "status": "unverifiable",
+    "actual": null,
+    "source": "no matching view",
+    "sample": null,
+    "range": null,
+    "reason": "null value"
+  }
+]
