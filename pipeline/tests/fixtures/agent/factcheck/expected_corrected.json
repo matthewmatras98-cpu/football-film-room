@@ -1,0 +1,50 @@
+[
+  {
+    "text": "DET sack rate is 33.3333.",
+    "team": "DET",
+    "stat": "sack_rate",
+    "claimed": 33.3333,
+    "status": "corrected",
+    "actual": 0.333333,
+    "source": "nflverse_pbp",
+    "sample": 6,
+    "range": "2099 wk1–2",
+    "reason": null
+  },
+  {
+    "text": "DET sack rate is 33.3333%.",
+    "team": "DET",
+    "stat": "sack_rate",
+    "claimed": 33.3333,
+    "status": "confirmed",
+    "actual": 0.333333,
+    "source": "nflverse_pbp",
+    "sample": 6,
+    "range": "2099 wk1–2",
+    "reason": null
+  },
+  {
+    "text": "DET sack rate is 0.333333.",
+    "team": "DET",
+    "stat": "sack_rate",
+    "claimed": 0.333333,
+    "status": "confirmed",
+    "actual": 0.333333,
+    "source": "nflverse_pbp",
+    "sample": 6,
+    "range": "2099 wk1–2",
+    "reason": null
+  },
+  {
+    "text": "CHI EPA per play is 0.2 this season.",
+    "team": "CHI",
+    "stat": "epa_per_play",
+    "claimed": 0.2,
+    "status": "corrected",
+    "actual": 0.56,
+    "source": "nflverse_pbp",
+    "sample": 10,
+    "range": "2099 wk1–2",
+    "reason": null
+  }
+]

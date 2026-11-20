@@ -86,4 +86,4 @@ The teammate follows these rules on every answer.
 
 ## Checks
 
-`agent-eval` scores a recorded answer file against this database: every number in the text maps to a claim with source, sample, and range; banned phrases are absent; fantasy answers decline and cite no number; each claim matches the view. `agent-factcheck` reads an MDX draft and marks each extracted stat confirmed, corrected, or unverifiable, with a source on every row.
+`agent-eval` scores a recorded answer file against this database: every number in the text maps to a claim with source, sample, and range; banned phrases are absent; fantasy answers decline and cite no number; each claim matches the view. `agent-factcheck` reads an MDX draft and marks each extracted stat confirmed, corrected, or unverifiable, with a source on every row. The flow Film runs on a Friday or Saturday draft is in [factcheck.md](factcheck.md).

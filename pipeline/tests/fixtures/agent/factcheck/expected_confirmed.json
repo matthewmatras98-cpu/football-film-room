@@ -1,0 +1,50 @@
+[
+  {
+    "text": "CHI EPA per play is 0.56 this season.",
+    "team": "CHI",
+    "stat": "epa_per_play",
+    "claimed": 0.56,
+    "status": "confirmed",
+    "actual": 0.56,
+    "source": "nflverse_pbp",
+    "sample": 10,
+    "range": "2099 wk1–2",
+    "reason": null
+  },
+  {
+    "text": "CHI CPOE over the team's last four games is 6.",
+    "team": "CHI",
+    "stat": "cpoe",
+    "claimed": 6,
+    "status": "confirmed",
+    "actual": 6,
+    "source": "nflverse_pbp",
+    "sample": 4,
+    "range": "2099 wk1–2",
+    "reason": null
+  },
+  {
+    "text": "CHI time to throw over the team's last four games is 2.566667.",
+    "team": "CHI",
+    "stat": "time_to_throw",
+    "claimed": 2.566667,
+    "status": "confirmed",
+    "actual": 2.566667,
+    "source": "ngs_via_nflverse",
+    "sample": 45,
+    "range": "2099 wk1–2",
+    "reason": null
+  },
+  {
+    "text": "DET neutral pass rate is 0.666667.",
+    "team": "DET",
+    "stat": "neutral_ed_pass_rate",
+    "claimed": 0.666667,
+    "status": "confirmed",
+    "actual": 0.666667,
+    "source": "nflverse_pbp",
+    "sample": 6,
+    "range": "2099 wk1–2",
+    "reason": null
+  }
+]
