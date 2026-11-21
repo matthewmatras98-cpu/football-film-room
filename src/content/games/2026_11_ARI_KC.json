@@ -18,7 +18,7 @@
     "n_books": 6
   },
   "line_latest": {
-    "ts": "2026-11-17T14:24:55Z",
+    "ts": "2026-11-20T01:05:58Z",
     "home_spread": -16.5,
     "total": 41,
     "n_books": 9
@@ -59,18 +59,25 @@
       "home_spread": -16.5,
       "total": 41,
       "n_books": 9
+    },
+    {
+      "ts": "2026-11-20T01:05:58Z",
+      "home_spread": -16.5,
+      "total": 41,
+      "n_books": 9
     }
   ],
-  "generated_at": "2026-11-19T11:59:22Z",
+  "generated_at": "2026-11-21T11:44:46Z",
   "data_through_week": 10,
   "sources": [
     "nflverse_pbp",
     "nflverse_schedules",
+    "nflverse_injuries",
     "ngs_via_nflverse",
     "odds_api",
     "nws"
   ],
-  "injuries_status": "pending",
+  "injuries_status": "reported",
   "sections": {
     "epa": {
       "home": {
@@ -363,8 +370,58 @@
       }
     },
     "injuries": {
-      "home": [],
-      "away": []
+      "home": [
+        {
+          "player": "Jaylon Moore",
+          "position": "T",
+          "status": "Out",
+          "detail": "Ankle"
+        },
+        {
+          "player": "Kenneth Walker III",
+          "position": "RB",
+          "status": "Out",
+          "detail": "Groin"
+        },
+        {
+          "player": "Omarr Norman-Lott",
+          "position": "DT",
+          "status": "Questionable",
+          "detail": "Knee"
+        },
+        {
+          "player": "Peter Woods",
+          "position": "DT",
+          "status": "Questionable",
+          "detail": "Neck"
+        },
+        {
+          "player": "Trey Smith",
+          "position": "G",
+          "status": "Out",
+          "detail": "Concussion"
+        }
+      ],
+      "away": [
+        {
+          "player": "Carson Beck",
+          "position": "QB",
+          "status": "Questionable",
+          "detail": "Back"
+        },
+        {
+          "player": "Jon Gaines II",
+          "position": "G",
+          "status": "Out",
+          "detail": "Ankle"
+        },
+        {
+          "player": "Zachary Carter",
+          "position": "DT",
+          "status": "Out",
+          "detail": "Knee"
+        }
+      ]
     },
     "weather": {
       "mode": "outdoor",
@@ -375,18 +432,18 @@
         "range": "2026-11-22T12:00:00-06:00/2026-11-22T13:00:00-06:00"
       },
       "wind_mph": {
-        "value": 13,
+        "value": 16,
         "source": "nws",
         "sample": null,
         "range": "2026-11-22T12:00:00-06:00/2026-11-22T13:00:00-06:00"
       },
       "precip_prob_pct": {
-        "value": 1,
+        "value": 0,
         "source": "nws",
         "sample": null,
         "range": "2026-11-22T12:00:00-06:00/2026-11-22T13:00:00-06:00"
       },
-      "summary": "Sunny"
+      "summary": "Mostly Sunny"
     },
     "story_prompts": [
       {

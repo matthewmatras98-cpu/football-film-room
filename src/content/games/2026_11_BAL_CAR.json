@@ -18,10 +18,10 @@
     "n_books": 6
   },
   "line_latest": {
-    "ts": "2026-11-17T14:24:55Z",
-    "home_spread": -2.5,
+    "ts": "2026-11-20T01:05:58Z",
+    "home_spread": -3,
     "total": 43.5,
-    "n_books": 8
+    "n_books": 9
   },
   "line_history": [
     {
@@ -59,18 +59,25 @@
       "home_spread": -2.5,
       "total": 43.5,
       "n_books": 8
+    },
+    {
+      "ts": "2026-11-20T01:05:58Z",
+      "home_spread": -3,
+      "total": 43.5,
+      "n_books": 9
     }
   ],
-  "generated_at": "2026-11-19T11:59:22Z",
+  "generated_at": "2026-11-21T11:44:46Z",
   "data_through_week": 10,
   "sources": [
     "nflverse_pbp",
     "nflverse_schedules",
+    "nflverse_injuries",
     "ngs_via_nflverse",
     "odds_api",
     "nws"
   ],
-  "injuries_status": "pending",
+  "injuries_status": "reported",
   "sections": {
     "epa": {
       "home": {
@@ -363,30 +370,92 @@
       }
     },
     "injuries": {
-      "home": [],
-      "away": []
+      "home": [
+        {
+          "player": "Bobby Okereke",
+          "position": "LB",
+          "status": "Out",
+          "detail": "Foot"
+        },
+        {
+          "player": "Brady Christensen",
+          "position": "G",
+          "status": "Questionable",
+          "detail": "Hamstring"
+        },
+        {
+          "player": "Darren Waller",
+          "position": "TE",
+          "status": "Questionable",
+          "detail": "Knee"
+        },
+        {
+          "player": "Isaiah Simmons",
+          "position": "S",
+          "status": "Out",
+          "detail": "Knee"
+        },
+        {
+          "player": "Jonathon Brooks",
+          "position": "RB",
+          "status": "Questionable",
+          "detail": "Groin"
+        },
+        {
+          "player": "Mike Jackson",
+          "position": "CB",
+          "status": "Questionable",
+          "detail": "Groin"
+        },
+        {
+          "player": "Tommy Tremble",
+          "position": "TE",
+          "status": "Questionable",
+          "detail": "Knee"
+        }
+      ],
+      "away": [
+        {
+          "player": "Jaylinn Hawkins",
+          "position": "S",
+          "status": "Out",
+          "detail": "Knee"
+        },
+        {
+          "player": "Marlon Humphrey",
+          "position": "CB",
+          "status": "Out",
+          "detail": "Not injury related - personal matter"
+        },
+        {
+          "player": "Nnamdi Madubuike",
+          "position": "DT",
+          "status": "Out",
+          "detail": "Hamstring"
+        }
+      ]
     },
     "weather": {
       "mode": "outdoor",
       "temp_f": {
-        "value": 66,
+        "value": 64,
         "source": "nws",
         "sample": null,
         "range": "2026-11-22T13:00:00-05:00/2026-11-22T14:00:00-05:00"
       },
       "wind_mph": {
-        "value": 9,
+        "value": 8,
         "source": "nws",
         "sample": null,
         "range": "2026-11-22T13:00:00-05:00/2026-11-22T14:00:00-05:00"
       },
       "precip_prob_pct": {
-        "value": 9,
+        "value": 39,
         "source": "nws",
         "sample": null,
         "range": "2026-11-22T13:00:00-05:00/2026-11-22T14:00:00-05:00"
       },
-      "summary": "Mostly Sunny"
+      "summary": "Chance Rain Showers"
     },
     "story_prompts": [
       {

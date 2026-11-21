@@ -18,8 +18,8 @@
     "n_books": 6
   },
   "line_latest": {
-    "ts": "2026-11-17T14:24:55Z",
-    "home_spread": 5.5,
+    "ts": "2026-11-20T01:05:58Z",
+    "home_spread": 6,
     "total": 46.5,
     "n_books": 9
   },
@@ -59,18 +59,25 @@
       "home_spread": 5.5,
       "total": 46.5,
       "n_books": 9
+    },
+    {
+      "ts": "2026-11-20T01:05:58Z",
+      "home_spread": 6,
+      "total": 46.5,
+      "n_books": 9
     }
   ],
-  "generated_at": "2026-11-19T11:59:22Z",
+  "generated_at": "2026-11-21T11:44:46Z",
   "data_through_week": 10,
   "sources": [
     "nflverse_pbp",
     "nflverse_schedules",
+    "nflverse_injuries",
     "ngs_via_nflverse",
     "odds_api",
     "nws"
   ],
-  "injuries_status": "pending",
+  "injuries_status": "reported",
   "sections": {
     "epa": {
       "home": {
@@ -364,29 +371,54 @@
     },
     "injuries": {
       "home": [],
-      "away": []
+      "away": [
+        {
+          "player": "BJ Green II",
+          "position": "DE",
+          "status": "Out",
+          "detail": "Forearm"
+        },
+        {
+          "player": "Danny Striggow",
+          "position": "DE",
+          "status": "Questionable",
+          "detail": "Concussion"
+        },
+        {
+          "player": "Matt Dickerson",
+          "position": "DT",
+          "status": "Questionable",
+          "detail": "Neck"
+        },
+        {
+          "player": "Robert Hainsey",
+          "position": "C",
+          "status": "Out",
+          "detail": "Knee"
+        }
+      ]
     },
     "weather": {
       "mode": "outdoor",
       "temp_f": {
-        "value": 59,
+        "value": 61,
         "source": "nws",
         "sample": null,
         "range": "2026-11-22T13:00:00-05:00/2026-11-22T14:00:00-05:00"
       },
       "wind_mph": {
-        "value": 5,
+        "value": 7,
         "source": "nws",
         "sample": null,
         "range": "2026-11-22T13:00:00-05:00/2026-11-22T14:00:00-05:00"
       },
       "precip_prob_pct": {
-        "value": 30,
+        "value": 88,
         "source": "nws",
         "sample": null,
         "range": "2026-11-22T13:00:00-05:00/2026-11-22T14:00:00-05:00"
       },
-      "summary": "Chance Light Rain"
+      "summary": "Rain"
     },
     "story_prompts": [
       {

@@ -18,9 +18,9 @@
     "n_books": 6
   },
   "line_latest": {
-    "ts": "2026-11-17T14:24:55Z",
-    "home_spread": -3.5,
-    "total": 40.5,
+    "ts": "2026-11-20T01:05:58Z",
+    "home_spread": -3,
+    "total": 42,
     "n_books": 9
   },
   "line_history": [
@@ -59,17 +59,24 @@
       "home_spread": -3.5,
       "total": 40.5,
       "n_books": 9
+    },
+    {
+      "ts": "2026-11-20T01:05:58Z",
+      "home_spread": -3,
+      "total": 42,
+      "n_books": 9
     }
   ],
-  "generated_at": "2026-11-19T11:59:22Z",
+  "generated_at": "2026-11-21T11:44:46Z",
   "data_through_week": 10,
   "sources": [
     "nflverse_pbp",
     "nflverse_schedules",
+    "nflverse_injuries",
     "ngs_via_nflverse",
     "odds_api"
   ],
-  "injuries_status": "pending",
+  "injuries_status": "reported",
   "sections": {
     "epa": {
       "home": {
@@ -362,8 +369,106 @@
       }
     },
     "injuries": {
-      "home": [],
-      "away": []
+      "home": [
+        {
+          "player": "Brenen Thompson",
+          "position": "WR",
+          "status": "Doubtful",
+          "detail": "Hamstring"
+        },
+        {
+          "player": "Charlie Kolar",
+          "position": "TE",
+          "status": "Questionable",
+          "detail": "Concussion"
+        },
+        {
+          "player": "Daiyan Henley",
+          "position": "LB",
+          "status": "Out",
+          "detail": "Knee"
+        },
+        {
+          "player": "Isas Waxter",
+          "position": "CB",
+          "status": "Questionable",
+          "detail": "Ankle"
+        },
+        {
+          "player": "Kendall Williamson",
+          "position": "S",
+          "status": "Out",
+          "detail": "Calf"
+        },
+        {
+          "player": "Ladd McConkey",
+          "position": "WR",
+          "status": "Questionable",
+          "detail": "Back"
+        },
+        {
+          "player": "Rodney Shelley",
+          "position": "CB",
+          "status": "Out",
+          "detail": "Ankle"
+        },
+        {
+          "player": "Tarheeb Still",
+          "position": "CB",
+          "status": "Questionable",
+          "detail": "Ankle"
+        },
+        {
+          "player": "Trey Pipkins",
+          "position": "T",
+          "status": "Questionable",
+          "detail": "Knee"
+        }
+      ],
+      "away": [
+        {
+          "player": "David Onyemata",
+          "position": "DT",
+          "status": "Out",
+          "detail": "Abdomen"
+        },
+        {
+          "player": "Dylan Parham",
+          "position": "G",
+          "status": "Questionable",
+          "detail": "Knee"
+        },
+        {
+          "player": "Harrison Phillips",
+          "position": "DT",
+          "status": "Questionable",
+          "detail": "Ankle"
+        },
+        {
+          "player": "Isaiah Williams",
+          "position": "WR",
+          "status": "Out",
+          "detail": "Ribs"
+        },
+        {
+          "player": "Joseph Ossai",
+          "position": "DE",
+          "status": "Questionable",
+          "detail": "Foot"
+        },
+        {
+          "player": "Omar Cooper Jr.",
+          "position": "WR",
+          "status": "Out",
+          "detail": "Ankle"
+        },
+        {
+          "player": "Trevin Wallace",
+          "position": "LB",
+          "status": "Questionable",
+          "detail": "Groin"
+        }
+      ]
     },
     "weather": {
       "mode": "indoor",

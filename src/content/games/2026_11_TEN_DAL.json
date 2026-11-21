@@ -18,10 +18,10 @@
     "n_books": 6
   },
   "line_latest": {
-    "ts": "2026-11-17T14:24:55Z",
+    "ts": "2026-11-20T01:05:58Z",
     "home_spread": -8,
-    "total": 54.5,
-    "n_books": 8
+    "total": 55,
+    "n_books": 9
   },
   "line_history": [
     {
@@ -59,18 +59,25 @@
       "home_spread": -8,
       "total": 54.5,
       "n_books": 8
+    },
+    {
+      "ts": "2026-11-20T01:05:58Z",
+      "home_spread": -8,
+      "total": 55,
+      "n_books": 9
     }
   ],
-  "generated_at": "2026-11-19T11:59:22Z",
+  "generated_at": "2026-11-21T11:44:46Z",
   "data_through_week": 10,
   "sources": [
     "nflverse_pbp",
     "nflverse_schedules",
+    "nflverse_injuries",
     "ngs_via_nflverse",
     "odds_api",
     "nws"
   ],
-  "injuries_status": "pending",
+  "injuries_status": "reported",
   "sections": {
     "epa": {
       "home": {
@@ -363,13 +370,105 @@
       }
     },
     "injuries": {
-      "home": [],
-      "away": []
+      "home": [
+        {
+          "player": "DaRon Bland",
+          "position": "CB",
+          "status": "Out",
+          "detail": "Ankle"
+        },
+        {
+          "player": "Devin Moore",
+          "position": "CB",
+          "status": "Questionable",
+          "detail": "Hip"
+        },
+        {
+          "player": "Jaishawn Barham",
+          "position": "LB",
+          "status": "Questionable",
+          "detail": "Hip"
+        },
+        {
+          "player": "Jake Ferguson",
+          "position": "TE",
+          "status": "Out",
+          "detail": "Knee"
+        },
+        {
+          "player": "Jalen Thompson",
+          "position": "S",
+          "status": "Questionable",
+          "detail": "Hamstring"
+        },
+        {
+          "player": "Jonathan Mingo",
+          "position": "WR",
+          "status": "Out",
+          "detail": "Ankle"
+        },
+        {
+          "player": "Luke Schoonmaker",
+          "position": "TE",
+          "status": "Questionable",
+          "detail": "Illness"
+        },
+        {
+          "player": "P.J. Locke",
+          "position": "S",
+          "status": "Out",
+          "detail": "Concussion"
+        },
+        {
+          "player": "Tyler Booker",
+          "position": "G",
+          "status": "Out",
+          "detail": "Ankle"
+        }
+      ],
+      "away": [
+        {
+          "player": "Anthony Hill Jr.",
+          "position": "LB",
+          "status": "Questionable",
+          "detail": "Neck"
+        },
+        {
+          "player": "Carnell Tate",
+          "position": "WR",
+          "status": "Questionable",
+          "detail": "Shoulder"
+        },
+        {
+          "player": "Fernando Carmona",
+          "position": "G",
+          "status": "Out",
+          "detail": "Ankle"
+        },
+        {
+          "player": "Micah Robinson",
+          "position": "CB",
+          "status": "Questionable",
+          "detail": "Hip"
+        },
+        {
+          "player": "Tony Adams",
+          "position": "S",
+          "status": "Questionable",
+          "detail": "Concussion"
+        },
+        {
+          "player": "Tyjae Spears",
+          "position": "RB",
+          "status": "Questionable",
+          "detail": "Knee"
+        }
+      ]
     },
     "weather": {
       "mode": "retractable",
       "temp_f": {
-        "value": 62,
+        "value": 67,
         "source": "nws",
         "sample": null,
         "range": "2026-11-22T12:00:00-06:00/2026-11-22T13:00:00-06:00"
@@ -386,7 +485,7 @@
         "sample": null,
         "range": "2026-11-22T12:00:00-06:00/2026-11-22T13:00:00-06:00"
       },
-      "summary": "Sunny"
+      "summary": "Mostly Sunny"
     },
     "story_prompts": [
       {

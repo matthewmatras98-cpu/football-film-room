@@ -8,7 +8,7 @@
   "away": "IND",
   "venue": "Reliant Stadium",
   "roof": "retractable",
-  "surface": "astroturf",
+  "surface": null,
   "home_rest": 4,
   "away_rest": 4,
   "line_open": {
@@ -18,9 +18,9 @@
     "n_books": 6
   },
   "line_latest": {
-    "ts": "2026-11-17T14:24:55Z",
+    "ts": "2026-11-20T01:05:58Z",
     "home_spread": -12.5,
-    "total": 44.5,
+    "total": 44,
     "n_books": 9
   },
   "line_history": [
@@ -59,17 +59,22 @@
       "home_spread": -12.5,
       "total": 44.5,
       "n_books": 9
+    },
+    {
+      "ts": "2026-11-20T01:05:58Z",
+      "home_spread": -12.5,
+      "total": 44,
+      "n_books": 9
     }
   ],
-  "generated_at": "2026-11-19T11:59:22Z",
+  "generated_at": "2026-11-21T11:44:46Z",
   "data_through_week": 10,
   "sources": [
     "nflverse_pbp",
     "nflverse_schedules",
     "nflverse_injuries",
     "ngs_via_nflverse",
-    "odds_api",
-    "nws"
+    "odds_api"
   ],
   "injuries_status": "reported",
   "sections": {
@@ -422,12 +427,6 @@
           "detail": "Concussion"
         },
         {
-          "player": "Charlie Heck",
-          "position": "T",
-          "status": "Questionable",
-          "detail": "Not injury related - personal matter"
-        },
-        {
           "player": "Charvarius Ward",
           "position": "CB",
           "status": "Out",
@@ -468,24 +467,24 @@
     "weather": {
       "mode": "retractable",
       "temp_f": {
-        "value": 66,
+        "value": null,
         "source": "nws",
         "sample": null,
-        "range": "2026-11-19T19:00:00-06:00/2026-11-19T20:00:00-06:00"
+        "range": null
       },
       "wind_mph": {
-        "value": 5,
+        "value": null,
         "source": "nws",
         "sample": null,
-        "range": "2026-11-19T19:00:00-06:00/2026-11-19T20:00:00-06:00"
+        "range": null
       },
       "precip_prob_pct": {
-        "value": 0,
+        "value": null,
         "source": "nws",
         "sample": null,
-        "range": "2026-11-19T19:00:00-06:00/2026-11-19T20:00:00-06:00"
+        "range": null
       },
-      "summary": "Partly Cloudy"
+      "summary": null
     },
     "story_prompts": [
       {

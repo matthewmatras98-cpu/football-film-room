@@ -18,10 +18,10 @@
     "n_books": 6
   },
   "line_latest": {
-    "ts": "2026-11-17T14:24:55Z",
-    "home_spread": 6.5,
-    "total": 52.5,
-    "n_books": 8
+    "ts": "2026-11-20T01:05:58Z",
+    "home_spread": 6,
+    "total": 54,
+    "n_books": 9
   },
   "line_history": [
     {
@@ -65,9 +65,15 @@
       "home_spread": 6.5,
       "total": 52.5,
       "n_books": 8
+    },
+    {
+      "ts": "2026-11-20T01:05:58Z",
+      "home_spread": 6,
+      "total": 54,
+      "n_books": 9
     }
   ],
-  "generated_at": "2026-11-19T11:59:22Z",
+  "generated_at": "2026-11-21T11:44:46Z",
   "data_through_week": 10,
   "sources": [
     "nflverse_pbp",
@@ -375,24 +381,24 @@
     "weather": {
       "mode": "outdoor",
       "temp_f": {
-        "value": 52,
+        "value": 54,
         "source": "nws",
         "sample": null,
         "range": "2026-11-23T20:00:00-05:00/2026-11-23T21:00:00-05:00"
       },
       "wind_mph": {
-        "value": 12,
+        "value": 8,
         "source": "nws",
         "sample": null,
         "range": "2026-11-23T20:00:00-05:00/2026-11-23T21:00:00-05:00"
       },
       "precip_prob_pct": {
-        "value": 1,
+        "value": 0,
         "source": "nws",
         "sample": null,
         "range": "2026-11-23T20:00:00-05:00/2026-11-23T21:00:00-05:00"
       },
-      "summary": "Mostly Clear"
+      "summary": "Partly Cloudy"
     },
     "story_prompts": [
       {

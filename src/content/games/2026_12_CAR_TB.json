@@ -11,15 +11,33 @@
   "surface": "grass",
   "home_rest": 8,
   "away_rest": 8,
-  "line_open": null,
-  "line_latest": null,
-  "line_history": [],
-  "generated_at": "2026-11-19T11:59:22Z",
+  "line_open": {
+    "ts": "2026-11-20T01:05:58Z",
+    "home_spread": -2,
+    "total": 43.5,
+    "n_books": 6
+  },
+  "line_latest": {
+    "ts": "2026-11-20T01:05:58Z",
+    "home_spread": -2,
+    "total": 43.5,
+    "n_books": 6
+  },
+  "line_history": [
+    {
+      "ts": "2026-11-20T01:05:58Z",
+      "home_spread": -2,
+      "total": 43.5,
+      "n_books": 6
+    }
+  ],
+  "generated_at": "2026-11-21T11:44:46Z",
   "data_through_week": 10,
   "sources": [
     "nflverse_pbp",
     "nflverse_schedules",
-    "ngs_via_nflverse"
+    "ngs_via_nflverse",
+    "odds_api"
   ],
   "injuries_status": "pending",
   "sections": {

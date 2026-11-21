@@ -11,15 +11,34 @@
   "surface": "grass",
   "home_rest": 5,
   "away_rest": 5,
-  "line_open": null,
-  "line_latest": null,
-  "line_history": [],
-  "generated_at": "2026-11-19T11:59:22Z",
+  "line_open": {
+    "ts": "2026-11-20T01:05:58Z",
+    "home_spread": 1.5,
+    "total": 40.5,
+    "n_books": 7
+  },
+  "line_latest": {
+    "ts": "2026-11-20T01:05:58Z",
+    "home_spread": 1.5,
+    "total": 40.5,
+    "n_books": 7
+  },
+  "line_history": [
+    {
+      "ts": "2026-11-20T01:05:58Z",
+      "home_spread": 1.5,
+      "total": 40.5,
+      "n_books": 7
+    }
+  ],
+  "generated_at": "2026-11-21T11:44:46Z",
   "data_through_week": 10,
   "sources": [
     "nflverse_pbp",
     "nflverse_schedules",
-    "ngs_via_nflverse"
+    "ngs_via_nflverse",
+    "odds_api",
+    "nws"
   ],
   "injuries_status": "pending",
   "sections": {
@@ -320,24 +339,24 @@
     "weather": {
       "mode": "outdoor",
       "temp_f": {
-        "value": null,
+        "value": 44,
         "source": "nws",
         "sample": null,
-        "range": null
+        "range": "2026-11-27T15:00:00-05:00/2026-11-27T16:00:00-05:00"
       },
       "wind_mph": {
-        "value": null,
+        "value": 6,
         "source": "nws",
         "sample": null,
-        "range": null
+        "range": "2026-11-27T15:00:00-05:00/2026-11-27T16:00:00-05:00"
       },
       "precip_prob_pct": {
-        "value": null,
+        "value": 14,
         "source": "nws",
         "sample": null,
-        "range": null
+        "range": "2026-11-27T15:00:00-05:00/2026-11-27T16:00:00-05:00"
       },
-      "summary": null
+      "summary": "Partly Sunny"
     },
     "story_prompts": [
       {

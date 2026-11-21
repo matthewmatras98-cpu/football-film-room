@@ -18,9 +18,9 @@
     "n_books": 6
   },
   "line_latest": {
-    "ts": "2026-11-17T14:24:55Z",
+    "ts": "2026-11-20T01:05:58Z",
     "home_spread": 4.5,
-    "total": 38.5,
+    "total": 38,
     "n_books": 9
   },
   "line_history": [
@@ -59,18 +59,25 @@
       "home_spread": 4.5,
       "total": 38.5,
       "n_books": 9
+    },
+    {
+      "ts": "2026-11-20T01:05:58Z",
+      "home_spread": 4.5,
+      "total": 38,
+      "n_books": 9
     }
   ],
-  "generated_at": "2026-11-19T11:59:22Z",
+  "generated_at": "2026-11-21T11:44:46Z",
   "data_through_week": 10,
   "sources": [
     "nflverse_pbp",
     "nflverse_schedules",
+    "nflverse_injuries",
     "ngs_via_nflverse",
     "odds_api",
     "nws"
   ],
-  "injuries_status": "pending",
+  "injuries_status": "reported",
   "sections": {
     "epa": {
       "home": {
@@ -363,30 +370,92 @@
       }
     },
     "injuries": {
-      "home": [],
-      "away": []
+      "home": [
+        {
+          "player": "Dontayvion Wicks",
+          "position": "WR",
+          "status": "Out",
+          "detail": "Ankle"
+        },
+        {
+          "player": "Smael Mondon Jr.",
+          "position": "LB",
+          "status": "Doubtful",
+          "detail": "Ankle"
+        },
+        {
+          "player": "Will Shipley",
+          "position": "RB",
+          "status": "Questionable",
+          "detail": "Foot"
+        },
+        {
+          "player": "Zack Baun",
+          "position": "LB",
+          "status": "Out",
+          "detail": "Back"
+        }
+      ],
+      "away": [
+        {
+          "player": "DeShon Elliott",
+          "position": "S",
+          "status": "Questionable",
+          "detail": "Knee"
+        },
+        {
+          "player": "Gennings Dunker",
+          "position": "G",
+          "status": "Questionable",
+          "detail": "Knee"
+        },
+        {
+          "player": "Michael Pittman",
+          "position": "WR",
+          "status": "Questionable",
+          "detail": "Foot"
+        },
+        {
+          "player": "Nick Herbig",
+          "position": "LB",
+          "status": "Questionable",
+          "detail": "Hip"
+        },
+        {
+          "player": "Patrick Queen",
+          "position": "LB",
+          "status": "Questionable",
+          "detail": "Hand"
+        },
+        {
+          "player": "Roman Wilson",
+          "position": "WR",
+          "status": "Questionable",
+          "detail": "Hand"
+        }
+      ]
     },
     "weather": {
       "mode": "outdoor",
       "temp_f": {
-        "value": 62,
+        "value": 63,
         "source": "nws",
         "sample": null,
         "range": "2026-11-22T16:00:00-05:00/2026-11-22T17:00:00-05:00"
       },
       "wind_mph": {
-        "value": 5,
+        "value": 10,
         "source": "nws",
         "sample": null,
         "range": "2026-11-22T16:00:00-05:00/2026-11-22T17:00:00-05:00"
       },
       "precip_prob_pct": {
-        "value": 50,
+        "value": 92,
         "source": "nws",
         "sample": null,
         "range": "2026-11-22T16:00:00-05:00/2026-11-22T17:00:00-05:00"
       },
-      "summary": "Chance Light Rain"
+      "summary": "Light Rain"
     },
     "story_prompts": [
       {

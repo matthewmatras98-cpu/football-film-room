@@ -18,9 +18,9 @@
     "n_books": 6
   },
   "line_latest": {
-    "ts": "2026-11-17T14:24:55Z",
+    "ts": "2026-11-20T01:05:58Z",
     "home_spread": -6.5,
-    "total": 46.5,
+    "total": 45.5,
     "n_books": 9
   },
   "line_history": [
@@ -53,17 +53,24 @@
       "home_spread": -6.5,
       "total": 46.5,
       "n_books": 9
+    },
+    {
+      "ts": "2026-11-20T01:05:58Z",
+      "home_spread": -6.5,
+      "total": 45.5,
+      "n_books": 9
     }
   ],
-  "generated_at": "2026-11-19T11:59:22Z",
+  "generated_at": "2026-11-21T11:44:46Z",
   "data_through_week": 10,
   "sources": [
     "nflverse_pbp",
     "nflverse_schedules",
+    "nflverse_injuries",
     "ngs_via_nflverse",
     "odds_api"
   ],
-  "injuries_status": "pending",
+  "injuries_status": "reported",
   "sections": {
     "epa": {
       "home": {
@@ -356,8 +363,76 @@
       }
     },
     "injuries": {
-      "home": [],
-      "away": []
+      "home": [
+        {
+          "player": "Cade Mays",
+          "position": "C",
+          "status": "Out",
+          "detail": "Ankle"
+        },
+        {
+          "player": "D.J. Reed",
+          "position": "CB",
+          "status": "Questionable",
+          "detail": "Hip"
+        },
+        {
+          "player": "Ennis Rakestraw Jr.",
+          "position": "CB",
+          "status": "Questionable",
+          "detail": "Shoulder"
+        },
+        {
+          "player": "Joe Bachie",
+          "position": "LB",
+          "status": "Questionable",
+          "detail": "Knee"
+        },
+        {
+          "player": "Khalil Dorsey",
+          "position": "CB",
+          "status": "Questionable",
+          "detail": "Ankle"
+        },
+        {
+          "player": "Sione Vaki",
+          "position": "RB",
+          "status": "Questionable",
+          "detail": "Ankle"
+        },
+        {
+          "player": "Tyler Lacy",
+          "position": "DE",
+          "status": "Questionable",
+          "detail": "Shoulder"
+        }
+      ],
+      "away": [
+        {
+          "player": "Antoine Winfield Jr.",
+          "position": "S",
+          "status": "Out",
+          "detail": "Ankle"
+        },
+        {
+          "player": "Baker Mayfield",
+          "position": "QB",
+          "status": "Questionable",
+          "detail": "Foot"
+        },
+        {
+          "player": "Josh Hayes",
+          "position": "CB",
+          "status": "Out",
+          "detail": "Knee"
+        },
+        {
+          "player": "Yaya Diaby",
+          "position": "LB",
+          "status": "Questionable",
+          "detail": "Knee"
+        }
+      ]
     },
     "weather": {
       "mode": "indoor",

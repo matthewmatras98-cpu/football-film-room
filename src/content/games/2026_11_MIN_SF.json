@@ -18,7 +18,7 @@
     "n_books": 6
   },
   "line_latest": {
-    "ts": "2026-11-17T14:24:55Z",
+    "ts": "2026-11-20T01:05:58Z",
     "home_spread": -3,
     "total": 46.5,
     "n_books": 9
@@ -59,17 +59,24 @@
       "home_spread": -3,
       "total": 46.5,
       "n_books": 9
+    },
+    {
+      "ts": "2026-11-20T01:05:58Z",
+      "home_spread": -3,
+      "total": 46.5,
+      "n_books": 9
     }
   ],
-  "generated_at": "2026-11-19T11:59:22Z",
+  "generated_at": "2026-11-21T11:44:46Z",
   "data_through_week": 10,
   "sources": [
     "nflverse_pbp",
     "nflverse_schedules",
+    "nflverse_injuries",
     "ngs_via_nflverse",
     "odds_api"
   ],
-  "injuries_status": "pending",
+  "injuries_status": "reported",
   "sections": {
     "epa": {
       "home": {
@@ -362,8 +369,88 @@
       }
     },
     "injuries": {
-      "home": [],
-      "away": []
+      "home": [
+        {
+          "player": "C.J. West",
+          "position": "DT",
+          "status": "Questionable",
+          "detail": "Knee"
+        },
+        {
+          "player": "Dre Greenlaw",
+          "position": "LB",
+          "status": "Questionable",
+          "detail": "Neck"
+        },
+        {
+          "player": "Jordan James",
+          "position": "RB",
+          "status": "Questionable",
+          "detail": "Calf"
+        },
+        {
+          "player": "Khalid Kareem",
+          "position": "DE",
+          "status": "Questionable",
+          "detail": "Ankle"
+        },
+        {
+          "player": "Luke Gifford",
+          "position": "LB",
+          "status": "Questionable",
+          "detail": "Chest"
+        },
+        {
+          "player": "Mac Jones",
+          "position": "QB",
+          "status": "Questionable",
+          "detail": "Illness"
+        },
+        {
+          "player": "Mike Evans",
+          "position": "WR",
+          "status": "Questionable",
+          "detail": "Achilles"
+        },
+        {
+          "player": "Nate Hobbs",
+          "position": "CB",
+          "status": "Questionable",
+          "detail": "Groin"
+        },
+        {
+          "player": "Upton Stout",
+          "position": "CB",
+          "status": "Questionable",
+          "detail": "Shoulder"
+        }
+      ],
+      "away": [
+        {
+          "player": "Isaiah Rodgers",
+          "position": "CB",
+          "status": "Questionable",
+          "detail": "Quadricep"
+        },
+        {
+          "player": "Jay Ward",
+          "position": "S",
+          "status": "Questionable",
+          "detail": "Knee"
+        },
+        {
+          "player": "Jordan Addison",
+          "position": "WR",
+          "status": "Out",
+          "detail": "Thumb"
+        },
+        {
+          "player": "Kyler Murray",
+          "position": "QB",
+          "status": "Out",
+          "detail": "Hamstring"
+        }
+      ]
     },
     "weather": {
       "mode": "unavailable",

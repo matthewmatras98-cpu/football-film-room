@@ -18,9 +18,9 @@
     "n_books": 3
   },
   "line_latest": {
-    "ts": "2026-11-17T14:24:55Z",
+    "ts": "2026-11-20T01:05:58Z",
     "home_spread": -16.5,
-    "total": 45.5,
+    "total": 44.5,
     "n_books": 9
   },
   "line_history": [
@@ -59,18 +59,25 @@
       "home_spread": -16.5,
       "total": 45.5,
       "n_books": 9
+    },
+    {
+      "ts": "2026-11-20T01:05:58Z",
+      "home_spread": -16.5,
+      "total": 44.5,
+      "n_books": 9
     }
   ],
-  "generated_at": "2026-11-19T11:59:22Z",
+  "generated_at": "2026-11-21T11:44:46Z",
   "data_through_week": 10,
   "sources": [
     "nflverse_pbp",
     "nflverse_schedules",
+    "nflverse_injuries",
     "ngs_via_nflverse",
     "odds_api",
     "nws"
   ],
-  "injuries_status": "pending",
+  "injuries_status": "reported",
   "sections": {
     "epa": {
       "home": {
@@ -363,8 +370,88 @@
       }
     },
     "injuries": {
-      "home": [],
-      "away": []
+      "home": [
+        {
+          "player": "Christian Benford",
+          "position": "CB",
+          "status": "Out",
+          "detail": "Groin"
+        },
+        {
+          "player": "Dalton Kincaid",
+          "position": "TE",
+          "status": "Doubtful",
+          "detail": "Thumb"
+        },
+        {
+          "player": "Damar Hamlin",
+          "position": "S",
+          "status": "Questionable",
+          "detail": "Toe"
+        },
+        {
+          "player": "Dorian Williams",
+          "position": "LB",
+          "status": "Out",
+          "detail": "Calf"
+        },
+        {
+          "player": "Jackson Hawes",
+          "position": "TE",
+          "status": "Questionable",
+          "detail": "Shoulder"
+        },
+        {
+          "player": "T.J. Sanders",
+          "position": "DE",
+          "status": "Questionable",
+          "detail": "Shoulder"
+        }
+      ],
+      "away": [
+        {
+          "player": "Aaron Brewer",
+          "position": "C",
+          "status": "Questionable",
+          "detail": "Concussion"
+        },
+        {
+          "player": "Bradley Pinion",
+          "position": "P",
+          "status": "Out",
+          "detail": "Groin"
+        },
+        {
+          "player": "Dante Trader Jr.",
+          "position": "S",
+          "status": "Doubtful",
+          "detail": "Shoulder"
+        },
+        {
+          "player": "Darrell Baker Jr.",
+          "position": "CB",
+          "status": "Questionable",
+          "detail": "Knee"
+        },
+        {
+          "player": "Jared Wayne",
+          "position": "WR",
+          "status": "Out",
+          "detail": "Quadricep"
+        },
+        {
+          "player": "Jaylin Simpson",
+          "position": "CB",
+          "status": "Doubtful",
+          "detail": "Knee"
+        },
+        {
+          "player": "Marcellas Dial Jr.",
+          "position": "CB",
+          "status": "Questionable",
+          "detail": "Toe"
+        }
+      ]
     },
     "weather": {
       "mode": "outdoor",
@@ -375,18 +462,18 @@
         "range": "2026-11-22T13:00:00-05:00/2026-11-22T14:00:00-05:00"
       },
       "wind_mph": {
-        "value": 8,
+        "value": 7,
         "source": "nws",
         "sample": null,
         "range": "2026-11-22T13:00:00-05:00/2026-11-22T14:00:00-05:00"
       },
       "precip_prob_pct": {
-        "value": 10,
+        "value": 0,
         "source": "nws",
         "sample": null,
         "range": "2026-11-22T13:00:00-05:00/2026-11-22T14:00:00-05:00"
       },
-      "summary": "Partly Sunny"
+      "summary": "Mostly Cloudy"
     },
     "story_prompts": [
       {
