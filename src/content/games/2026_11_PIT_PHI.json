@@ -18,9 +18,9 @@
     "n_books": 6
   },
   "line_latest": {
-    "ts": "2026-11-20T01:05:58Z",
-    "home_spread": 4.5,
-    "total": 38,
+    "ts": "2026-11-21T16:07:01Z",
+    "home_spread": 4,
+    "total": 37.5,
     "n_books": 9
   },
   "line_history": [
@@ -65,9 +65,15 @@
       "home_spread": 4.5,
       "total": 38,
       "n_books": 9
+    },
+    {
+      "ts": "2026-11-21T16:07:01Z",
+      "home_spread": 4,
+      "total": 37.5,
+      "n_books": 9
     }
   ],
-  "generated_at": "2026-11-21T11:44:46Z",
+  "generated_at": "2026-11-22T11:43:59Z",
   "data_through_week": 10,
   "sources": [
     "nflverse_pbp",
@@ -438,24 +444,24 @@
     "weather": {
       "mode": "outdoor",
       "temp_f": {
-        "value": 63,
+        "value": 64,
         "source": "nws",
         "sample": null,
         "range": "2026-11-22T16:00:00-05:00/2026-11-22T17:00:00-05:00"
       },
       "wind_mph": {
-        "value": 10,
+        "value": 5,
         "source": "nws",
         "sample": null,
         "range": "2026-11-22T16:00:00-05:00/2026-11-22T17:00:00-05:00"
       },
       "precip_prob_pct": {
-        "value": 92,
+        "value": 42,
         "source": "nws",
         "sample": null,
         "range": "2026-11-22T16:00:00-05:00/2026-11-22T17:00:00-05:00"
       },
-      "summary": "Light Rain"
+      "summary": "Chance Light Rain"
     },
     "story_prompts": [
       {

@@ -18,7 +18,7 @@
     "n_books": 6
   },
   "line_latest": {
-    "ts": "2026-11-20T01:05:58Z",
+    "ts": "2026-11-21T16:07:01Z",
     "home_spread": 6,
     "total": 54,
     "n_books": 9
@@ -71,18 +71,25 @@
       "home_spread": 6,
       "total": 54,
       "n_books": 9
+    },
+    {
+      "ts": "2026-11-21T16:07:01Z",
+      "home_spread": 6,
+      "total": 54,
+      "n_books": 9
     }
   ],
-  "generated_at": "2026-11-21T11:44:46Z",
+  "generated_at": "2026-11-22T11:43:59Z",
   "data_through_week": 10,
   "sources": [
     "nflverse_pbp",
     "nflverse_schedules",
+    "nflverse_injuries",
     "ngs_via_nflverse",
     "odds_api",
     "nws"
   ],
-  "injuries_status": "pending",
+  "injuries_status": "reported",
   "sections": {
     "epa": {
       "home": {
@@ -375,8 +382,88 @@
       }
     },
     "injuries": {
-      "home": [],
-      "away": []
+      "home": [
+        {
+          "player": "Amik Robertson",
+          "position": "CB",
+          "status": "Questionable",
+          "detail": "Ankle"
+        },
+        {
+          "player": "Jacory Croskey-Merritt",
+          "position": "RB",
+          "status": "Questionable",
+          "detail": "Groin"
+        },
+        {
+          "player": "Lucas Patrick",
+          "position": "C",
+          "status": "Questionable",
+          "detail": "Concussion"
+        },
+        {
+          "player": "Rachaad White",
+          "position": "RB",
+          "status": "Questionable",
+          "detail": "Heel"
+        }
+      ],
+      "away": [
+        {
+          "player": "Andrei Iosivas",
+          "position": "WR",
+          "status": "Doubtful",
+          "detail": "Thumb"
+        },
+        {
+          "player": "Brian Parker II",
+          "position": "G",
+          "status": "Questionable",
+          "detail": "Knee"
+        },
+        {
+          "player": "Dalton Risner",
+          "position": "G",
+          "status": "Out",
+          "detail": "Knee"
+        },
+        {
+          "player": "Daxton Hill",
+          "position": "CB",
+          "status": "Questionable",
+          "detail": "Illness"
+        },
+        {
+          "player": "Dylan Fairchild",
+          "position": "G",
+          "status": "Questionable",
+          "detail": "Oblique"
+        },
+        {
+          "player": "Jalen Davis",
+          "position": "CB",
+          "status": "Doubtful",
+          "detail": "Hamstring"
+        },
+        {
+          "player": "Kyle Dugger",
+          "position": "S",
+          "status": "Questionable",
+          "detail": "Quadricep"
+        },
+        {
+          "player": "Oren Burks",
+          "position": "LB",
+          "status": "Out",
+          "detail": "Groin"
+        },
+        {
+          "player": "Swayze Bozeman",
+          "position": "LB",
+          "status": "Questionable",
+          "detail": "Forearm"
+        }
+      ]
     },
     "weather": {
       "mode": "outdoor",
@@ -387,7 +474,7 @@
         "range": "2026-11-23T20:00:00-05:00/2026-11-23T21:00:00-05:00"
       },
       "wind_mph": {
-        "value": 8,
+        "value": 9,
         "source": "nws",
         "sample": null,
         "range": "2026-11-23T20:00:00-05:00/2026-11-23T21:00:00-05:00"
@@ -398,7 +485,7 @@
         "sample": null,
         "range": "2026-11-23T20:00:00-05:00/2026-11-23T21:00:00-05:00"
       },
-      "summary": "Partly Cloudy"
+      "summary": "Clear"
     },
     "story_prompts": [
       {
