@@ -1177,6 +1177,10 @@ def test_odds_dispatch_workflow_waits_and_keeps_the_crons():
         'cron: "3,13,23,33,43,53 0-1 * * 2"',
         'cron: "3,13,23,33,43,53 18-23 * * 6"',
         'cron: "3,13,23,33,43,53 0-1 * * 0"',
+        'cron: "3,13,23,33,43,53 23 * * 3"',
+        'cron: "3,13,23,33,43,53 0-1 * * 4"',
+        'cron: "3,13,23,33,43,53 16-21 * * 4"',
+        'cron: "3,13,23,33,43,53 18-20 * * 5"',
     ]
     for line in old + added:
         assert line in text
