@@ -20,6 +20,13 @@ on:
     # Saturday late season: Sat 18-23 and Sun 00-01.
     - cron: "3,13,23,33,43,53 18-23 * * 6"
     - cron: "3,13,23,33,43,53 0-1 * * 0"
+    # Wednesday night (K about 01:00 UTC Thursday), e.g. 2026 Week 12 GB@LA.
+    - cron: "3,13,23,33,43,53 23 * * 3"
+    - cron: "3,13,23,33,43,53 0-1 * * 4"
+    # Thanksgiving Thursday daytime: early 18:00 UTC and afternoon 21:30 UTC.
+    - cron: "3,13,23,33,43,53 16-21 * * 4"
+    # Friday afternoon (K about 20:00 UTC), e.g. 2026 Week 12 DEN@PIT.
+    - cron: "3,13,23,33,43,53 18-20 * * 5"
   workflow_dispatch:
     inputs:
       dry_run:
