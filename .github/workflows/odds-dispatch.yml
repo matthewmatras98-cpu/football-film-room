@@ -27,6 +27,10 @@ on:
     - cron: "3,13,23,33,43,53 16-21 * * 4"
     # Friday afternoon (K about 20:00 UTC), e.g. 2026 Week 12 DEN@PIT.
     - cron: "3,13,23,33,43,53 18-20 * * 5"
+    # Christmas Day 2026 (Week 16, Fri Dec 25): 18:00 and 21:30 UTC, plus
+    # 01:15 UTC Sat Dec 26. Date-specific so ordinary Fridays stay unchanged.
+    - cron: "3,13,23,33,43,53 16-17,21,23 25 12 *"
+    - cron: "3,13,23,33,43,53 0-1 26 12 *"
   workflow_dispatch:
     inputs:
       dry_run:
