@@ -1181,6 +1181,8 @@ def test_odds_dispatch_workflow_waits_and_keeps_the_crons():
         'cron: "3,13,23,33,43,53 0-1 * * 4"',
         'cron: "3,13,23,33,43,53 16-21 * * 4"',
         'cron: "3,13,23,33,43,53 18-20 * * 5"',
+        'cron: "3,13,23,33,43,53 16-17,21,23 25 12 *"',
+        'cron: "3,13,23,33,43,53 0-1 26 12 *"',
     ]
     for line in old + added:
         assert line in text
@@ -1233,3 +1235,27 @@ def _cron_field(field: str, value: int) -> bool:
         elif int(part) == value:
             return True
     return False
+
+
+def test_christmas_2026_close_aims_have_dense_ticks():
+    """Week 16 Christmas kicks: 18:00 and 21:30 UTC Dec 25, 01:15 UTC Dec 26.
+
+    Every A (K-60) and B (K-15) aim needs at least four 10-minute ticks in
+    the 45-minute wait before it, so dropped or late cron ticks still land.
+    """
+    text = DISPATCH_YML.read_text(encoding="utf-8")
+    dense = [cron for cron in re.findall(r'cron: "([^"]+)"', text) if cron.startswith("3,13,")]
+    kickoffs = [
+        datetime(2026, 12, 25, 18, 0, tzinfo=UTC),
+        datetime(2026, 12, 25, 21, 30, tzinfo=UTC),
+        datetime(2026, 12, 26, 1, 15, tzinfo=UTC),
+    ]
+    for kickoff in kickoffs:
+        for before in (60, 15):
+            aim = kickoff - timedelta(minutes=before)
+            ticks = [
+                aim - timedelta(minutes=offset)
+                for offset in range(46)
+                if any(_cron_matches(cron, aim - timedelta(minutes=offset)) for cron in dense)
+            ]
+            assert len(ticks) >= 4, (kickoff, before, ticks)
