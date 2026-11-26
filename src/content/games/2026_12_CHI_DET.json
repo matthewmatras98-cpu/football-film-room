@@ -18,10 +18,10 @@
     "n_books": 7
   },
   "line_latest": {
-    "ts": "2026-11-24T01:00:02Z",
-    "home_spread": 2.5,
-    "total": 55,
-    "n_books": 9
+    "ts": "2026-11-26T00:45:02Z",
+    "home_spread": 1,
+    "total": 55.5,
+    "n_books": 7
   },
   "line_history": [
     {
@@ -77,17 +77,30 @@
       "home_spread": 2.5,
       "total": 55,
       "n_books": 9
+    },
+    {
+      "ts": "2026-11-26T00:00:02Z",
+      "home_spread": 1,
+      "total": 55.5,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-26T00:45:02Z",
+      "home_spread": 1,
+      "total": 55.5,
+      "n_books": 7
     }
   ],
-  "generated_at": "2026-11-24T14:25:05Z",
+  "generated_at": "2026-11-26T12:02:20Z",
   "data_through_week": 11,
   "sources": [
     "nflverse_pbp",
     "nflverse_schedules",
+    "nflverse_injuries",
     "ngs_via_nflverse",
     "odds_api"
   ],
-  "injuries_status": "pending",
+  "injuries_status": "reported",
   "sections": {
     "epa": {
       "home": {
@@ -380,8 +393,64 @@
       }
     },
     "injuries": {
-      "home": [],
-      "away": []
+      "home": [
+        {
+          "player": "Chuck Clark",
+          "position": "S",
+          "status": "Questionable",
+          "detail": "Hamstring"
+        },
+        {
+          "player": "DJ Wonnum",
+          "position": "DE",
+          "status": "Questionable",
+          "detail": "Back"
+        },
+        {
+          "player": "Ennis Rakestraw Jr.",
+          "position": "CB",
+          "status": "Out",
+          "detail": "Shoulder"
+        },
+        {
+          "player": "Skyler Gill-Howard",
+          "position": "DT",
+          "status": "Out",
+          "detail": "Knee"
+        }
+      ],
+      "away": [
+        {
+          "player": "D'Marco Jackson",
+          "position": "LB",
+          "status": "Questionable",
+          "detail": "Elbow"
+        },
+        {
+          "player": "Elijah Hicks",
+          "position": "S",
+          "status": "Out",
+          "detail": "Concussion"
+        },
+        {
+          "player": "Kyler Gordon",
+          "position": "CB",
+          "status": "Out",
+          "detail": "Shoulder"
+        },
+        {
+          "player": "Roschon Johnson",
+          "position": "RB",
+          "status": "Out",
+          "detail": "Ankle"
+        },
+        {
+          "player": "Tyrique Stevenson",
+          "position": "CB",
+          "status": "Questionable",
+          "detail": "Groin"
+        }
+      ]
     },
     "weather": {
       "mode": "indoor",

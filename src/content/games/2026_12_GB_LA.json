@@ -8,7 +8,7 @@
   "away": "GB",
   "venue": "SoFi Stadium",
   "roof": "dome",
-  "surface": "matrixturf",
+  "surface": null,
   "home_rest": 10,
   "away_rest": 10,
   "line_open": {
@@ -18,10 +18,10 @@
     "n_books": 8
   },
   "line_latest": {
-    "ts": "2026-11-24T01:00:02Z",
+    "ts": "2026-11-26T00:45:02Z",
     "home_spread": -2.5,
-    "total": 44,
-    "n_books": 9
+    "total": 43.5,
+    "n_books": 7
   },
   "line_history": [
     {
@@ -89,17 +89,30 @@
       "home_spread": -2.5,
       "total": 44,
       "n_books": 9
+    },
+    {
+      "ts": "2026-11-26T00:00:02Z",
+      "home_spread": -2.5,
+      "total": 43.5,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-26T00:45:02Z",
+      "home_spread": -2.5,
+      "total": 43.5,
+      "n_books": 7
     }
   ],
-  "generated_at": "2026-11-24T14:25:05Z",
+  "generated_at": "2026-11-26T12:02:20Z",
   "data_through_week": 11,
   "sources": [
     "nflverse_pbp",
     "nflverse_schedules",
+    "nflverse_injuries",
     "ngs_via_nflverse",
     "odds_api"
   ],
-  "injuries_status": "pending",
+  "injuries_status": "reported",
   "sections": {
     "epa": {
       "home": {
@@ -392,8 +405,76 @@
       }
     },
     "injuries": {
-      "home": [],
-      "away": []
+      "home": [
+        {
+          "player": "Coleman Shelton",
+          "position": "C",
+          "status": "Out",
+          "detail": "Hamstring"
+        },
+        {
+          "player": "Steve Avila",
+          "position": "G",
+          "status": "Out",
+          "detail": "Hamstring"
+        },
+        {
+          "player": "Terrance Ferguson",
+          "position": "TE",
+          "status": "Out",
+          "detail": "Ankle"
+        }
+      ],
+      "away": [
+        {
+          "player": "Bo Melton",
+          "position": "WR",
+          "status": "Questionable",
+          "detail": "Thigh"
+        },
+        {
+          "player": "Josh Jacobs",
+          "position": "RB",
+          "status": "Questionable",
+          "detail": "Finger"
+        },
+        {
+          "player": "Kevin Zeitler",
+          "position": "G",
+          "status": "Questionable",
+          "detail": "Triceps"
+        },
+        {
+          "player": "Micah Parsons",
+          "position": "LB",
+          "status": "Questionable",
+          "detail": "Knee"
+        },
+        {
+          "player": "Sean Rhyan",
+          "position": "C",
+          "status": "Questionable",
+          "detail": "Ankle"
+        },
+        {
+          "player": "Skyy Moore",
+          "position": "WR",
+          "status": "Questionable",
+          "detail": "Ankle"
+        },
+        {
+          "player": "Travis Glover",
+          "position": "G",
+          "status": "Questionable",
+          "detail": "Shoulder"
+        },
+        {
+          "player": "Zaire Franklin",
+          "position": "LB",
+          "status": "Questionable",
+          "detail": "Shin"
+        }
+      ]
     },
     "weather": {
       "mode": "indoor",

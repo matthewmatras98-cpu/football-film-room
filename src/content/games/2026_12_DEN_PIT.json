@@ -18,10 +18,10 @@
     "n_books": 7
   },
   "line_latest": {
-    "ts": "2026-11-24T01:00:02Z",
-    "home_spread": 2.5,
-    "total": 38,
-    "n_books": 8
+    "ts": "2026-11-26T00:45:02Z",
+    "home_spread": 4,
+    "total": 36.5,
+    "n_books": 7
   },
   "line_history": [
     {
@@ -71,18 +71,31 @@
       "home_spread": 2.5,
       "total": 38,
       "n_books": 8
+    },
+    {
+      "ts": "2026-11-26T00:00:02Z",
+      "home_spread": 4,
+      "total": 36.5,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-26T00:45:02Z",
+      "home_spread": 4,
+      "total": 36.5,
+      "n_books": 7
     }
   ],
-  "generated_at": "2026-11-24T14:25:05Z",
+  "generated_at": "2026-11-26T12:02:20Z",
   "data_through_week": 11,
   "sources": [
     "nflverse_pbp",
     "nflverse_schedules",
+    "nflverse_injuries",
     "ngs_via_nflverse",
     "odds_api",
     "nws"
   ],
-  "injuries_status": "pending",
+  "injuries_status": "reported",
   "sections": {
     "epa": {
       "home": {
@@ -232,7 +245,7 @@
           "range": "2026 wk1–11"
         },
         "cpoe": {
-          "value": -1.706902,
+          "value": -1.601634,
           "source": "nflverse_pbp",
           "sample": 336,
           "range": "2026 wk1–11"
@@ -376,7 +389,20 @@
     },
     "injuries": {
       "home": [],
-      "away": []
+      "away": [
+        {
+          "player": "Sai'vion Jones",
+          "position": "DE",
+          "status": "Out",
+          "detail": "Hamstring"
+        },
+        {
+          "player": "Taylor Rapp",
+          "position": "S",
+          "status": "Out",
+          "detail": "Quadricep"
+        }
+      ]
     },
     "weather": {
       "mode": "outdoor",
@@ -387,18 +413,18 @@
         "range": "2026-11-27T15:00:00-05:00/2026-11-27T16:00:00-05:00"
       },
       "wind_mph": {
-        "value": 20,
+        "value": 18,
         "source": "nws",
         "sample": null,
         "range": "2026-11-27T15:00:00-05:00/2026-11-27T16:00:00-05:00"
       },
       "precip_prob_pct": {
-        "value": 81,
+        "value": 65,
         "source": "nws",
         "sample": null,
         "range": "2026-11-27T15:00:00-05:00/2026-11-27T16:00:00-05:00"
       },
-      "summary": "Light Rain"
+      "summary": "Light Rain Likely"
     },
     "story_prompts": [
       {

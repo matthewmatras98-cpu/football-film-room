@@ -18,10 +18,10 @@
     "n_books": 6
   },
   "line_latest": {
-    "ts": "2026-11-24T01:00:02Z",
-    "home_spread": 3.5,
-    "total": 41,
-    "n_books": 8
+    "ts": "2026-11-26T00:45:02Z",
+    "home_spread": 4.5,
+    "total": 40.5,
+    "n_books": 7
   },
   "line_history": [
     {
@@ -71,9 +71,21 @@
       "home_spread": 3.5,
       "total": 41,
       "n_books": 8
+    },
+    {
+      "ts": "2026-11-26T00:00:02Z",
+      "home_spread": 4.5,
+      "total": 40.5,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-26T00:45:02Z",
+      "home_spread": 4.5,
+      "total": 40.5,
+      "n_books": 7
     }
   ],
-  "generated_at": "2026-11-24T14:25:05Z",
+  "generated_at": "2026-11-26T12:02:20Z",
   "data_through_week": 11,
   "sources": [
     "nflverse_pbp",
@@ -381,24 +393,24 @@
     "weather": {
       "mode": "outdoor",
       "temp_f": {
-        "value": 76,
+        "value": 77,
         "source": "nws",
         "sample": null,
         "range": "2026-11-29T13:00:00-05:00/2026-11-29T14:00:00-05:00"
       },
       "wind_mph": {
-        "value": 8,
+        "value": 6,
         "source": "nws",
         "sample": null,
         "range": "2026-11-29T13:00:00-05:00/2026-11-29T14:00:00-05:00"
       },
       "precip_prob_pct": {
-        "value": 40,
+        "value": 21,
         "source": "nws",
         "sample": null,
         "range": "2026-11-29T13:00:00-05:00/2026-11-29T14:00:00-05:00"
       },
-      "summary": "Chance Rain Showers"
+      "summary": "Slight Chance Rain Showers"
     },
     "story_prompts": [
       {

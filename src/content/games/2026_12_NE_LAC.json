@@ -18,10 +18,10 @@
     "n_books": 6
   },
   "line_latest": {
-    "ts": "2026-11-24T01:00:02Z",
-    "home_spread": -1,
+    "ts": "2026-11-26T00:45:02Z",
+    "home_spread": 1,
     "total": 35.5,
-    "n_books": 8
+    "n_books": 7
   },
   "line_history": [
     {
@@ -71,9 +71,21 @@
       "home_spread": -1,
       "total": 35.5,
       "n_books": 8
+    },
+    {
+      "ts": "2026-11-26T00:00:02Z",
+      "home_spread": 1,
+      "total": 35.5,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-26T00:45:02Z",
+      "home_spread": 1,
+      "total": 35.5,
+      "n_books": 7
     }
   ],
-  "generated_at": "2026-11-24T14:25:05Z",
+  "generated_at": "2026-11-26T12:02:20Z",
   "data_through_week": 11,
   "sources": [
     "nflverse_pbp",
@@ -86,13 +98,13 @@
     "epa": {
       "home": {
         "off_epa_season": {
-          "value": -0.119623,
+          "value": -0.119622,
           "source": "nflverse_pbp",
           "sample": 645,
           "range": "2026 wk1–11"
         },
         "off_epa_l4": {
-          "value": -0.058116,
+          "value": -0.058114,
           "source": "nflverse_pbp",
           "sample": 249,
           "range": "2026 wk8–11"
@@ -170,7 +182,7 @@
           "range": "2026 wk1–11"
         },
         "pace_sec_per_play": {
-          "value": 36.653266,
+          "value": 36.658291,
           "source": "nflverse_pbp",
           "sample": 199,
           "range": "2026 wk1–11"
@@ -387,7 +399,7 @@
     "story_prompts": [
       {
         "title": "Offense EPA per play",
-        "body": "NE is 0.026375 and LAC is -0.119623 over 2026 wk1–11."
+        "body": "NE is 0.026375 and LAC is -0.119622 over 2026 wk1–11."
       },
       {
         "title": "Neutral early-down pass rate",

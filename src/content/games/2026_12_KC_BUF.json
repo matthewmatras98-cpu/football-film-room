@@ -18,10 +18,10 @@
     "n_books": 7
   },
   "line_latest": {
-    "ts": "2026-11-24T01:00:02Z",
+    "ts": "2026-11-26T00:45:02Z",
     "home_spread": -3,
-    "total": 48,
-    "n_books": 9
+    "total": 46.5,
+    "n_books": 7
   },
   "line_history": [
     {
@@ -71,18 +71,31 @@
       "home_spread": -3,
       "total": 48,
       "n_books": 9
+    },
+    {
+      "ts": "2026-11-26T00:00:02Z",
+      "home_spread": -3,
+      "total": 46,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-26T00:45:02Z",
+      "home_spread": -3,
+      "total": 46.5,
+      "n_books": 7
     }
   ],
-  "generated_at": "2026-11-24T14:25:05Z",
+  "generated_at": "2026-11-26T12:02:20Z",
   "data_through_week": 11,
   "sources": [
     "nflverse_pbp",
     "nflverse_schedules",
+    "nflverse_injuries",
     "ngs_via_nflverse",
     "odds_api",
     "nws"
   ],
-  "injuries_status": "pending",
+  "injuries_status": "reported",
   "sections": {
     "epa": {
       "home": {
@@ -375,8 +388,70 @@
       }
     },
     "injuries": {
-      "home": [],
-      "away": []
+      "home": [
+        {
+          "player": "Christian Benford",
+          "position": "CB",
+          "status": "Questionable",
+          "detail": "Groin"
+        },
+        {
+          "player": "Dalton Kincaid",
+          "position": "TE",
+          "status": "Questionable",
+          "detail": "Thumb"
+        },
+        {
+          "player": "Dorian Williams",
+          "position": "LB",
+          "status": "Questionable",
+          "detail": "Calf"
+        },
+        {
+          "player": "O'Cyrus Torrence",
+          "position": "G",
+          "status": "Questionable",
+          "detail": "Ankle"
+        },
+        {
+          "player": "T.J. Sanders",
+          "position": "DE",
+          "status": "Questionable",
+          "detail": "Shoulder"
+        }
+      ],
+      "away": [
+        {
+          "player": "Jaylon Moore",
+          "position": "T",
+          "status": "Out",
+          "detail": "Ankle"
+        },
+        {
+          "player": "Kenneth Walker III",
+          "position": "RB",
+          "status": "Out",
+          "detail": "Groin"
+        },
+        {
+          "player": "Noah Gray",
+          "position": "TE",
+          "status": "Questionable",
+          "detail": "Rib"
+        },
+        {
+          "player": "Omarr Norman-Lott",
+          "position": "DT",
+          "status": "Out",
+          "detail": "Knee"
+        },
+        {
+          "player": "Peter Woods",
+          "position": "DT",
+          "status": "Questionable",
+          "detail": "Neck"
+        }
+      ]
     },
     "weather": {
       "mode": "outdoor",
@@ -387,18 +462,18 @@
         "range": "2026-11-26T20:00:00-05:00/2026-11-26T21:00:00-05:00"
       },
       "wind_mph": {
-        "value": 10,
+        "value": 13,
         "source": "nws",
         "sample": null,
         "range": "2026-11-26T20:00:00-05:00/2026-11-26T21:00:00-05:00"
       },
       "precip_prob_pct": {
-        "value": 99,
+        "value": 100,
         "source": "nws",
         "sample": null,
         "range": "2026-11-26T20:00:00-05:00/2026-11-26T21:00:00-05:00"
       },
-      "summary": "Light Rain"
+      "summary": "Rain"
     },
     "story_prompts": [
       {

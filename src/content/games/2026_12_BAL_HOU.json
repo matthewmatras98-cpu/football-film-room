@@ -18,10 +18,10 @@
     "n_books": 6
   },
   "line_latest": {
-    "ts": "2026-11-24T01:00:02Z",
+    "ts": "2026-11-26T00:45:02Z",
     "home_spread": -6.5,
-    "total": 46.5,
-    "n_books": 9
+    "total": 47,
+    "n_books": 7
   },
   "line_history": [
     {
@@ -71,9 +71,21 @@
       "home_spread": -6.5,
       "total": 46.5,
       "n_books": 9
+    },
+    {
+      "ts": "2026-11-26T00:00:02Z",
+      "home_spread": -6.5,
+      "total": 47,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-26T00:45:02Z",
+      "home_spread": -6.5,
+      "total": 47,
+      "n_books": 7
     }
   ],
-  "generated_at": "2026-11-24T14:25:05Z",
+  "generated_at": "2026-11-26T12:02:20Z",
   "data_through_week": 11,
   "sources": [
     "nflverse_pbp",
@@ -143,7 +155,7 @@
           "range": "2026 wk1–11"
         },
         "def_epa_l4": {
-          "value": 0.032572,
+          "value": 0.032573,
           "source": "nflverse_pbp",
           "sample": 261,
           "range": "2026 wk8–11"
@@ -381,13 +393,13 @@
     "weather": {
       "mode": "retractable",
       "temp_f": {
-        "value": 73,
+        "value": 67,
         "source": "nws",
         "sample": null,
         "range": "2026-11-29T12:00:00-06:00/2026-11-29T13:00:00-06:00"
       },
       "wind_mph": {
-        "value": 10,
+        "value": 15,
         "source": "nws",
         "sample": null,
         "range": "2026-11-29T12:00:00-06:00/2026-11-29T13:00:00-06:00"
