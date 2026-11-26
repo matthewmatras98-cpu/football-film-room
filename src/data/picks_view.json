@@ -133,5 +133,32 @@
     "units_pl": null,
     "voided_at": "2026-11-17T15:47:19Z",
     "week": 11
+  },
+  {
+    "close_age_min": null,
+    "close_books": null,
+    "close_source": null,
+    "close_ts": null,
+    "closing_line": null,
+    "clv_pts": null,
+    "confidence": 2,
+    "final_away": null,
+    "final_home": null,
+    "first_pushed_at": null,
+    "game_id": "2026_12_ATL_MIN",
+    "line_at_pick": -7,
+    "market": "spread",
+    "note": "",
+    "pick_id": "2026_12_ATL_MIN-spread",
+    "picked_at": "2026-11-26T02:14:47Z",
+    "result": null,
+    "season": 2026,
+    "side": "MIN",
+    "status": "pending",
+    "tags": "",
+    "units": 1,
+    "units_pl": null,
+    "voided_at": null,
+    "week": 12
   }
 ]
