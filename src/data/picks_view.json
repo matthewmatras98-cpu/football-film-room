@@ -160,5 +160,32 @@
     "units_pl": null,
     "voided_at": null,
     "week": 12
+  },
+  {
+    "close_age_min": null,
+    "close_books": null,
+    "close_source": null,
+    "close_ts": null,
+    "closing_line": null,
+    "clv_pts": null,
+    "confidence": 1,
+    "final_away": null,
+    "final_home": null,
+    "first_pushed_at": null,
+    "game_id": "2026_12_DEN_PIT",
+    "line_at_pick": -2.5,
+    "market": "spread",
+    "note": "",
+    "pick_id": "2026_12_DEN_PIT-spread",
+    "picked_at": "2026-11-26T02:23:05Z",
+    "result": null,
+    "season": 2026,
+    "side": "DEN",
+    "status": "pending",
+    "tags": "",
+    "units": 1,
+    "units_pl": null,
+    "voided_at": null,
+    "week": 12
   }
 ]
