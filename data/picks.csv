@@ -6,3 +6,4 @@ pick_id,game_id,season,week,market,side,line_at_pick,picked_at,units,confidence,
 2026_11_CIN_WAS-total,2026_11_CIN_WAS,2026,11,total,under,53,2026-11-17T15:45:44Z,1.0,1,,,pick
 2026_11_CIN_WAS-total,2026_11_CIN_WAS,2026,11,total,under,53,2026-11-17T15:47:19Z,1.0,1,,,void
 2026_12_ATL_MIN-spread,2026_12_ATL_MIN,2026,12,spread,MIN,-7,2026-11-26T02:14:47Z,1.0,2,,,pick
+2026_12_DEN_PIT-spread,2026_12_DEN_PIT,2026,12,spread,DEN,-2.5,2026-11-26T02:23:05Z,1.0,1,,,pick
