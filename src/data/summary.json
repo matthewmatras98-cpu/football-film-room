@@ -1,14 +1,14 @@
 {
-  "avg_clv": -0.250,
-  "generated_at": "2026-11-26T12:02:20Z",
+  "avg_clv": -0.200,
+  "generated_at": "2026-11-27T11:55:58Z",
   "l": 1,
   "p": 0,
   "pct_clv_pos": 0.000,
   "rejected_count": 0,
   "season": 2026,
   "ungraded_count": 0,
-  "units": 1.727,
+  "units": 2.636,
   "void_count": 1,
-  "w": 3,
-  "win_pct": 0.750
+  "w": 4,
+  "win_pct": 0.800
 }
