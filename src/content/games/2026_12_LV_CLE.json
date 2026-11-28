@@ -18,10 +18,10 @@
     "n_books": 6
   },
   "line_latest": {
-    "ts": "2026-11-26T00:45:02Z",
+    "ts": "2026-11-27T19:45:01Z",
     "home_spread": -4.5,
-    "total": 40,
-    "n_books": 7
+    "total": 39.5,
+    "n_books": 9
   },
   "line_history": [
     {
@@ -83,18 +83,67 @@
       "home_spread": -4.5,
       "total": 40,
       "n_books": 7
+    },
+    {
+      "ts": "2026-11-26T17:03:28Z",
+      "home_spread": -4.5,
+      "total": 40,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-26T17:45:20Z",
+      "home_spread": -4.5,
+      "total": 40,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-26T20:30:01Z",
+      "home_spread": -4.5,
+      "total": 40,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-26T21:15:01Z",
+      "home_spread": -4.5,
+      "total": 40,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-27T00:20:01Z",
+      "home_spread": -4.5,
+      "total": 40,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-27T01:05:01Z",
+      "home_spread": -4.5,
+      "total": 40,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-27T19:00:02Z",
+      "home_spread": -4.5,
+      "total": 39.5,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-27T19:45:01Z",
+      "home_spread": -4.5,
+      "total": 39.5,
+      "n_books": 9
     }
   ],
-  "generated_at": "2026-11-26T12:02:20Z",
+  "generated_at": "2026-11-28T11:49:38Z",
   "data_through_week": 11,
   "sources": [
     "nflverse_pbp",
     "nflverse_schedules",
+    "nflverse_injuries",
     "ngs_via_nflverse",
     "odds_api",
     "nws"
   ],
-  "injuries_status": "pending",
+  "injuries_status": "reported",
   "sections": {
     "epa": {
       "home": {
@@ -387,25 +436,99 @@
       }
     },
     "injuries": {
-      "home": [],
-      "away": []
+      "home": [
+        {
+          "player": "Austin Barber",
+          "position": "G",
+          "status": "Questionable",
+          "detail": "Knee"
+        },
+        {
+          "player": "Denzel Boston",
+          "position": "WR",
+          "status": "Questionable",
+          "detail": "Quadricep"
+        },
+        {
+          "player": "Derek Barnett",
+          "position": "DE",
+          "status": "Out",
+          "detail": "Hamstring"
+        },
+        {
+          "player": "Raheim Sanders",
+          "position": "RB",
+          "status": "Questionable",
+          "detail": "Hip"
+        }
+      ],
+      "away": [
+        {
+          "player": "Adam Butler",
+          "position": "DT",
+          "status": "Out",
+          "detail": "Concussion"
+        },
+        {
+          "player": "Brock Bowers",
+          "position": "TE",
+          "status": "Questionable",
+          "detail": "Ankle"
+        },
+        {
+          "player": "Darrell Luter Jr.",
+          "position": "CB",
+          "status": "Questionable",
+          "detail": "Knee"
+        },
+        {
+          "player": "JJ Pegues",
+          "position": "DT",
+          "status": "Questionable",
+          "detail": "Elbow"
+        },
+        {
+          "player": "Jackson Powers-Johnson",
+          "position": "G",
+          "status": "Out",
+          "detail": "Achilles"
+        },
+        {
+          "player": "Patrick Johnson",
+          "position": "DE",
+          "status": "Questionable",
+          "detail": "Stinger"
+        },
+        {
+          "player": "Tim Keenan III",
+          "position": "DT",
+          "status": "Out",
+          "detail": "Knee"
+        },
+        {
+          "player": "Tonka Hemingway",
+          "position": "DT",
+          "status": "Out",
+          "detail": "Stinger"
+        }
+      ]
     },
     "weather": {
       "mode": "outdoor",
       "temp_f": {
-        "value": 46,
+        "value": 47,
         "source": "nws",
         "sample": null,
         "range": "2026-11-29T20:00:00-05:00/2026-11-29T21:00:00-05:00"
       },
       "wind_mph": {
-        "value": 13,
+        "value": 9,
         "source": "nws",
         "sample": null,
         "range": "2026-11-29T20:00:00-05:00/2026-11-29T21:00:00-05:00"
       },
       "precip_prob_pct": {
-        "value": 93,
+        "value": 100,
         "source": "nws",
         "sample": null,
         "range": "2026-11-29T20:00:00-05:00/2026-11-29T21:00:00-05:00"

@@ -18,10 +18,10 @@
     "n_books": 6
   },
   "line_latest": {
-    "ts": "2026-11-26T00:45:02Z",
-    "home_spread": 6.5,
+    "ts": "2026-11-27T19:45:01Z",
+    "home_spread": 6,
     "total": 41.5,
-    "n_books": 7
+    "n_books": 9
   },
   "line_history": [
     {
@@ -83,18 +83,67 @@
       "home_spread": 6.5,
       "total": 41.5,
       "n_books": 7
+    },
+    {
+      "ts": "2026-11-26T17:03:28Z",
+      "home_spread": 6,
+      "total": 41.5,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-26T17:45:20Z",
+      "home_spread": 6,
+      "total": 41.5,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-26T20:30:01Z",
+      "home_spread": 6,
+      "total": 41.5,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-26T21:15:01Z",
+      "home_spread": 6,
+      "total": 41.5,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-27T00:20:01Z",
+      "home_spread": 6,
+      "total": 41.5,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-27T01:05:01Z",
+      "home_spread": 6,
+      "total": 41.5,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-27T19:00:02Z",
+      "home_spread": 6,
+      "total": 41.5,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-27T19:45:01Z",
+      "home_spread": 6,
+      "total": 41.5,
+      "n_books": 9
     }
   ],
-  "generated_at": "2026-11-26T12:02:20Z",
+  "generated_at": "2026-11-28T11:49:38Z",
   "data_through_week": 11,
   "sources": [
     "nflverse_pbp",
     "nflverse_schedules",
+    "nflverse_injuries",
     "ngs_via_nflverse",
     "odds_api",
     "nws"
   ],
-  "injuries_status": "pending",
+  "injuries_status": "reported",
   "sections": {
     "epa": {
       "home": {
@@ -387,8 +436,58 @@
       }
     },
     "injuries": {
-      "home": [],
-      "away": []
+      "home": [
+        {
+          "player": "Andrew Ogletree",
+          "position": "TE",
+          "status": "Questionable",
+          "detail": "Knee"
+        },
+        {
+          "player": "Cam Taylor-Britt",
+          "position": "CB",
+          "status": "Questionable",
+          "detail": "Groin"
+        },
+        {
+          "player": "Charvarius Ward",
+          "position": "CB",
+          "status": "Out",
+          "detail": "Knee"
+        },
+        {
+          "player": "Jalen Travis",
+          "position": "T",
+          "status": "Out",
+          "detail": "Knee"
+        },
+        {
+          "player": "Jerry Tillery",
+          "position": "DT",
+          "status": "Out",
+          "detail": "Calf"
+        },
+        {
+          "player": "Seth McGowan",
+          "position": "RB",
+          "status": "Out",
+          "detail": "Hamstring"
+        },
+        {
+          "player": "Will Mallory",
+          "position": "TE",
+          "status": "Out",
+          "detail": "Hamstring"
+        }
+      ],
+      "away": [
+        {
+          "player": "Shelby Harris",
+          "position": "DT",
+          "status": "Out",
+          "detail": "Illness"
+        }
+      ]
     },
     "weather": {
       "mode": "retractable",
@@ -399,18 +498,18 @@
         "range": "2026-11-29T13:00:00-05:00/2026-11-29T14:00:00-05:00"
       },
       "wind_mph": {
-        "value": 9,
+        "value": 8,
         "source": "nws",
         "sample": null,
         "range": "2026-11-29T13:00:00-05:00/2026-11-29T14:00:00-05:00"
       },
       "precip_prob_pct": {
-        "value": 92,
+        "value": 100,
         "source": "nws",
         "sample": null,
         "range": "2026-11-29T13:00:00-05:00/2026-11-29T14:00:00-05:00"
       },
-      "summary": "Light Rain"
+      "summary": "Rain Showers"
     },
     "story_prompts": [
       {

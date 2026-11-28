@@ -8,7 +8,7 @@
   "away": "DEN",
   "venue": "Acrisure Stadium",
   "roof": "outdoors",
-  "surface": "grass",
+  "surface": null,
   "home_rest": 5,
   "away_rest": 5,
   "line_open": {
@@ -18,10 +18,10 @@
     "n_books": 7
   },
   "line_latest": {
-    "ts": "2026-11-26T00:45:02Z",
-    "home_spread": 4,
-    "total": 36.5,
-    "n_books": 7
+    "ts": "2026-11-27T19:45:01Z",
+    "home_spread": 4.5,
+    "total": 37,
+    "n_books": 9
   },
   "line_history": [
     {
@@ -83,17 +83,64 @@
       "home_spread": 4,
       "total": 36.5,
       "n_books": 7
+    },
+    {
+      "ts": "2026-11-26T17:03:28Z",
+      "home_spread": 4,
+      "total": 37,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-26T17:45:20Z",
+      "home_spread": 4,
+      "total": 37,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-26T20:30:01Z",
+      "home_spread": 4.5,
+      "total": 37,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-26T21:15:01Z",
+      "home_spread": 4.5,
+      "total": 37,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-27T00:20:01Z",
+      "home_spread": 5,
+      "total": 37,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-27T01:05:01Z",
+      "home_spread": 5,
+      "total": 37,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-27T19:00:02Z",
+      "home_spread": 4.5,
+      "total": 37,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-27T19:45:01Z",
+      "home_spread": 4.5,
+      "total": 37,
+      "n_books": 9
     }
   ],
-  "generated_at": "2026-11-26T12:02:20Z",
+  "generated_at": "2026-11-28T11:49:38Z",
   "data_through_week": 11,
   "sources": [
     "nflverse_pbp",
     "nflverse_schedules",
     "nflverse_injuries",
     "ngs_via_nflverse",
-    "odds_api",
-    "nws"
+    "odds_api"
   ],
   "injuries_status": "reported",
   "sections": {
@@ -388,8 +435,39 @@
       }
     },
     "injuries": {
-      "home": [],
+      "home": [
+        {
+          "player": "Alex Highsmith",
+          "position": "LB",
+          "status": "Out",
+          "detail": "Ankle"
+        },
+        {
+          "player": "Ben Skowronek",
+          "position": "WR",
+          "status": "Out",
+          "detail": "Calf"
+        },
+        {
+          "player": "Cole Holcomb",
+          "position": "LB",
+          "status": "Questionable",
+          "detail": "Heel"
+        },
+        {
+          "player": "Gennings Dunker",
+          "position": "G",
+          "status": "Out",
+          "detail": "Knee"
+        }
+      ],
       "away": [
+        {
+          "player": "Caleb Lohner",
+          "position": "TE",
+          "status": "Out",
+          "detail": "Foot"
+        },
         {
           "player": "Sai'vion Jones",
           "position": "DE",
@@ -401,30 +479,36 @@
           "position": "S",
           "status": "Out",
           "detail": "Quadricep"
+        },
+        {
+          "player": "Tyler Badie",
+          "position": "RB",
+          "status": "Questionable",
+          "detail": "Thumb"
         }
       ]
     },
     "weather": {
       "mode": "outdoor",
       "temp_f": {
-        "value": 43,
+        "value": null,
         "source": "nws",
         "sample": null,
-        "range": "2026-11-27T15:00:00-05:00/2026-11-27T16:00:00-05:00"
+        "range": null
       },
       "wind_mph": {
-        "value": 18,
+        "value": null,
         "source": "nws",
         "sample": null,
-        "range": "2026-11-27T15:00:00-05:00/2026-11-27T16:00:00-05:00"
+        "range": null
       },
       "precip_prob_pct": {
-        "value": 65,
+        "value": null,
         "source": "nws",
         "sample": null,
-        "range": "2026-11-27T15:00:00-05:00/2026-11-27T16:00:00-05:00"
+        "range": null
       },
-      "summary": "Light Rain Likely"
+      "summary": null
     },
     "story_prompts": [
       {

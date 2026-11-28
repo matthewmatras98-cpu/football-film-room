@@ -18,10 +18,10 @@
     "n_books": 6
   },
   "line_latest": {
-    "ts": "2026-11-26T00:45:02Z",
+    "ts": "2026-11-27T19:45:01Z",
     "home_spread": -7,
     "total": 41.5,
-    "n_books": 7
+    "n_books": 9
   },
   "line_history": [
     {
@@ -83,17 +83,66 @@
       "home_spread": -7,
       "total": 41.5,
       "n_books": 7
+    },
+    {
+      "ts": "2026-11-26T17:03:28Z",
+      "home_spread": -7,
+      "total": 41.5,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-26T17:45:20Z",
+      "home_spread": -7,
+      "total": 41.5,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-26T20:30:01Z",
+      "home_spread": -7,
+      "total": 41.5,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-26T21:15:01Z",
+      "home_spread": -7,
+      "total": 41.5,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-27T00:20:01Z",
+      "home_spread": -7,
+      "total": 41.5,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-27T01:05:01Z",
+      "home_spread": -7,
+      "total": 41.5,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-27T19:00:02Z",
+      "home_spread": -7,
+      "total": 41.5,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-27T19:45:01Z",
+      "home_spread": -7,
+      "total": 41.5,
+      "n_books": 9
     }
   ],
-  "generated_at": "2026-11-26T12:02:20Z",
+  "generated_at": "2026-11-28T11:49:38Z",
   "data_through_week": 11,
   "sources": [
     "nflverse_pbp",
     "nflverse_schedules",
+    "nflverse_injuries",
     "ngs_via_nflverse",
     "odds_api"
   ],
-  "injuries_status": "pending",
+  "injuries_status": "reported",
   "sections": {
     "epa": {
       "home": {
@@ -386,8 +435,64 @@
       }
     },
     "injuries": {
-      "home": [],
-      "away": []
+      "home": [
+        {
+          "player": "Christian Darrisaw",
+          "position": "T",
+          "status": "Out",
+          "detail": "Shoulder"
+        },
+        {
+          "player": "Harrison Smith",
+          "position": "S",
+          "status": "Questionable",
+          "detail": "Thigh"
+        },
+        {
+          "player": "Isaiah Rodgers",
+          "position": "CB",
+          "status": "Out",
+          "detail": "Thigh"
+        },
+        {
+          "player": "Jordan Addison",
+          "position": "WR",
+          "status": "Out",
+          "detail": "Thumb"
+        }
+      ],
+      "away": [
+        {
+          "player": "Billy Bowman Jr.",
+          "position": "CB",
+          "status": "Out",
+          "detail": "Hamstring"
+        },
+        {
+          "player": "DeMarcco Hellams",
+          "position": "S",
+          "status": "Out",
+          "detail": "Foot"
+        },
+        {
+          "player": "Jahan Dotson",
+          "position": "WR",
+          "status": "Out",
+          "detail": "Hamstring"
+        },
+        {
+          "player": "Matthew Bergeron",
+          "position": "G",
+          "status": "Out",
+          "detail": "Back"
+        },
+        {
+          "player": "Zachariah Branch",
+          "position": "WR",
+          "status": "Out",
+          "detail": "Hamstring"
+        }
+      ]
     },
     "weather": {
       "mode": "indoor",

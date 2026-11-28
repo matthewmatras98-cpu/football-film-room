@@ -8,7 +8,7 @@
   "away": "CHI",
   "venue": "Ford Field",
   "roof": "dome",
-  "surface": "fieldturf",
+  "surface": null,
   "home_rest": 4,
   "away_rest": 4,
   "line_open": {
@@ -18,10 +18,10 @@
     "n_books": 7
   },
   "line_latest": {
-    "ts": "2026-11-26T00:45:02Z",
+    "ts": "2026-11-26T17:45:20Z",
     "home_spread": 1,
-    "total": 55.5,
-    "n_books": 7
+    "total": 56,
+    "n_books": 9
   },
   "line_history": [
     {
@@ -89,9 +89,21 @@
       "home_spread": 1,
       "total": 55.5,
       "n_books": 7
+    },
+    {
+      "ts": "2026-11-26T17:03:28Z",
+      "home_spread": 1,
+      "total": 56,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-26T17:45:20Z",
+      "home_spread": 1,
+      "total": 56,
+      "n_books": 9
     }
   ],
-  "generated_at": "2026-11-26T12:02:20Z",
+  "generated_at": "2026-11-28T11:49:38Z",
   "data_through_week": 11,
   "sources": [
     "nflverse_pbp",

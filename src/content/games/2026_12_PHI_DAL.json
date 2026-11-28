@@ -8,7 +8,7 @@
   "away": "PHI",
   "venue": "AT&T Stadium",
   "roof": "retractable",
-  "surface": "matrixturf",
+  "surface": null,
   "home_rest": 4,
   "away_rest": 4,
   "line_open": {
@@ -18,10 +18,10 @@
     "n_books": 7
   },
   "line_latest": {
-    "ts": "2026-11-26T00:45:02Z",
+    "ts": "2026-11-26T21:15:01Z",
     "home_spread": -8.5,
-    "total": 48,
-    "n_books": 7
+    "total": 49.5,
+    "n_books": 9
   },
   "line_history": [
     {
@@ -83,17 +83,40 @@
       "home_spread": -8.5,
       "total": 48,
       "n_books": 7
+    },
+    {
+      "ts": "2026-11-26T17:03:28Z",
+      "home_spread": -8.5,
+      "total": 49.5,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-26T17:45:20Z",
+      "home_spread": -8.5,
+      "total": 49.5,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-26T20:30:01Z",
+      "home_spread": -8.5,
+      "total": 49.5,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-26T21:15:01Z",
+      "home_spread": -8.5,
+      "total": 49.5,
+      "n_books": 9
     }
   ],
-  "generated_at": "2026-11-26T12:02:20Z",
+  "generated_at": "2026-11-28T11:49:38Z",
   "data_through_week": 11,
   "sources": [
     "nflverse_pbp",
     "nflverse_schedules",
     "nflverse_injuries",
     "ngs_via_nflverse",
-    "odds_api",
-    "nws"
+    "odds_api"
   ],
   "injuries_status": "reported",
   "sections": {
@@ -444,24 +467,24 @@
     "weather": {
       "mode": "retractable",
       "temp_f": {
-        "value": 52,
+        "value": null,
         "source": "nws",
         "sample": null,
-        "range": "2026-11-26T15:00:00-06:00/2026-11-26T16:00:00-06:00"
+        "range": null
       },
       "wind_mph": {
-        "value": 10,
+        "value": null,
         "source": "nws",
         "sample": null,
-        "range": "2026-11-26T15:00:00-06:00/2026-11-26T16:00:00-06:00"
+        "range": null
       },
       "precip_prob_pct": {
-        "value": 0,
+        "value": null,
         "source": "nws",
         "sample": null,
-        "range": "2026-11-26T15:00:00-06:00/2026-11-26T16:00:00-06:00"
+        "range": null
       },
-      "summary": "Sunny"
+      "summary": null
     },
     "story_prompts": [
       {

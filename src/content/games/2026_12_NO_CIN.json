@@ -18,10 +18,10 @@
     "n_books": 6
   },
   "line_latest": {
-    "ts": "2026-11-26T00:45:02Z",
+    "ts": "2026-11-27T19:45:01Z",
     "home_spread": -10,
-    "total": 49.5,
-    "n_books": 7
+    "total": 48.5,
+    "n_books": 9
   },
   "line_history": [
     {
@@ -83,18 +83,67 @@
       "home_spread": -10,
       "total": 49.5,
       "n_books": 7
+    },
+    {
+      "ts": "2026-11-26T17:03:28Z",
+      "home_spread": -10,
+      "total": 49.5,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-26T17:45:20Z",
+      "home_spread": -10,
+      "total": 49.5,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-26T20:30:01Z",
+      "home_spread": -10,
+      "total": 49.5,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-26T21:15:01Z",
+      "home_spread": -10,
+      "total": 49.5,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-27T00:20:01Z",
+      "home_spread": -10,
+      "total": 49.5,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-27T01:05:01Z",
+      "home_spread": -10,
+      "total": 49.5,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-27T19:00:02Z",
+      "home_spread": -10,
+      "total": 49,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-27T19:45:01Z",
+      "home_spread": -10,
+      "total": 48.5,
+      "n_books": 9
     }
   ],
-  "generated_at": "2026-11-26T12:02:20Z",
+  "generated_at": "2026-11-28T11:49:38Z",
   "data_through_week": 11,
   "sources": [
     "nflverse_pbp",
     "nflverse_schedules",
+    "nflverse_injuries",
     "ngs_via_nflverse",
     "odds_api",
     "nws"
   ],
-  "injuries_status": "pending",
+  "injuries_status": "reported",
   "sections": {
     "epa": {
       "home": {
@@ -387,30 +436,80 @@
       }
     },
     "injuries": {
-      "home": [],
-      "away": []
+      "home": [
+        {
+          "player": "Andrei Iosivas",
+          "position": "WR",
+          "status": "Questionable",
+          "detail": "Thumb"
+        },
+        {
+          "player": "Dalton Risner",
+          "position": "G",
+          "status": "Out",
+          "detail": "Knee"
+        },
+        {
+          "player": "Jalen Davis",
+          "position": "CB",
+          "status": "Doubtful",
+          "detail": "Hamstring"
+        },
+        {
+          "player": "Tee Higgins",
+          "position": "WR",
+          "status": "Questionable",
+          "detail": "Hamstring"
+        }
+      ],
+      "away": [
+        {
+          "player": "Asim Richards",
+          "position": "T",
+          "status": "Questionable",
+          "detail": "Knee"
+        },
+        {
+          "player": "Juwan Johnson",
+          "position": "TE",
+          "status": "Out",
+          "detail": "Hamstring"
+        },
+        {
+          "player": "Noah Fant",
+          "position": "TE",
+          "status": "Questionable",
+          "detail": "Calf"
+        },
+        {
+          "player": "Taliese Fuaga",
+          "position": "T",
+          "status": "Questionable",
+          "detail": "Knee"
+        }
+      ]
     },
     "weather": {
       "mode": "outdoor",
       "temp_f": {
-        "value": 52,
+        "value": 50,
         "source": "nws",
         "sample": null,
         "range": "2026-11-29T13:00:00-05:00/2026-11-29T14:00:00-05:00"
       },
       "wind_mph": {
-        "value": 10,
+        "value": 12,
         "source": "nws",
         "sample": null,
         "range": "2026-11-29T13:00:00-05:00/2026-11-29T14:00:00-05:00"
       },
       "precip_prob_pct": {
-        "value": 93,
+        "value": 57,
         "source": "nws",
         "sample": null,
         "range": "2026-11-29T13:00:00-05:00/2026-11-29T14:00:00-05:00"
       },
-      "summary": "Light Rain"
+      "summary": "Rain Showers Likely"
     },
     "story_prompts": [
       {

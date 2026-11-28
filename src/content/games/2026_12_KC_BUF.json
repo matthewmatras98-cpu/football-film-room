@@ -8,7 +8,7 @@
   "away": "KC",
   "venue": "Highmark Stadium",
   "roof": "outdoors",
-  "surface": "a_turf",
+  "surface": null,
   "home_rest": 4,
   "away_rest": 4,
   "line_open": {
@@ -18,10 +18,10 @@
     "n_books": 7
   },
   "line_latest": {
-    "ts": "2026-11-26T00:45:02Z",
+    "ts": "2026-11-27T01:05:01Z",
     "home_spread": -3,
-    "total": 46.5,
-    "n_books": 7
+    "total": 46,
+    "n_books": 9
   },
   "line_history": [
     {
@@ -83,17 +83,52 @@
       "home_spread": -3,
       "total": 46.5,
       "n_books": 7
+    },
+    {
+      "ts": "2026-11-26T17:03:28Z",
+      "home_spread": -3,
+      "total": 45.5,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-26T17:45:20Z",
+      "home_spread": -3,
+      "total": 45.5,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-26T20:30:01Z",
+      "home_spread": -3,
+      "total": 46,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-26T21:15:01Z",
+      "home_spread": -3,
+      "total": 46,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-27T00:20:01Z",
+      "home_spread": -3,
+      "total": 46,
+      "n_books": 9
+    },
+    {
+      "ts": "2026-11-27T01:05:01Z",
+      "home_spread": -3,
+      "total": 46,
+      "n_books": 9
     }
   ],
-  "generated_at": "2026-11-26T12:02:20Z",
+  "generated_at": "2026-11-28T11:49:38Z",
   "data_through_week": 11,
   "sources": [
     "nflverse_pbp",
     "nflverse_schedules",
     "nflverse_injuries",
     "ngs_via_nflverse",
-    "odds_api",
-    "nws"
+    "odds_api"
   ],
   "injuries_status": "reported",
   "sections": {
@@ -456,24 +491,24 @@
     "weather": {
       "mode": "outdoor",
       "temp_f": {
-        "value": 37,
+        "value": null,
         "source": "nws",
         "sample": null,
-        "range": "2026-11-26T20:00:00-05:00/2026-11-26T21:00:00-05:00"
+        "range": null
       },
       "wind_mph": {
-        "value": 13,
+        "value": null,
         "source": "nws",
         "sample": null,
-        "range": "2026-11-26T20:00:00-05:00/2026-11-26T21:00:00-05:00"
+        "range": null
       },
       "precip_prob_pct": {
-        "value": 100,
+        "value": null,
         "source": "nws",
         "sample": null,
-        "range": "2026-11-26T20:00:00-05:00/2026-11-26T21:00:00-05:00"
+        "range": null
       },
-      "summary": "Rain"
+      "summary": null
     },
     "story_prompts": [
       {
